@@ -1,0 +1,12 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+    query 'src/main/xquery/main.xq'
+    source 'src/main/xml/input.xml'
+    outputDir.set(layout.buildDirectory.dir('out/xquery'))
+    outputExtension.set('.xml')
+    param 'prefix', 'Hello '
+}
+

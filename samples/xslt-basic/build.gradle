@@ -1,0 +1,12 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+    style 'src/main/xslt/main.xsl'
+    source 'src/main/xml/input.xml'
+    outputDir.set(layout.buildDirectory.dir('out/xslt'))
+    outputExtension.set('.xml')
+    param 'prefix', 'Hello '
+}
+

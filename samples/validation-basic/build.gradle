@@ -1,0 +1,21 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
+    schema 'src/main/xsd/schema.xsd'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('reports/xsd'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+    failOnError.set(false)
+}
+
+tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    schema 'src/main/schematron/rules.sch'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('reports/schematron'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    failOnError.set(false)
+}
+

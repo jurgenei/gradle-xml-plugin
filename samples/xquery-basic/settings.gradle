@@ -1,0 +1,6 @@
+pluginManagement {
+    includeBuild("../..")
+}
+
+rootProject.name = "xquery-basic"
+

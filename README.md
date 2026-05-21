@@ -209,6 +209,16 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 
 ## Development
 
+### Samples
+
+Runnable minimal examples are available under `samples/`:
+
+- `samples/xslt-basic`
+- `samples/xquery-basic`
+- `samples/validation-basic`
+
+See `samples/README.md` for run commands.
+
 ### Testing
 
 JUnit 4 with Gradle TestKit for functional integration testing:
@@ -225,6 +235,10 @@ gradle test --tests '*XsdTaskIntegrationTest'
 - Java 21+ source
 - Javadoc on all public APIs and classes
 - Text blocks for multiline strings (Java 15+)
+
+## Contributing
+
+Contribution workflow and coding expectations are documented in `CONTRIBUTING.md`.
 
 ## License
 
