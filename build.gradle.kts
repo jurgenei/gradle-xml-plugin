@@ -28,6 +28,7 @@ gradlePlugin {
 
 dependencies {
     implementation("net.sf.saxon:Saxon-HE:12.5")
+    implementation("name.dmaus.schxslt:schxslt2:1.10.3")
 
     testImplementation(gradleTestKit())
     testImplementation("junit:junit:4.13.2")

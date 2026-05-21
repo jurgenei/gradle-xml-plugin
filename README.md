@@ -5,33 +5,60 @@
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
 [![Gradle](https://img.shields.io/badge/gradle-9.5+-blue.svg)](https://gradle.org/)
 
-A Gradle plugin providing **Saxon HE**-backed XSLT and XQuery transformation tasks with an orthogonal, Gradle-style DSL.
+A Gradle plugin providing **Saxon**-backed XSLT/XQuery transforms and SVRL-based XML validation tasks with an orthogonal, Gradle-style DSL.
 
 ## Overview
 
-Define and execute XPath/XSLT/XQuery transformations as Gradle tasks with:
+Define and execute XPath/XSLT/XQuery transformations and XML validations as Gradle tasks with:
 
 - File-tree input matching (include/exclude patterns)
 - Output file generation with configurable extension mapping
 - External parameter passing to transforms
 - Optional parallel processing using **virtual threads**
+- SVRL and optional JUnit XML reporting for validation
 
-The plugin contributes two task types:
+The plugin contributes four task types:
 
 - `name.jurgenei.gradle.xml.XsltTask` — XSLT 3.0 transformations
 - `name.jurgenei.gradle.xml.XQueryTask` — XQuery transformations
+- `name.jurgenei.gradle.xml.SchematronTask` — Schematron to SVRL validation
+- `name.jurgenei.gradle.xml.XsdTask` — XSD validation normalized to SVRL
 
 Both share a near-orthogonal API for unified Gradle-style configuration.
 
 ## Features
 
 - **Saxon HE** XSLT 3.0 and XQuery execution
+- **Schematron validation** via SchXslt2 transpiler (`name.dmaus.schxslt:schxslt2`)
+- **XSD validation** with AUTO engine resolution (Saxon PE/EE when available, JAXP fallback on HE)
 - **Orthogonal task API** — both task types inherit the same base configuration
 - **File-tree DSL** — Ant-like include/exclude filtering via Gradle's native `fileTree`
 - **Flexible output mapping** — custom extension and output directory per task
 - **Parameter passing** — externalize stylesheet/query variables
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
+
+## Validation API Contract
+
+Validation tasks share a common contract (`ValidationTaskSpec`) and defaults:
+
+- `outputExtension = '.svrl.xml'`
+- `workers = 1`
+- `reportFormat = SVRL`
+- `failOnError = true`
+- `junitOutputDir = build/reports/xml-validation/junit`
+
+`ReportFormat` values:
+
+- `SVRL`
+- `JUNIT`
+- `SVRL_AND_JUNIT`
+
+`XsdTask` supports `XsdEngine` values:
+
+- `AUTO` (default; prefers Saxon schema-aware, otherwise JAXP)
+- `SAXON`
+- `JAXP`
 
 ## Plugin id
 
@@ -113,6 +140,27 @@ tasks.register('queryDocs', name.jurgenei.gradle.xml.XQueryTask) {
 }
 ```
 
+## Validation Examples (Groovy DSL)
+
+```groovy
+tasks.register('validateSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+  schema 'src/main/schematron/rules.sch'
+  source(fileTree('src/main/xml') { include '**/*.xml' })
+  outputDir.set(layout.buildDirectory.dir('reports/schematron'))
+  reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+  workers.set(4)
+  failOnError.set(false)
+}
+
+tasks.register('validateXsd', name.jurgenei.gradle.xml.XsdTask) {
+  schema 'src/main/xsd/schema.xsd'
+  source(fileTree('src/main/xml') { include '**/*.xml' })
+  outputDir.set(layout.buildDirectory.dir('reports/xsd'))
+  reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+  engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+}
+```
+
 ## Run tests
 
 ```bash
@@ -135,6 +183,10 @@ Required Java version: **21+**
 AbstractXmlTransformTask (shared base)
   ├── XsltTask (XSLT transformations)
   └── XQueryTask (XQuery transformations)
+
+AbstractXmlValidationTask (shared base)
+  ├── SchematronTask (Schematron validation)
+  └── XsdTask (XSD validation)
 ```
 
 ### Execution Flow
@@ -164,6 +216,8 @@ JUnit 4 with Gradle TestKit for functional integration testing:
 ```bash
 gradle test --tests '*XsltTaskIntegrationTest'
 gradle test --tests '*XQueryTaskIntegrationTest'
+gradle test --tests '*SchematronTaskIntegrationTest'
+gradle test --tests '*XsdTaskIntegrationTest'
 ```
 
 ### Code Style
