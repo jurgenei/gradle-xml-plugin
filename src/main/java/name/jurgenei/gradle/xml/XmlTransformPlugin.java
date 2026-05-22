@@ -11,6 +11,12 @@ import org.gradle.api.Project;
  */
 public class XmlTransformPlugin implements Plugin<Project> {
     /**
+     * Creates the plugin instance.
+     */
+    public XmlTransformPlugin() {
+    }
+
+    /**
      * Applies the plugin to a project.
      *
      * @param project Gradle project receiving the plugin

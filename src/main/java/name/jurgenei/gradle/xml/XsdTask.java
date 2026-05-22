@@ -29,17 +29,35 @@ import org.xml.sax.SAXParseException;
  */
 public abstract class XsdTask extends AbstractXmlValidationTask {
 
+    /**
+     * Returns the XSD schema file used to validate input documents.
+     *
+     * @return XSD schema file used to validate each input XML
+     */
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getSchema();
 
+    /**
+     * Returns which validation backend should be used for XSD checks.
+     *
+     * @return configured XSD validation engine selection
+     */
     @Input
     public abstract Property<XsdEngine> getEngine();
 
+    /**
+     * Creates an XSD validation task with AUTO engine selection.
+     */
     public XsdTask() {
         getEngine().convention(XsdEngine.AUTO);
     }
 
+    /**
+     * Sets the XSD schema file using Gradle file notation.
+     *
+     * @param path file notation accepted by {@code Project.file}
+     */
     public void schema(Object path) {
         File file = getProject().file(path);
         if (!file.exists()) {

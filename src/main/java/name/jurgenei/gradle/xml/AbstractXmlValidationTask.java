@@ -62,6 +62,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Input
     public abstract MapProperty<String, String> getParams();
 
+    /**
+     * Creates a validation task with default conventions.
+     */
     public AbstractXmlValidationTask() {
         getOutputExtension().convention(".svrl.xml");
         getWorkers().convention(1);
@@ -74,6 +77,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
     /**
      * Adds a validation parameter available to concrete engines.
+     *
+     * @param name parameter name, must not be {@code null}
+     * @param value parameter value converted to string
      */
     public void param(String name, Object value) {
         if (name == null) {
@@ -84,6 +90,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
     /**
      * Adds an Ant-like fileset rooted at baseDir.
+     *
+     * @param baseDir base directory object accepted by {@code Project.fileTree}
+     * @param configureAction include/exclude configuration action
      */
     public void fileset(Object baseDir, Action<? super ConfigurableFileTree> configureAction) {
         ConfigurableFileTree tree = getProject().fileTree(baseDir);
@@ -97,6 +106,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         return super.getSource();
     }
 
+    /**
+     * Executes validation for all resolved source files.
+     */
     @TaskAction
     public void validateAll() {
         List<File> inputFiles = new ArrayList<>(getSource().getFiles());
@@ -220,6 +232,14 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         }
     }
 
+    /**
+     * Validates a single input file and returns normalized findings.
+     *
+     * @param inputFile file to validate
+     * @param params task-level validation parameters
+     * @return normalized validation result
+     * @throws Exception when validation cannot be performed
+     */
     protected abstract ValidationResult validate(File inputFile, Map<String, String> params) throws Exception;
 }
 

@@ -10,3 +10,13 @@ tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
     param 'prefix', 'Hello '
 }
 
+tasks.register('verifySample') {
+    dependsOn 'runXslt'
+    doLast {
+        File output = file('build/out/xslt/src/main/xml/input.xml')
+        if (!output.exists()) {
+            throw new GradleException("Expected output file does not exist: ${output}")
+        }
+    }
+}
+

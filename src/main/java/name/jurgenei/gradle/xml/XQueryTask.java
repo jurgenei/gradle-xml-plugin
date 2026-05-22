@@ -27,6 +27,12 @@ import org.gradle.api.tasks.PathSensitivity;
 public abstract class XQueryTask extends AbstractXmlTransformTask {
 
     /**
+     * Creates an XQuery transformation task.
+     */
+    public XQueryTask() {
+    }
+
+    /**
      * XQuery file used to compile the transformation.
      *
      * @return query file property

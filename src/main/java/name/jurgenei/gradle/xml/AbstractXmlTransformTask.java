@@ -114,6 +114,12 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         return super.getSource();
     }
 
+    /**
+     * Executes transformations for all resolved source files.
+     *
+     * <p>Files are processed deterministically and may run in parallel when
+     * {@code workers > 1}.</p>
+     */
     @TaskAction
     public void transformAll() {
         List<File> inputFiles = new ArrayList<>(getSource().getFiles());

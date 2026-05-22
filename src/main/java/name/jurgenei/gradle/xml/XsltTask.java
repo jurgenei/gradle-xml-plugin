@@ -26,6 +26,12 @@ import org.gradle.api.tasks.PathSensitivity;
 public abstract class XsltTask extends AbstractXmlTransformTask {
 
     /**
+     * Creates an XSLT transformation task.
+     */
+    public XsltTask() {
+    }
+
+    /**
      * Stylesheet file used to compile the XSLT transformation.
      *
      * @return stylesheet file property

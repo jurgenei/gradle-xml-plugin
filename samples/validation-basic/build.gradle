@@ -1,5 +1,6 @@
 plugins {
     id 'name.jurgenei.gradle.xml'
+
 }
 
 tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
@@ -17,5 +18,24 @@ tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
     outputDir.set(layout.buildDirectory.dir('reports/schematron'))
     reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
     failOnError.set(false)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runXsd', 'runSchematron'
+    doLast {
+        List<File> expected = [
+            file('build/reports/xsd/src/main/xml/valid.svrl.xml'),
+            file('build/reports/xsd/src/main/xml/invalid.svrl.xml'),
+            file('build/reports/schematron/src/main/xml/valid.svrl.xml'),
+            file('build/reports/schematron/src/main/xml/invalid.svrl.xml'),
+            file('build/reports/xml-validation/junit/src/main/xml/valid.junit.xml'),
+            file('build/reports/xml-validation/junit/src/main/xml/invalid.junit.xml')
+        ]
+
+        List<File> missing = expected.findAll { !it.exists() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing expected sample outputs:\n - ${missing.join('\n - ')}")
+        }
+    }
 }
 

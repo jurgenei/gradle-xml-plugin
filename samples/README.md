@@ -26,3 +26,14 @@ From repository root:
 ./gradlew -p samples/validation-basic runXsd runSchematron
 ```
 
+## Smoke-test samples
+
+Each sample provides a tiny `verifySample` task that runs the sample task(s)
+and asserts expected output files exist.
+
+```bash
+./gradlew -p samples/xslt-basic verifySample
+./gradlew -p samples/xquery-basic verifySample
+./gradlew -p samples/validation-basic verifySample
+```
+

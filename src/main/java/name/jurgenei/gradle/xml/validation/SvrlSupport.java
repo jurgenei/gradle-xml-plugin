@@ -17,6 +17,13 @@ public final class SvrlSupport {
     private SvrlSupport() {
     }
 
+    /**
+     * Renders a normalized SVRL document from validation issues.
+     *
+     * @param document source document identifier
+     * @param issues normalized validation findings
+     * @return SVRL XML string
+     */
     public static String renderSvrl(String document, List<ValidationIssue> issues) {
         StringBuilder xml = new StringBuilder();
         xml.append("""
@@ -37,6 +44,13 @@ public final class SvrlSupport {
         return xml.toString();
     }
 
+    /**
+     * Parses failed assertions from an SVRL XML document.
+     *
+     * @param svrlXml SVRL XML input
+     * @return extracted validation findings
+     * @throws Exception when XML parsing fails
+     */
     public static List<ValidationIssue> parseSvrlIssues(String svrlXml) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
@@ -54,6 +68,14 @@ public final class SvrlSupport {
         return issues;
     }
 
+    /**
+     * Renders a minimal JUnit XML report from normalized findings.
+     *
+     * @param suiteName JUnit testsuite name
+     * @param testcaseName JUnit testcase name
+     * @param issues normalized validation findings
+     * @return JUnit XML string
+     */
     public static String renderJunit(String suiteName, String testcaseName, List<ValidationIssue> issues) {
         StringBuilder xml = new StringBuilder();
         int failures = issues.size();

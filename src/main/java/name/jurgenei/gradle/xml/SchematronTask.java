@@ -25,15 +25,32 @@ import org.gradle.api.tasks.PathSensitivity;
  */
 public abstract class SchematronTask extends AbstractXmlValidationTask {
 
+    /**
+     * Creates a Schematron validation task.
+     */
+    public SchematronTask() {
+    }
+
+    /**
+     * @return Schematron schema file used for validation
+     */
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getSchema();
 
+    /**
+     * @return optional transpiler stylesheet overriding bundled SchXslt transpiler
+     */
     @Optional
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getTranspilerStylesheet();
 
+    /**
+     * Sets the Schematron schema file using Gradle file notation.
+     *
+     * @param path file notation accepted by {@code Project.file}
+     */
     public void schema(Object path) {
         File file = getProject().file(path);
         if (!file.exists()) {
@@ -42,6 +59,11 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
         getSchema().set(file);
     }
 
+    /**
+     * Sets a custom transpiler stylesheet.
+     *
+     * @param path file notation accepted by {@code Project.file}
+     */
     public void transpilerStylesheet(Object path) {
         File file = getProject().file(path);
         if (!file.exists()) {
