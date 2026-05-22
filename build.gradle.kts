@@ -62,7 +62,7 @@ publishing {
         pom {
             name.set("Gradle XML Plugin")
             description.set("Gradle plugin for XSLT, XQuery, Schematron, and XSD validation")
-            url.set("https://github.com/jurgenei/GradleXmlTransform")
+            url.set("https://github.com/jurgenei/gradle-xml-plugin.git")
 
             licenses {
                 license {
