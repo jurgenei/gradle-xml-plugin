@@ -17,12 +17,15 @@ import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 
+import org.gradle.work.DisableCachingByDefault;
+
 /**
  * Transforms XML input files using a Saxon XSLT stylesheet.
  *
  * <p>Task behavior (sources, output mapping, parameters, and concurrency) is inherited
  * from {@link AbstractXmlTransformTask}.</p>
  */
+@DisableCachingByDefault(because = "XSLT transformations depend on external stylesheet and input files")
 public abstract class XsltTask extends AbstractXmlTransformTask {
 
     /**

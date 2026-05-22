@@ -24,9 +24,12 @@ import org.gradle.api.tasks.PathSensitivity;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
 
+import org.gradle.work.DisableCachingByDefault;
+
 /**
  * Validates XML files against XSD and emits findings normalized as SVRL.
  */
+@DisableCachingByDefault(because = "XSD validation depends on external schema files and validator engine")
 public abstract class XsdTask extends AbstractXmlValidationTask {
 
     /**

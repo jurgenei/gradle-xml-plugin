@@ -18,12 +18,15 @@ import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 
+import org.gradle.work.DisableCachingByDefault;
+
 /**
  * Transforms XML input files using a Saxon XQuery script.
  *
  * <p>Task behavior (sources, output mapping, parameters, and concurrency) is inherited
  * from {@link AbstractXmlTransformTask}.</p>
  */
+@DisableCachingByDefault(because = "XQuery transformations depend on external query files and input XML")
 public abstract class XQueryTask extends AbstractXmlTransformTask {
 
     /**

@@ -20,9 +20,12 @@ import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 
+import org.gradle.work.DisableCachingByDefault;
+
 /**
  * Validates XML files via Schematron by compiling .sch to XSLT and producing SVRL output.
  */
+@DisableCachingByDefault(because = "Schematron compilation and validation depends on external schema files")
 public abstract class SchematronTask extends AbstractXmlValidationTask {
 
     /**
@@ -32,6 +35,8 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
     }
 
     /**
+     * Returns the Schematron rules file used for validation.
+     *
      * @return Schematron schema file used for validation
      */
     @InputFile
@@ -39,6 +44,8 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
     public abstract RegularFileProperty getSchema();
 
     /**
+     * Returns an optional override for the bundled SchXslt transpiler stylesheet.
+     *
      * @return optional transpiler stylesheet overriding bundled SchXslt transpiler
      */
     @Optional
