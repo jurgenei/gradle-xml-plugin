@@ -51,7 +51,7 @@ publishing {
     repositories {
         maven {
             name = "central"
-            url = uri("https://central.sonatype.com/api/v1/publisher/upload")
+            url = uri("https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/")
             credentials {
                 username = providers.gradleProperty("mavenCentralUsername").orNull
                 password = providers.gradleProperty("mavenCentralPassword").orNull
