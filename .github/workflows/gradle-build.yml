@@ -26,14 +26,9 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build with Gradle
-      run: ./gradlew clean build --stacktrace
-
-    - name: Publish to Maven Local
-      run: ./gradlew publishToMavenLocal --stacktrace
-
-    - name: Smoke test samples
+    - name: Build, test, and verify samples
       run: |
+        ./gradlew clean build --stacktrace
         ./gradlew -p samples/xslt-basic verifySample --stacktrace
         ./gradlew -p samples/xquery-basic verifySample --stacktrace
         ./gradlew -p samples/validation-basic verifySample --stacktrace
