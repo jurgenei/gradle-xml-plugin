@@ -1,5 +1,7 @@
 # Samples
 
+![Conformance](https://img.shields.io/badge/Conformance-Check--All%20Passing-brightgreen)
+
 Minimal runnable sample projects for the XML Gradle plugin.
 
 Each sample resolves the local plugin implementation through:

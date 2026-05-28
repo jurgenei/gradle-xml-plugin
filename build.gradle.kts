@@ -3,6 +3,9 @@ plugins {
     `maven-publish`
     signing
     id("com.gradle.plugin-publish") version "2.1.1"
+    id("org.owasp.dependencycheck") version "10.0.3"
+    id("com.github.spotbugs") version "6.1.0"
+    id("org.sonarqube") version "6.0.1.5171"
 }
 
 group = "name.jurgenei.gradle"
@@ -100,6 +103,44 @@ signing {
     sign(publishing.publications)
 }
 
+// OWASP Dependency-Check configuration
+dependencyCheck {
+    format = "HTML,JSON,XML"
+    failBuildOnCVSS = 7.0f
+    suppressionFile = "dependency-check-suppressions.xml"
+
+    // NVD API key configuration (improves scan speed by 30-50%)
+    // Get key from: https://nvd.nist.gov/developers/request-an-api-key
+    nvd.apiKey = providers.gradleProperty("org.owasp.dependencycheck.nvd.api.key").orNull
+        ?: System.getenv("NVD_API_KEY")
+}
+
+// SpotBugs configuration
+configure<com.github.spotbugs.snom.SpotBugsExtension> {
+    ignoreFailures.set(false)
+    effort.set(com.github.spotbugs.snom.Effort.DEFAULT)
+    reportLevel.set(com.github.spotbugs.snom.Confidence.MEDIUM)
+}
+
+tasks.named<com.github.spotbugs.snom.SpotBugsTask>("spotbugsMain") {
+    reports.maybeCreate("html").apply {
+        required.set(true)
+    }
+    reports.maybeCreate("xml").apply {
+        required.set(false)
+    }
+}
+
+// SonarQube configuration
+sonar {
+    properties {
+        property("sonar.projectKey", "gradle-xml-plugin")
+        property("sonar.projectName", "Gradle XML Plugin")
+        property("sonar.sourceEncoding", "UTF-8")
+        property("sonar.java.source", "21")
+    }
+}
+
 dependencies {
     implementation("net.sf.saxon:Saxon-HE:12.5")
     implementation("name.dmaus.schxslt:schxslt2:1.10.3")
@@ -112,3 +153,8 @@ tasks.test {
     useJUnit()
 }
 
+tasks.register("allSecurityChecks") {
+    group = "verification"
+    description = "Run all security and quality checks (Dependency-Check, SpotBugs, SonarQube)"
+    dependsOn("check", "dependencyCheck", "spotbugsMain")
+}

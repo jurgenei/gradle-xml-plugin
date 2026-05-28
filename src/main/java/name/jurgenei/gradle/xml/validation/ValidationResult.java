@@ -9,13 +9,18 @@ import java.util.List;
  * @param svrlXml optional native SVRL output; when empty, SVRL is generated from issues
  */
 public record ValidationResult(List<ValidationIssue> issues, String svrlXml) {
+    public ValidationResult {
+        issues = issues == null ? List.of() : List.copyOf(issues);
+        svrlXml = svrlXml == null ? "" : svrlXml;
+    }
+
     /**
      * Indicates whether the result contains any findings.
      *
      * @return true when one or more validation findings are present
      */
     public boolean hasErrors() {
-        return issues != null && !issues.isEmpty();
+        return !issues.isEmpty();
     }
 }
 

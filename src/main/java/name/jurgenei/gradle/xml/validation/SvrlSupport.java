@@ -26,21 +26,22 @@ public final class SvrlSupport {
      */
     public static String renderSvrl(String document, List<ValidationIssue> issues) {
         StringBuilder xml = new StringBuilder();
-        xml.append("""
-            <?xml version="1.0" encoding="UTF-8"?>
-            <svrl:schematron-output xmlns:svrl="%s" title="XSD validation">
-              <svrl:active-pattern document="%s"/>
-            """.formatted(SVRL_NS, escape(document)));
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>%n"
+            .formatted());
+        xml.append("<svrl:schematron-output xmlns:svrl=\"%s\" title=\"XSD validation\">%n"
+            .formatted(SVRL_NS));
+        xml.append("  <svrl:active-pattern document=\"%s\"/>%n"
+            .formatted(escape(document)));
         for (ValidationIssue issue : issues) {
-            xml.append("""
-                  <svrl:failed-assert test="validation" location="%s">
-                    <svrl:text>%s</svrl:text>
-                  </svrl:failed-assert>
-                """.formatted(escape(issue.location()), escape(issue.message())));
+            xml.append("  <svrl:failed-assert test=\"validation\" location=\"%s\">%n"
+                .formatted(escape(issue.location())));
+            xml.append("    <svrl:text>%s</svrl:text>%n"
+                .formatted(escape(issue.message())));
+            xml.append("  </svrl:failed-assert>%n"
+                .formatted());
         }
-        xml.append("""
-            </svrl:schematron-output>
-            """);
+        xml.append("</svrl:schematron-output>%n"
+            .formatted());
         return xml.toString();
     }
 
@@ -79,29 +80,26 @@ public final class SvrlSupport {
     public static String renderJunit(String suiteName, String testcaseName, List<ValidationIssue> issues) {
         StringBuilder xml = new StringBuilder();
         int failures = issues.size();
-        xml.append("""
-            <?xml version="1.0" encoding="UTF-8"?>
-            <testsuite name="%s" tests="1" failures="%s" errors="0" skipped="0">
-              <testcase classname="%s" name="%s">
-            """
-            .formatted(escape(suiteName), failures > 0 ? "1" : "0", escape(suiteName), escape(testcaseName)));
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>%n"
+            .formatted());
+        xml.append("<testsuite name=\"%s\" tests=\"1\" failures=\"%s\" errors=\"0\" skipped=\"0\">%n"
+            .formatted(escape(suiteName), failures > 0 ? "1" : "0"));
+        xml.append("  <testcase classname=\"%s\" name=\"%s\">%n"
+            .formatted(escape(suiteName), escape(testcaseName)));
         if (failures > 0) {
-            xml.append("""
-                <failure message="%s">
-                """.formatted(escape("Validation failed with " + failures + " issue(s)")));
+            xml.append("    <failure message=\"%s\">%n"
+                .formatted(escape("Validation failed with " + failures + " issue(s)")));
             for (ValidationIssue issue : issues) {
-                xml.append("""
-                    %s: %s
-                    """.formatted(escape(issue.location()), escape(issue.message())));
+                xml.append("      %s: %s%n"
+                    .formatted(escape(issue.location()), escape(issue.message())));
             }
-            xml.append("""
-                </failure>
-                """);
+            xml.append("    </failure>%n"
+                .formatted());
         }
-        xml.append("""
-              </testcase>
-            </testsuite>
-            """);
+        xml.append("  </testcase>%n"
+            .formatted());
+        xml.append("</testsuite>%n"
+            .formatted());
         return xml.toString();
     }
 

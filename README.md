@@ -1,5 +1,7 @@
 # Gradle XML Transform Plugin
 
+![Conformance](https://img.shields.io/badge/Conformance-Check--All%20Passing-brightgreen)
+
 [![Build and Test](https://github.com/jurgenei/GradleXmlTransform/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/jurgenei/GradleXmlTransform/actions/workflows/gradle-build.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
