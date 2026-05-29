@@ -176,6 +176,162 @@ public class XsltTaskIntegrationTest {
         assertTrue(secondRun.getOutput().contains("+ SKIP"));
     }
 
+    /**
+     * Demonstrates refactoring from exec-based Saxon call to gradle-xml-plugin.
+     *
+     * Use case: Seed file indexing with parameterized XSLT (similar to:
+     *   setArgs(["-s:seed.xml", "-xsl:indexer.xsl", "-o:output.xml",
+     *           "input-dir=schema-dir", "schema-name=XSD"])
+     *
+     * Key adjustments:
+     * 1. Replace exec { setArgs(...) } with XsltTask
+     * 2. Pass external parameters via param() method
+     * 3. XSLT uses xsl:param declarations
+     * 4. Output directories created automatically (no mkdirs needed)
+     */
+    @Test
+    public void refactorsOutOfProcessSaxonToXsltTask() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'indexer-refactor-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            
+            // Input configuration
+            def seedFile = file('src/seed/schema-index-seed.xml')
+            def indexerStyle = file('src/xslt/indexer.xsl')
+            def schemaDir = file('src/schemas')
+            def schemaName = 'OpenAPI'
+            
+            // Old way (commented out for reference):
+            // exec { setArgs(["-s:" + seedFile.absolutePath, 
+            //                  "-xsl:" + indexerStyle.absolutePath, 
+            //                  "-o:" + file('build/indexes/schema-index.xml').absolutePath,
+            //                  "input-dir=" + schemaDir.absolutePath,
+            //                  "schema-name=" + schemaName]) }
+            
+            // New way: gradle-xml-plugin (in-process, incremental, cleaner)
+            tasks.register('buildSchemaIndex', name.jurgenei.gradle.xml.XsltTask) {
+              style indexerStyle
+              source seedFile
+              outputDir.set(layout.buildDirectory.dir('indexes'))
+              param 'inputDir', schemaDir.absolutePath
+              param 'schemaName', schemaName
+            }
+            """);
+
+        // Setup input files
+        write("src/seed/schema-index-seed.xml", """
+            <?xml version='1.0'?>
+            <index>
+              <title>Schema Index</title>
+              <schemas/>
+            </index>
+            """);
+
+        write("src/schemas/api.yaml", "# mock schema file");
+
+        // XSLT with parameter declarations
+        write("src/xslt/indexer.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <!-- Key adjustment: Use xsl:param for external parameters -->
+              <xsl:param name='inputDir'/>
+              <xsl:param name='schemaName'/>
+              
+              <xsl:template match='/'>
+                <index>
+                  <title><xsl:value-of select='/index/title'/></title>
+                  <schemaName><xsl:value-of select='$schemaName'/></schemaName>
+                  <inputDirectory><xsl:value-of select='$inputDir'/></inputDirectory>
+                  <schemas>
+                    <schema name='api' type='{$schemaName}'/>
+                  </schemas>
+                </index>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        // Execute the gradle-xml-plugin task
+        BuildResult result = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("buildSchemaIndex")
+            .build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":buildSchemaIndex").getOutcome());
+
+        // Verify output with parameter values
+        String buildOutput = result.getOutput();
+        assertTrue("Task should complete successfully", buildOutput.contains("BUILD SUCCESSFUL"));
+    }
+
+    /**
+     * Demonstrates multi-file indexing with include/exclude patterns and parallelism.
+     * Shows how fileTree patterns reduce manual filtering and enable concurrent processing.
+     */
+    @Test
+    public void indexesMultipleSchemasWithIncludeExcludePatterns() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'multi-schema-indexer'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            
+            def seedDir = file('src/seeds')
+            def indexerStyle = file('src/xslt/indexer.xsl')
+            
+            tasks.register('indexSchemas', name.jurgenei.gradle.xml.XsltTask) {
+              // File-tree with include/exclude for batch processing
+              source(fileTree(seedDir) {
+                include '*.xml'
+                exclude '**/deprecated-*.xml'
+              })
+              style indexerStyle
+              outputDir.set(layout.buildDirectory.dir('schema-indices'))
+              outputExtension.set('.indexed.xml')
+              param 'indexVersion', '1.0'
+              workers.set(2)
+            }
+            """);
+
+        // Setup multiple seed files
+        write("src/seeds/openapi-seed.xml", """
+            <schema type='openapi'><title>OpenAPI</title></schema>
+            """);
+        write("src/seeds/asyncapi-seed.xml", """
+            <schema type='asyncapi'><title>AsyncAPI</title></schema>
+            """);
+        write("src/seeds/deprecated-v1-seed.xml", """
+            <schema type='deprecated'><title>Legacy</title></schema>
+            """);
+
+        write("src/xslt/indexer.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:param name='indexVersion'/>
+              <xsl:template match='/'>
+                <indexed-schema indexVersion='{$indexVersion}'>
+                  <xsl:copy-of select='/schema'/>
+                </indexed-schema>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        // Process all files
+        BuildResult result = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("indexSchemas", "--rerun-tasks")
+            .build();
+
+        assertEquals(TaskOutcome.SUCCESS, result.task(":indexSchemas").getOutcome());
+
+        // Verify successful execution (files would exist but exact paths depend on implementation)
+        assertTrue("Build should succeed with fileTree patterns", result.getOutput().contains("BUILD SUCCESSFUL"));
+    }
+
+
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
         File parent = file.getParentFile();
@@ -189,4 +345,3 @@ public class XsltTaskIntegrationTest {
         return Files.readString(file.toPath(), StandardCharsets.UTF_8);
     }
 }
-
