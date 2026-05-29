@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -113,6 +114,7 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     public void validateAll() {
         List<File> inputFiles = new ArrayList<>(getSource().getFiles());
         Collections.sort(inputFiles);
+        Map<Path, String> relativePaths = resolveRelativePaths();
 
         if (inputFiles.isEmpty()) {
             getLogger().lifecycle("{}: no input files matched", getName());
@@ -130,10 +132,10 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         int workers = Math.max(1, getWorkers().get());
         if (workers == 1 || inputFiles.size() == 1) {
             for (File inputFile : inputFiles) {
-                validateOne(inputFile, outputRoot, failures);
+                validateOne(inputFile, outputRoot, relativePaths, failures);
             }
         } else {
-            runParallel(inputFiles, outputRoot, workers, failures);
+            runParallel(inputFiles, outputRoot, relativePaths, workers, failures);
         }
 
         if (!failures.isEmpty() && getFailOnError().get()) {
@@ -141,11 +143,11 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, int workers, List<Exception> failures) {
+    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, int workers, List<Exception> failures) {
         try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> validateOne(inputFile, outputRoot, failures)));
+                futures.add(executor.submit(() -> validateOne(inputFile, outputRoot, relativePaths, failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -165,8 +167,8 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         }
     }
 
-    private void validateOne(File inputFile, File outputRoot, List<Exception> failures) {
-        File svrlFile = svrlFileFor(inputFile, outputRoot);
+    private void validateOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, List<Exception> failures) {
+        File svrlFile = svrlFileFor(inputFile, outputRoot, relativePaths);
         mkdirs(svrlFile.getParentFile());
 
         try {
@@ -180,7 +182,7 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
             }
 
             if (getReportFormat().get().writesJunit()) {
-                File junitFile = junitFileFor(inputFile);
+                File junitFile = junitFileFor(inputFile, relativePaths);
                 mkdirs(junitFile.getParentFile());
                 String junitXml = SvrlSupport.renderJunit(getJunitSuiteName().get(), inputFile.getName(), result.issues());
                 Files.writeString(junitFile.toPath(), junitXml, StandardCharsets.UTF_8);
@@ -194,13 +196,16 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         }
     }
 
-    private File svrlFileFor(File inputFile, File outputRoot) {
+    private File svrlFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
         Path projectPath = getProject().getProjectDir().toPath().toAbsolutePath().normalize();
 
-        String relative = inputPath.startsWith(projectPath)
-            ? projectPath.relativize(inputPath).toString()
-            : inputFile.getName();
+        String relative = relativePaths.get(inputPath);
+        if (relative == null) {
+            relative = inputPath.startsWith(projectPath)
+                ? projectPath.relativize(inputPath).toString()
+                : inputFile.getName();
+        }
 
         int extensionIndex = relative.lastIndexOf('.');
         String replaced = extensionIndex >= 0
@@ -209,13 +214,16 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         return new File(outputRoot, replaced);
     }
 
-    private File junitFileFor(File inputFile) {
+    private File junitFileFor(File inputFile, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
         Path projectPath = getProject().getProjectDir().toPath().toAbsolutePath().normalize();
 
-        String relative = inputPath.startsWith(projectPath)
-            ? projectPath.relativize(inputPath).toString()
-            : inputFile.getName();
+        String relative = relativePaths.get(inputPath);
+        if (relative == null) {
+            relative = inputPath.startsWith(projectPath)
+                ? projectPath.relativize(inputPath).toString()
+                : inputFile.getName();
+        }
 
         int extensionIndex = relative.lastIndexOf('.');
         String replaced = extensionIndex >= 0
@@ -230,6 +238,20 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         } catch (Exception e) {
             throw new GradleException("Could not create directory: " + dir, e);
         }
+    }
+
+    private Map<Path, String> resolveRelativePaths() {
+        Map<Path, String> relativePaths = new HashMap<>();
+        getSource().visit(details -> {
+            if (details.isDirectory()) {
+                return;
+            }
+            Path absolutePath = details.getFile().toPath().toAbsolutePath().normalize();
+            String relativePath = details.getRelativePath().getPathString();
+            relativePaths.merge(absolutePath, relativePath,
+                (existing, candidate) -> existing.length() <= candidate.length() ? existing : candidate);
+        });
+        return relativePaths;
     }
 
     /**

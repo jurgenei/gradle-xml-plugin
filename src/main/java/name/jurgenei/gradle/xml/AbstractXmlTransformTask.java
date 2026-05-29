@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -124,6 +125,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public void transformAll() {
         List<File> inputFiles = new ArrayList<>(getSource().getFiles());
         Collections.sort(inputFiles);
+        Map<Path, String> relativePaths = resolveRelativePaths();
 
         if (inputFiles.isEmpty()) {
             getLogger().lifecycle("{}: no input files matched", getName());
@@ -140,10 +142,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         if (workers == 1 || inputFiles.size() == 1) {
             for (File inputFile : inputFiles) {
-                transformOne(inputFile, outputRoot, failures);
+                transformOne(inputFile, outputRoot, relativePaths, failures);
             }
         } else {
-            runParallel(inputFiles, outputRoot, workers, failures);
+            runParallel(inputFiles, outputRoot, relativePaths, workers, failures);
         }
 
         if (!failures.isEmpty()) {
@@ -151,11 +153,11 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, int workers, List<Exception> failures) {
+    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, int workers, List<Exception> failures) {
         try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, failures)));
+                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -175,8 +177,15 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformOne(File inputFile, File outputRoot, List<Exception> failures) {
-        File outputFile = outputFileFor(inputFile, outputRoot);
+    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, List<Exception> failures) {
+        File outputFile = outputFileFor(inputFile, outputRoot, relativePaths);
+        long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
+
+        if (outputFile.exists() && outputFile.lastModified() >= newestDependencyTimestamp) {
+            getLogger().lifecycle("{} + SKIP", inputFile);
+            return;
+        }
+
         File outputParent = outputFile.getParentFile();
         try {
             Files.createDirectories(outputParent.toPath());
@@ -187,7 +196,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         try {
             transform(inputFile, outputFile, getParams().get());
-            getLogger().info("{} -> {}", inputFile, outputFile);
+            getLogger().lifecycle("{} + PROCESSED -> {}", inputFile, outputFile);
         } catch (Exception e) {
             getLogger().error("Failed to transform {}", inputFile, e);
             if (getFailOnError().get()) {
@@ -198,21 +207,48 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private File outputFileFor(File inputFile, File outputRoot) {
+    /**
+     * Returns the newest timestamp of any file dependency that influences a transformation.
+     *
+     * <p>By default this is the source file timestamp. Subclasses should override to include
+     * additional inputs such as stylesheets or query files.</p>
+     *
+     * @param inputFile source XML document
+     * @return newest dependency timestamp in epoch milliseconds
+     */
+    protected long latestDependencyTimestamp(File inputFile) {
+        return inputFile.lastModified();
+    }
+
+    private File outputFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
         Path projectPath = getProject().getProjectDir().toPath().toAbsolutePath().normalize();
 
-        String relative;
-        if (inputPath.startsWith(projectPath)) {
-            relative = projectPath.relativize(inputPath).toString();
-        } else {
-            relative = inputFile.getName();
+        String relative = relativePaths.get(inputPath);
+        if (relative == null) {
+            relative = inputPath.startsWith(projectPath)
+                ? projectPath.relativize(inputPath).toString()
+                : inputFile.getName();
         }
 
         int extensionIndex = relative.lastIndexOf('.');
         String extension = getOutputExtension().get();
         String replaced = extensionIndex >= 0 ? relative.substring(0, extensionIndex) + extension : relative + extension;
         return new File(outputRoot, replaced);
+    }
+
+    private Map<Path, String> resolveRelativePaths() {
+        Map<Path, String> relativePaths = new HashMap<>();
+        getSource().visit(details -> {
+            if (details.isDirectory()) {
+                return;
+            }
+            Path absolutePath = details.getFile().toPath().toAbsolutePath().normalize();
+            String relativePath = details.getRelativePath().getPathString();
+            relativePaths.merge(absolutePath, relativePath,
+                (existing, candidate) -> existing.length() <= candidate.length() ? existing : candidate);
+        });
+        return relativePaths;
     }
 
     /**

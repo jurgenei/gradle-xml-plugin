@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.Rule;
@@ -62,7 +63,7 @@ public class XsltTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
 
-        File output = new File(testProjectDir.getRoot(), "build/out/xslt/src/main/xml/input.xml");
+        File output = new File(testProjectDir.getRoot(), "build/out/xslt/input.xml");
         assertTrue(output.exists());
         assertTrue(read(output).contains("<result>Hello Gradle</result>"));
     }
@@ -92,7 +93,7 @@ public class XsltTaskIntegrationTest {
         write("src/main/xml/a.xml", """
             <root><value>A</value></root>
             """);
-        write("src/main/xml/b.xml", """
+        write("src/main/xml/foo/bar.xml", """
             <root><value>B</value></root>
             """);
         write("src/main/xml/skip.xml", """
@@ -113,15 +114,66 @@ public class XsltTaskIntegrationTest {
             .withArguments("runXslt")
             .build();
 
-        File outputA = new File(testProjectDir.getRoot(), "build/out/xslt/src/main/xml/a.out.xml");
-        File outputB = new File(testProjectDir.getRoot(), "build/out/xslt/src/main/xml/b.out.xml");
-        File skipped = new File(testProjectDir.getRoot(), "build/out/xslt/src/main/xml/skip.out.xml");
+        File outputA = new File(testProjectDir.getRoot(), "build/out/xslt/a.out.xml");
+        File outputB = new File(testProjectDir.getRoot(), "build/out/xslt/foo/bar.out.xml");
+        File skipped = new File(testProjectDir.getRoot(), "build/out/xslt/skip.out.xml");
 
         assertTrue(outputA.exists());
         assertTrue(outputB.exists());
         assertTrue(!skipped.exists());
         assertTrue(read(outputA).contains("<result>A</result>"));
         assertTrue(read(outputB).contains("<result>B</result>"));
+    }
+
+    /**
+     * Verifies per-file timestamp checks skip transformation and emit lifecycle logs.
+     */
+    @Test
+    public void skipsTransformationWhenOutputIsNewerThanSourceAndStylesheet() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-skip-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <result><xsl:value-of select='/root/value'/></result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        BuildResult firstRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt", "--rerun-tasks")
+            .build();
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xslt/input.xml");
+        assertTrue(output.exists());
+        assertTrue(firstRun.getOutput().contains("+ PROCESSED ->"));
+
+        long futureTimestamp = System.currentTimeMillis() + 60_000;
+        assertTrue(output.setLastModified(futureTimestamp));
+
+        BuildResult secondRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt", "--rerun-tasks")
+            .build();
+
+        assertTrue(secondRun.getOutput().contains("+ SKIP"));
     }
 
     private void write(String relativePath, String content) throws IOException {
