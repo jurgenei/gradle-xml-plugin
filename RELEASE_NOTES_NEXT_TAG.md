@@ -42,6 +42,12 @@ Scope: XML transform/validation output mapping and incremental transformation pe
 - Added Gradle `coverage` task using JaCoCo report + verification wiring.
 - Added `.github/workflows/coverage.yml` for CI coverage summary and optional Codecov upload.
 
+### Quality Automation
+
+- Added baseline `qodana.yaml` for JVM community linting on JDK 21.
+- Added `.github/workflows/qodana_code_quality.yml` with `main`/`release/**` trigger parity.
+- Qodana workflow uses read-only permissions and publishes scan results without auto-fixes.
+
 ## Verification
 
 - Integration test suite for XML plugin passed after changes:
