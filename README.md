@@ -2,7 +2,9 @@
 
 ![Conformance](https://img.shields.io/badge/Conformance-Check--All%20Passing-brightgreen)
 
-[![Build and Test](https://github.com/jurgenei/GradleXmlTransform/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/jurgenei/GradleXmlTransform/actions/workflows/gradle-build.yml)
+[![Build and Test](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/gradle-build.yml)
+[![Coverage CI](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/coverage.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/coverage.yml)
+[![Coverage](https://codecov.io/gh/jurgenei/gradle-xml-plugin/branch/main/graph/badge.svg)](https://codecov.io/gh/jurgenei/gradle-xml-plugin)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
 [![Gradle](https://img.shields.io/badge/gradle-9.5+-blue.svg)](https://gradle.org/)
@@ -62,9 +64,11 @@ Validation tasks share a common contract (`ValidationTaskSpec`) and defaults:
 - `SAXON`
 - `JAXP`
 
-## Plugin id
+## Plugin ID and Coordinates
 
-`name.jurgenei.gradle.xml`
+- Supported plugin ID: `name.jurgenei.gradle.xml`
+- Maven artifact for legacy `buildscript` usage: `name.jurgenei.gradle:gradle-xml-transform:<version>`
+- Obsolete/legacy IDs from earlier docs are no longer supported.
 
 ## Installation
 
@@ -82,6 +86,22 @@ Or `build.gradle`:
 plugins {
     id 'name.jurgenei.gradle.xml'
 }
+```
+
+Legacy `buildscript` usage:
+
+```kotlin
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("name.jurgenei.gradle:gradle-xml-transform:0.1.1")
+    }
+}
+
+apply(plugin = "name.jurgenei.gradle.xml")
 ```
 
 ## Example (Kotlin DSL)
@@ -168,6 +188,23 @@ tasks.register('validateXsd', name.jurgenei.gradle.xml.XsdTask) {
 ```bash
 gradle test
 ```
+
+## Test Coverage
+
+Generate coverage report and enforce the current minimum line coverage baseline (>= 0%):
+
+```bash
+./gradlew coverage
+```
+
+Coverage report outputs:
+
+- XML: `build/reports/jacoco/test/jacocoTestReport.xml`
+- HTML: `build/reports/jacoco/test/html/index.html`
+
+CI coverage workflow: `.github/workflows/coverage.yml`
+
+To enable Codecov upload/badge, add repository secret `CODECOV_TOKEN`.
 
 ## Building
 

@@ -9,6 +9,8 @@ Scope: XML transform/validation output mapping and incremental transformation pe
 - Added timestamp-based skipping for XML transformations to avoid unnecessary work.
 - Added lifecycle logging for both skip and process paths.
 - Aligned validation report paths (SVRL/JUnit) with the same relative output mapping behavior.
+- Updated README references to current repository/workflow/plugin coordinates.
+- Added JaCoCo coverage tasking and CI coverage workflow.
 
 ## Changes
 
@@ -32,6 +34,13 @@ Scope: XML transform/validation output mapping and incremental transformation pe
 
 - Validation output path computation now follows file tree relative paths as well.
 - Affects both SVRL output files and optional JUnit reports.
+
+### Documentation and Coverage
+
+- README now points to active repository and workflow badges.
+- README installation section clarifies supported plugin ID and legacy buildscript artifact coordinates.
+- Added Gradle `coverage` task using JaCoCo report + verification wiring.
+- Added `.github/workflows/coverage.yml` for CI coverage summary and optional Codecov upload.
 
 ## Verification
 
