@@ -182,7 +182,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
 
         if (outputFile.exists() && outputFile.lastModified() >= newestDependencyTimestamp) {
-            getLogger().lifecycle("{} + SKIP", inputFile);
+            getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
 
@@ -196,13 +196,11 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         try {
             transform(inputFile, outputFile, getParams().get());
-            getLogger().lifecycle("{} + PROCESSED -> {}", inputFile, outputFile);
+            getLogger().lifecycle("[SUCCESS] {} -> {}", inputFile, outputFile);
         } catch (Exception e) {
-            getLogger().error("Failed to transform {}", inputFile, e);
+            getLogger().lifecycle("[FAILURE] {}", inputFile);
             if (getFailOnError().get()) {
                 failures.add(new GradleException("Failed to transform: " + inputFile, e));
-            } else {
-                getLogger().warn("Failed to transform {}: {}", inputFile, e.getMessage());
             }
         }
     }
