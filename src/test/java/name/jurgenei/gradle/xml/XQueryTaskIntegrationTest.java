@@ -147,7 +147,7 @@ public class XQueryTaskIntegrationTest {
 
         File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
         assertTrue(output.exists());
-        assertTrue(firstRun.getOutput().contains("+ PROCESSED ->"));
+        assertTrue(firstRun.getOutput().contains("[SUCCESS]"));
 
         long futureTimestamp = System.currentTimeMillis() + 60_000;
         assertTrue(output.setLastModified(futureTimestamp));
@@ -158,7 +158,7 @@ public class XQueryTaskIntegrationTest {
             .withArguments("runXQuery", "--rerun-tasks")
             .build();
 
-        assertTrue(secondRun.getOutput().contains("+ SKIP"));
+        assertTrue(secondRun.getOutput().contains("[SKIP]"));
     }
 
     private void write(String relativePath, String content) throws IOException {
