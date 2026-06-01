@@ -1,5 +1,6 @@
 plugins {
     `java-gradle-plugin`
+    jacoco
     `maven-publish`
     signing
     id("com.gradle.plugin-publish") version "2.1.1"
@@ -9,7 +10,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.0"
+version = "0.1.1"
 
 repositories {
     mavenCentral()
@@ -151,6 +152,44 @@ dependencies {
 
 tasks.test {
     useJUnit()
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+jacoco {
+    toolVersion = "0.8.12"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            element = "BUNDLE"
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.00".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.register("coverage") {
+    group = "verification"
+    description = "Runs tests, generates JaCoCo report, and verifies minimum coverage threshold."
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
 
 tasks.register("allSecurityChecks") {

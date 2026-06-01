@@ -64,6 +64,13 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
         evaluator.run(serializer);
     }
 
+    @Override
+    protected long latestDependencyTimestamp(File inputFile) {
+        long sourceTimestamp = inputFile.lastModified();
+        long queryTimestamp = getQueryFile().get().getAsFile().lastModified();
+        return Math.max(sourceTimestamp, queryTimestamp);
+    }
+
     /**
      * Sets the XQuery file in Gradle DSL friendly form.
      *

@@ -62,6 +62,13 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
         transformer.transform();
     }
 
+    @Override
+    protected long latestDependencyTimestamp(File inputFile) {
+        long sourceTimestamp = inputFile.lastModified();
+        long stylesheetTimestamp = getStylesheet().get().getAsFile().lastModified();
+        return Math.max(sourceTimestamp, stylesheetTimestamp);
+    }
+
     /**
      * Sets the XSLT stylesheet in Gradle DSL friendly form.
      *

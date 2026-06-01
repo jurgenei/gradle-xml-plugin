@@ -53,8 +53,8 @@ public class SchematronTaskIntegrationTest {
             .withArguments("runSchematron")
             .build();
 
-        File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/src/main/xml/invalid.svrl.xml");
-        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/src/main/xml/invalid.junit.xml");
+        File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/invalid.svrl.xml");
+        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/invalid.junit.xml");
 
         assertTrue(svrl.exists());
         assertTrue(junit.exists());
@@ -92,7 +92,7 @@ public class SchematronTaskIntegrationTest {
         write("src/main/xml/a.xml", """
             <root><value>OK</value></root>
             """);
-        write("src/main/xml/b.xml", """
+        write("src/main/xml/foo/b.xml", """
             <root><value>BAD</value></root>
             """);
         write("src/main/xml/skip.xml", """
@@ -105,9 +105,9 @@ public class SchematronTaskIntegrationTest {
             .withArguments("runSchematron")
             .build();
 
-        File outputA = new File(testProjectDir.getRoot(), "build/out/schematron/src/main/xml/a.svrl.xml");
-        File outputB = new File(testProjectDir.getRoot(), "build/out/schematron/src/main/xml/b.svrl.xml");
-        File skipped = new File(testProjectDir.getRoot(), "build/out/schematron/src/main/xml/skip.svrl.xml");
+        File outputA = new File(testProjectDir.getRoot(), "build/out/schematron/a.svrl.xml");
+        File outputB = new File(testProjectDir.getRoot(), "build/out/schematron/foo/b.svrl.xml");
+        File skipped = new File(testProjectDir.getRoot(), "build/out/schematron/skip.svrl.xml");
 
         assertTrue(outputA.exists());
         assertTrue(outputB.exists());

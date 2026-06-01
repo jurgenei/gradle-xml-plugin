@@ -24,12 +24,12 @@ tasks.register('verifySample') {
     dependsOn 'runXsd', 'runSchematron'
     doLast {
         List<File> expected = [
-            file('build/reports/xsd/src/main/xml/valid.svrl.xml'),
-            file('build/reports/xsd/src/main/xml/invalid.svrl.xml'),
-            file('build/reports/schematron/src/main/xml/valid.svrl.xml'),
-            file('build/reports/schematron/src/main/xml/invalid.svrl.xml'),
-            file('build/reports/xml-validation/junit/src/main/xml/valid.junit.xml'),
-            file('build/reports/xml-validation/junit/src/main/xml/invalid.junit.xml')
+            file('build/reports/xsd/valid.svrl.xml'),
+            file('build/reports/xsd/invalid.svrl.xml'),
+            file('build/reports/schematron/valid.svrl.xml'),
+            file('build/reports/schematron/invalid.svrl.xml'),
+            file('build/reports/xml-validation/junit/valid.junit.xml'),
+            file('build/reports/xml-validation/junit/invalid.junit.xml')
         ]
 
         List<File> missing = expected.findAll { !it.exists() }
@@ -37,5 +37,6 @@ tasks.register('verifySample') {
             throw new GradleException("Missing expected sample outputs:\n - ${missing.join('\n - ')}")
         }
     }
+
 }
 

@@ -13,7 +13,7 @@ tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
 tasks.register('verifySample') {
     dependsOn 'runXQuery'
     doLast {
-        File output = file('build/out/xquery/src/main/xml/input.xml')
+        File output = file('build/out/xquery/input.xml')
         if (!output.exists()) {
             throw new GradleException("Expected output file does not exist: ${output}")
         }

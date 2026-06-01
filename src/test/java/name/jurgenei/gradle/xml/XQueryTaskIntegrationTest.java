@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.Rule;
@@ -57,7 +58,7 @@ public class XQueryTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
 
-        File output = new File(testProjectDir.getRoot(), "build/out/xquery/src/main/xml/input.xml");
+        File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
         assertTrue(output.exists());
         assertTrue(read(output).contains("<result>Hello Gradle</result>"));
     }
@@ -87,7 +88,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/a.xml", """
             <root><value>A</value></root>
             """);
-        write("src/main/xml/b.xml", """
+        write("src/main/xml/foo/b.xml", """
             <root><value>B</value></root>
             """);
         write("src/main/xml/skip.xml", """
@@ -103,15 +104,121 @@ public class XQueryTaskIntegrationTest {
             .withArguments("runXQuery")
             .build();
 
-        File outputA = new File(testProjectDir.getRoot(), "build/out/xquery/src/main/xml/a.out.xml");
-        File outputB = new File(testProjectDir.getRoot(), "build/out/xquery/src/main/xml/b.out.xml");
-        File skipped = new File(testProjectDir.getRoot(), "build/out/xquery/src/main/xml/skip.out.xml");
+        File outputA = new File(testProjectDir.getRoot(), "build/out/xquery/a.out.xml");
+        File outputB = new File(testProjectDir.getRoot(), "build/out/xquery/foo/b.out.xml");
+        File skipped = new File(testProjectDir.getRoot(), "build/out/xquery/skip.out.xml");
 
         assertTrue(outputA.exists());
         assertTrue(outputB.exists());
         assertTrue(!skipped.exists());
         assertTrue(read(outputA).contains("<result>A</result>"));
         assertTrue(read(outputB).contains("<result>B</result>"));
+    }
+
+    /**
+     * Verifies per-file timestamp checks skip transformation and emit lifecycle logs.
+     */
+    @Test
+    public void skipsTransformationWhenOutputIsNewerThanSourceAndQuery() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xquery-skip-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xquery/main.xq", """
+            <result>{ /root/value/text() }</result>
+            """);
+
+        BuildResult firstRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery", "--rerun-tasks")
+            .build();
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
+        assertTrue(output.exists());
+        assertTrue(firstRun.getOutput().contains("[SUCCESS]"));
+
+        long futureTimestamp = System.currentTimeMillis() + 60_000;
+        assertTrue(output.setLastModified(futureTimestamp));
+
+        BuildResult secondRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery", "--rerun-tasks")
+            .build();
+
+        assertTrue(secondRun.getOutput().contains("[SKIP]"));
+    }
+
+    /**
+     * Ensures per-file skipping is invalidated when non-file inputs (params) change.
+     */
+    @Test
+    public void rerunsTransformationWhenParamsChangeEvenIfOutputIsNewer() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xquery-param-fingerprint-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+              param 'prefix', 'Hello '
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xquery/main.xq", """
+            declare variable $prefix external;
+            <result>{ $prefix }{ /root/value/text() }</result>
+            """);
+
+        BuildResult firstRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery", "--rerun-tasks")
+            .build();
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
+        assertTrue(output.exists());
+        assertTrue(firstRun.getOutput().contains("[SUCCESS]"));
+        assertTrue(read(output).contains("<result>Hello Gradle</result>"));
+
+        long futureTimestamp = System.currentTimeMillis() + 60_000;
+        assertTrue(output.setLastModified(futureTimestamp));
+
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+              param 'prefix', 'Hi '
+            }
+            """);
+
+        BuildResult secondRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery", "--rerun-tasks")
+            .build();
+
+        assertTrue(secondRun.getOutput().contains("[SUCCESS]"));
+        assertTrue(read(output).contains("<result>Hi Gradle</result>"));
     }
 
     private void write(String relativePath, String content) throws IOException {

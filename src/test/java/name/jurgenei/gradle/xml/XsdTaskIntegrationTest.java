@@ -61,8 +61,8 @@ public class XsdTaskIntegrationTest {
             .withArguments("runXsd")
             .build();
 
-        File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/src/main/xml/invalid.svrl.xml");
-        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/src/main/xml/invalid.junit.xml");
+        File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/invalid.svrl.xml");
+        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/invalid.junit.xml");
 
         assertTrue(svrl.exists());
         assertTrue(junit.exists());
@@ -112,7 +112,7 @@ public class XsdTaskIntegrationTest {
             .withArguments("runXsd")
             .build();
 
-        File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/src/main/xml/valid.svrl.xml");
+        File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/valid.svrl.xml");
         assertTrue(svrl.exists());
         assertTrue(!read(svrl).contains("failed-assert"));
     }
