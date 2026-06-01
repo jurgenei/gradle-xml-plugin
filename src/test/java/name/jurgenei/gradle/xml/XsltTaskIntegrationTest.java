@@ -177,6 +177,71 @@ public class XsltTaskIntegrationTest {
     }
 
     /**
+     * Ensures per-file skipping is invalidated when non-file inputs (params) change.
+     */
+    @Test
+    public void rerunsTransformationWhenParamsChangeEvenIfOutputIsNewer() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-param-fingerprint-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              param 'prefix', 'Hello '
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:param name='prefix'/>
+              <xsl:template match='/'>
+                <result><xsl:value-of select='$prefix'/><xsl:value-of select='/root/value'/></result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        BuildResult firstRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt", "--rerun-tasks")
+            .build();
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xslt/input.xml");
+        assertTrue(output.exists());
+        assertTrue(firstRun.getOutput().contains("[SUCCESS]"));
+        assertTrue(read(output).contains("<result>Hello Gradle</result>"));
+
+        long futureTimestamp = System.currentTimeMillis() + 60_000;
+        assertTrue(output.setLastModified(futureTimestamp));
+
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              param 'prefix', 'Hi '
+            }
+            """);
+
+        BuildResult secondRun = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt", "--rerun-tasks")
+            .build();
+
+        assertTrue(secondRun.getOutput().contains("[SUCCESS]"));
+        assertTrue(read(output).contains("<result>Hi Gradle</result>"));
+    }
+
+    /**
      * Demonstrates refactoring from exec-based Saxon call to gradle-xml-plugin.
      *
      * Use case: Seed file indexing with parameterized XSLT (similar to:
