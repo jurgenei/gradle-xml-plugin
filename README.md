@@ -8,6 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
 [![Gradle](https://img.shields.io/badge/gradle-9.5+-blue.svg)](https://gradle.org/)
+[![Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/name.jurgenei.gradle.xml?label=Plugin%20Portal)](https://plugins.gradle.org/plugin/name.jurgenei.gradle.xml)
 
 A Gradle plugin providing **Saxon**-backed XSLT/XQuery transforms and SVRL-based XML validation tasks with an orthogonal, Gradle-style DSL.
 
@@ -69,6 +70,7 @@ Validation tasks share a common contract (`ValidationTaskSpec`) and defaults:
 - Supported plugin ID: `name.jurgenei.gradle.xml`
 - Maven artifact for legacy `buildscript` usage: `name.jurgenei.gradle:gradle-xml-transform:<version>`
 - Obsolete/legacy IDs from earlier docs are no longer supported.
+- Plugin Portal page: https://plugins.gradle.org/plugin/name.jurgenei.gradle.xml
 
 ## Installation
 
