@@ -17,6 +17,7 @@ A Gradle plugin providing **Saxon**-backed XSLT/XQuery transforms and SVRL-based
 Define and execute XPath/XSLT/XQuery transformations and XML validations as Gradle tasks with:
 
 - File-tree input matching (include/exclude patterns)
+- Explicit single-file mode via Ant-like `input(...)` / `output(...)`
 - Output file generation with configurable extension mapping
 - External parameter passing to transforms
 - Optional parallel processing using **virtual threads**
@@ -38,10 +39,24 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **XSD validation** with AUTO engine resolution (Saxon PE/EE when available, JAXP fallback on HE)
 - **Orthogonal task API** — both task types inherit the same base configuration
 - **File-tree DSL** — Ant-like include/exclude filtering via Gradle's native `fileTree`
+- **Single-file DSL** — explicit one-to-one transforms via `input(...)` and `output(...)`
 - **Flexible output mapping** — custom extension and output directory per task
 - **Parameter passing** — externalize stylesheet/query variables
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
+
+## Input/Output Modes
+
+`XsltTask` and `XQueryTask` support two equivalent execution modes:
+
+- **File-tree mode**: set `source(...)` and `outputDir`
+- **Explicit single-file mode**: set `input(...)` and `output(...)`
+
+Notes:
+
+- In explicit mode, `input(...)` and `output(...)` must be set together.
+- In file-tree mode, `outputDir` is required.
+- Both modes support `param(...)`; file-tree mode additionally supports `workers` and extension-based mapping.
 
 ## Validation API Contract
 
@@ -132,6 +147,18 @@ tasks.register<name.jurgenei.gradle.xml.XQueryTask>("queryDocs") {
     workers.set(1)
     param("tenant", "acme")
 }
+
+tasks.register<name.jurgenei.gradle.xml.XsltTask>("transformOne") {
+    style("src/main/xslt/main.xsl")
+    input("src/main/xml/a.xml")
+    output("build/custom/b.xml")
+}
+
+tasks.register<name.jurgenei.gradle.xml.XQueryTask>("queryOne") {
+    query("src/main/xquery/main.xq")
+    input("src/main/xml/a.xml")
+    output("build/custom/b.xml")
+}
 ```
 
 ## Example (Groovy DSL)
@@ -160,6 +187,18 @@ tasks.register('queryDocs', name.jurgenei.gradle.xml.XQueryTask) {
   outputExtension.set('.xml')
   workers.set(1)
   param 'tenant', 'acme'
+}
+
+tasks.register('transformOne', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/main.xsl'
+  input 'src/main/xml/a.xml'
+  output 'build/custom/b.xml'
+}
+
+tasks.register('queryOne', name.jurgenei.gradle.xml.XQueryTask) {
+  query 'src/main/xquery/main.xq'
+  input 'src/main/xml/a.xml'
+  output 'build/custom/b.xml'
 }
 ```
 
