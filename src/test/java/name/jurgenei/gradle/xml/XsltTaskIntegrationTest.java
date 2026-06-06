@@ -69,6 +69,50 @@ public class XsltTaskIntegrationTest {
     }
 
     /**
+     * Verifies explicit single-file mode using input/output properties.
+     */
+    @Test
+    public void transformsSingleFileWithExplicitInputOutput() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-explicit-io-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              input 'src/main/xml/a.xml'
+              output 'build/custom/b.xml'
+            }
+            """);
+
+        write("src/main/xml/a.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <result><xsl:value-of select='/root/value'/></result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+
+        File output = new File(testProjectDir.getRoot(), "build/custom/b.xml");
+        assertTrue(output.exists());
+        assertTrue(read(output).contains("<result>Gradle</result>"));
+    }
+
+    /**
      * Verifies include/exclude filtering and multi-worker execution on a file tree.
      */
     @Test

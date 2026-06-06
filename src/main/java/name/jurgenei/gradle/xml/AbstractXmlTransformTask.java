@@ -18,9 +18,13 @@ import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
 import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
@@ -43,8 +47,31 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      *
      * @return output directory property
      */
+    @Optional
     @OutputDirectory
     public abstract DirectoryProperty getOutputDir();
+
+    /**
+     * Optional explicit single input file.
+     *
+     * <p>When set together with {@link #getOutputFile()}, the task runs in single-file mode and
+     * does not require {@link #getOutputDir()} mapping.</p>
+     *
+     * @return explicit input file property
+     */
+    @Optional
+    @InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract RegularFileProperty getInputFile();
+
+    /**
+     * Optional explicit single output file.
+     *
+     * @return explicit output file property
+     */
+    @Optional
+    @OutputFile
+    public abstract RegularFileProperty getOutputFile();
 
     /**
      * Output file extension used when mapping each input file to an output file.
@@ -112,6 +139,27 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         source(tree);
     }
 
+    /**
+     * Sets an explicit single input file (Ant-like {@code in}).
+     *
+     * @param path file notation supported by {@code Project.file}
+     */
+    public void input(Object path) {
+        File file = getProject().file(path);
+        getInputFile().set(file);
+        // Keep SourceTask non-empty so Gradle does not short-circuit task execution.
+        source(file);
+    }
+
+    /**
+     * Sets an explicit single output file (Ant-like {@code out}).
+     *
+     * @param path file notation supported by {@code Project.file}
+     */
+    public void output(Object path) {
+        getOutputFile().set(getProject().file(path));
+    }
+
     @Override
     @PathSensitive(PathSensitivity.RELATIVE)
     public org.gradle.api.file.FileTree getSource() {
@@ -126,15 +174,31 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     @TaskAction
     public void transformAll() {
+        boolean hasExplicitInput = getInputFile().isPresent();
+        boolean hasExplicitOutput = getOutputFile().isPresent();
+        if (hasExplicitInput != hasExplicitOutput) {
+            throw new GradleException("Both inputFile and outputFile must be set together for single-file mode");
+        }
+
+        Map<String, String> params = Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
+        String nonFileInputFingerprint = computeNonFileInputFingerprint(params);
+
+        if (hasExplicitInput) {
+            transformExplicit(params, nonFileInputFingerprint);
+            return;
+        }
+
         List<File> inputFiles = new ArrayList<>(getSource().getFiles());
         Collections.sort(inputFiles);
         Map<Path, String> relativePaths = resolveRelativePaths();
-        Map<String, String> params = Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
-        String nonFileInputFingerprint = computeNonFileInputFingerprint(params);
 
         if (inputFiles.isEmpty()) {
             getLogger().lifecycle("{}: no input files matched", getName());
             return;
+        }
+
+        if (!getOutputDir().isPresent()) {
+            throw new GradleException("outputDir is required when outputFile is not set");
         }
 
         File outputRoot = getOutputDir().get().getAsFile();
@@ -155,6 +219,39 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         if (!failures.isEmpty()) {
             throw new GradleException("Transformation failed for " + failures.size() + " input file(s)", failures.get(0));
+        }
+    }
+
+    private void transformExplicit(Map<String, String> params, String nonFileInputFingerprint) {
+        File inputFile = getInputFile().get().getAsFile();
+        File outputFile = getOutputFile().get().getAsFile();
+        if (!inputFile.isFile()) {
+            throw new GradleException("Input file does not exist: " + inputFile);
+        }
+
+        File fingerprintMarker = fingerprintMarkerFor(outputFile);
+        long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
+        if (outputFile.exists()
+                && outputFile.lastModified() >= newestDependencyTimestamp
+                && isFingerprintCurrent(fingerprintMarker, nonFileInputFingerprint)) {
+            getLogger().lifecycle("[SKIP] {}", inputFile);
+            return;
+        }
+
+        File outputParent = outputFile.getParentFile();
+        try {
+            if (outputParent != null) {
+                Files.createDirectories(outputParent.toPath());
+            }
+            transform(inputFile, outputFile, params);
+            writeFingerprint(fingerprintMarker, nonFileInputFingerprint);
+            getLogger().lifecycle("[SUCCESS] {} -> {}", inputFile, outputFile);
+        } catch (Exception e) {
+            getLogger().error("Failed to transform {}", inputFile, e);
+            getLogger().lifecycle("[FAILURE] {}", inputFile);
+            if (getFailOnError().get()) {
+                throw new GradleException("Failed to transform: " + inputFile, e);
+            }
         }
     }
 

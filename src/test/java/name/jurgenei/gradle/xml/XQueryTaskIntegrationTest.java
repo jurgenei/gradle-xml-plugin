@@ -64,6 +64,45 @@ public class XQueryTaskIntegrationTest {
     }
 
     /**
+     * Verifies explicit single-file mode using input/output properties.
+     */
+    @Test
+    public void transformsSingleFileWithExplicitInputOutput() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xquery-explicit-io-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              input 'src/main/xml/a.xml'
+              output 'build/custom/b.xml'
+            }
+            """);
+
+        write("src/main/xml/a.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xquery/main.xq", """
+            <result>{ /root/value/text() }</result>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery")
+            .build()
+            .task(":runXQuery")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+
+        File output = new File(testProjectDir.getRoot(), "build/custom/b.xml");
+        assertTrue(output.exists());
+        assertTrue(read(output).contains("<result>Gradle</result>"));
+    }
+
+    /**
      * Verifies include/exclude filtering and multi-worker execution on a file tree.
      */
     @Test
