@@ -295,7 +295,6 @@ public class SchematronTaskIntegrationTest {
         assertTrue(firstOutcome == TaskOutcome.SUCCESS || firstOutcome == TaskOutcome.UP_TO_DATE);
         assertTrue(secondOutcome == TaskOutcome.SUCCESS || secondOutcome == TaskOutcome.UP_TO_DATE);
     }
-
     private static String transpiler() {
         return """
             <xsl:stylesheet version='1.0'
