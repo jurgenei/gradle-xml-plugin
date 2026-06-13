@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import org.gradle.testkit.runner.GradleRunner;
+import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -114,6 +115,133 @@ public class SchematronTaskIntegrationTest {
         assertTrue(!skipped.exists());
         assertTrue(!read(outputA).contains("failed-assert"));
         assertTrue(read(outputB).contains("failed-assert"));
+    }
+
+    /**
+     * Verifies compiled style reuse and recompilation triggers.
+     */
+    @Test
+    public void reusesCompiledStyleAndRecompilesWhenTranspilerParametersChange() throws Exception {
+        write("settings.gradle", """
+            rootProject.name = 'schematron-style-cache-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+              schema 'src/main/schematron/rules.sch'
+              transpilerStylesheet 'src/main/schematron/transpile.xsl'
+              style 'build/generated/schematron/compiled.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/schematron'))
+              failOnError.set(false)
+            }
+            """);
+
+        write("src/main/schematron/rules.sch", """
+            <schema xmlns='http://purl.oclc.org/dsdl/schematron'/>
+            """);
+        write("src/main/schematron/transpile.xsl", transpiler());
+        write("src/main/xml/input.xml", """
+            <root><value>BAD</value></root>
+            """);
+
+        GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runSchematron")
+            .build();
+
+        File compiledStyle = new File(testProjectDir.getRoot(), "build/generated/schematron/compiled.xsl");
+        assertTrue(compiledStyle.exists());
+        long firstCompiledTimestamp = compiledStyle.lastModified();
+
+        Thread.sleep(1200L);
+
+        TaskOutcome secondOutcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runSchematron")
+            .build()
+            .task(":runSchematron")
+            .getOutcome();
+
+        long secondCompiledTimestamp = compiledStyle.lastModified();
+        assertTrue(secondOutcome == TaskOutcome.SUCCESS || secondOutcome == TaskOutcome.UP_TO_DATE);
+        assertTrue("Expected compiled style timestamp to stay unchanged when nothing changed",
+            secondCompiledTimestamp == firstCompiledTimestamp);
+
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+              schema 'src/main/schematron/rules.sch'
+              transpilerStylesheet 'src/main/schematron/transpile.xsl'
+              style 'build/generated/schematron/compiled.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/schematron'))
+              phase.set('#ALL')
+              failOnError.set(false)
+            }
+            """);
+
+        Thread.sleep(1200L);
+
+        GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runSchematron")
+            .build();
+
+        long thirdCompiledTimestamp = compiledStyle.lastModified();
+        assertTrue("Expected compiled style timestamp to increase after transpiler parameter change",
+            thirdCompiledTimestamp > secondCompiledTimestamp);
+    }
+
+    /**
+     * Verifies debug mode pretty-prints SVRL output for readability.
+     */
+    @Test
+    public void debugProducesIndentedSvrlOutput() throws Exception {
+        write("settings.gradle", """
+            rootProject.name = 'schematron-debug-format-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+              schema 'src/main/schematron/rules.sch'
+              style 'build/generated/schematron/compiled.xsl'
+              source 'src/main/xml/invalid.xml'
+              outputDir.set(layout.buildDirectory.dir('out/schematron'))
+              debug.set(true)
+              failOnError.set(false)
+            }
+            """);
+
+        write("src/main/schematron/rules.sch", """
+            <schema xmlns='http://purl.oclc.org/dsdl/schematron'>
+              <pattern id='value-is-ok'>
+                <rule context='/root'>
+                  <assert test="value = 'OK'">Value must be OK</assert>
+                </rule>
+              </pattern>
+            </schema>
+            """);
+        write("src/main/xml/invalid.xml", """
+            <root><value>BAD</value></root>
+            """);
+
+        GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runSchematron")
+            .build();
+
+        File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/invalid.svrl.xml");
+        String svrlXml = read(svrl);
+
+        assertTrue(svrl.exists());
+        assertTrue(svrlXml.contains("failed-assert"));
+        assertTrue("Expected indented/debug-formatted SVRL with line breaks", svrlXml.contains("\n"));
+        assertTrue("Expected indented/debug-formatted SVRL elements", svrlXml.contains("\n   <svrl:"));
     }
 
     private static String transpiler() {

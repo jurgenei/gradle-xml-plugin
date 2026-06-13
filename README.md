@@ -207,9 +207,14 @@ tasks.register('queryOne', name.jurgenei.gradle.xml.XQueryTask) {
 ```groovy
 tasks.register('validateSchematron', name.jurgenei.gradle.xml.SchematronTask) {
   schema 'src/main/schematron/rules.sch'
+  // Optional persistent compiled stylesheet cache.
+  style 'build/generated/schematron/rules.compiled.xsl'
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/schematron'))
   reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+  // Optional SchXslt transpiler parameters.
+  phase.set('#ALL')
+  severityThreshold.set('warning')
   workers.set(4)
   failOnError.set(false)
 }
@@ -222,6 +227,18 @@ tasks.register('validateXsd', name.jurgenei.gradle.xml.XsdTask) {
   engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
 }
 ```
+
+Schematron-specific options:
+
+- `style(...)`/`style.set(...)` (optional): persistent location for compiled Schematron XSLT.
+  - When unset, a temp compiled stylesheet is used per validation run.
+  - When set, recompilation is skipped if the compiled stylesheet is newer than inputs and transpiler parameters are unchanged.
+- `transpilerStylesheet(...)` (optional): override bundled SchXslt transpiler.
+- Optional SchXslt transpiler parameter properties (only passed when explicitly set):
+  - `debug`, `phase`, `expandText`, `streamable`, `locationFunction`, `failEarly`
+  - `terminateValidationOnError`, `reportActivePattern`, `reportFiredRule`, `reportSuppressedRule`
+  - `reportSkippedAssertion`, `compactReport`, `severityThreshold`, `defaultSeverity`, `defaultFrom`
+  - `checkAssembledSchema`, `handleDynamicErrors`
 
 ## Run tests
 
