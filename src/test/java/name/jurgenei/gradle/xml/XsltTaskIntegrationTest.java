@@ -69,6 +69,97 @@ public class XsltTaskIntegrationTest {
     }
 
     /**
+     * Verifies serializer method is inferred as json from output extension.
+     */
+    @Test
+    public void infersJsonOutputMethodFromExtension() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-json-method-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.json')
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <xsl:sequence select="map{'value': string(/root/value)}"/>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xslt/input.json");
+        assertTrue(output.exists());
+        assertEquals("{\"value\":\"Gradle\"}", read(output).replaceAll("\\s+", ""));
+    }
+
+    /**
+     * Verifies explicit outputMethod overrides extension-based inference.
+     */
+    @Test
+    public void usesExplicitTextOutputMethod() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-text-method-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.xml')
+              outputMethod.set('text')
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <xsl:value-of select="concat('VALUE=', /root/value)"/>
+              </xsl:template>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xslt/input.xml");
+        assertTrue(output.exists());
+        assertEquals("VALUE=Gradle", read(output).trim());
+    }
+
+    /**
      * Verifies explicit single-file mode using input/output properties.
      */
     @Test

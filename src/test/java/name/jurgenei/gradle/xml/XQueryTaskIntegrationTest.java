@@ -64,6 +64,87 @@ public class XQueryTaskIntegrationTest {
     }
 
     /**
+     * Verifies serializer method is inferred as json from output extension.
+     */
+    @Test
+    public void infersJsonOutputMethodFromExtension() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xquery-json-method-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+              outputExtension.set('.json')
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xquery/main.xq", """
+            map { 'value': data(/root/value) }
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery")
+            .build()
+            .task(":runXQuery")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.json");
+        assertTrue(output.exists());
+        assertEquals("{\"value\":\"Gradle\"}", read(output).replaceAll("\\s+", ""));
+    }
+
+    /**
+     * Verifies explicit outputMethod overrides extension-based inference.
+     */
+    @Test
+    public void usesExplicitTextOutputMethod() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xquery-text-method-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+              outputExtension.set('.xml')
+              outputMethod.set('text')
+            }
+            """);
+
+        write("src/main/xml/input.xml", """
+            <root><value>Gradle</value></root>
+            """);
+        write("src/main/xquery/main.xq", """
+            concat('VALUE=', data(/root/value))
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery")
+            .build()
+            .task(":runXQuery")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+
+        File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
+        assertTrue(output.exists());
+        assertEquals("VALUE=Gradle", read(output).trim());
+    }
+
+    /**
      * Verifies explicit single-file mode using input/output properties.
      */
     @Test
