@@ -10,7 +10,11 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
+<<<<<<< HEAD
 version = "0.1.7"
+=======
+version = "0.1.5"
+>>>>>>> 37c9733 (added schematron features)
 
 repositories {
     mavenCentral()
