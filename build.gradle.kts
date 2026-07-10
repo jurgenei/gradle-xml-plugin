@@ -10,15 +10,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-<<<<<<< HEAD
 version = "0.1.7"
-=======
-<<<<<<< HEAD
-version = "0.1.6"
-=======
-version = "0.1.4"
->>>>>>> ac4fcdf (added parameterization options to schematron validation)
->>>>>>> 960afe8 (added parameterization options to schematron validation)
 
 repositories {
     mavenCentral()
