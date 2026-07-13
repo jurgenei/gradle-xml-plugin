@@ -295,6 +295,10 @@ public class SchematronTaskIntegrationTest {
         assertTrue(firstOutcome == TaskOutcome.SUCCESS || firstOutcome == TaskOutcome.UP_TO_DATE);
         assertTrue(secondOutcome == TaskOutcome.SUCCESS || secondOutcome == TaskOutcome.UP_TO_DATE);
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 78afbd6 (fix Invocation of Task.project at execution time has been deprecated)
     private static String transpiler() {
         return """
             <xsl:stylesheet version='1.0'
