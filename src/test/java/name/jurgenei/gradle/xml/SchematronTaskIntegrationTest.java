@@ -1,11 +1,14 @@
 package name.jurgenei.gradle.xml;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.BuildTask;
 import org.gradle.testkit.runner.GradleRunner;
 import org.gradle.testkit.runner.TaskOutcome;
 import org.junit.Rule;
@@ -242,6 +245,55 @@ public class SchematronTaskIntegrationTest {
         assertTrue(svrlXml.contains("failed-assert"));
         assertTrue("Expected indented/debug-formatted SVRL with line breaks", svrlXml.contains("\n"));
         assertTrue("Expected indented/debug-formatted SVRL elements", svrlXml.contains("\n   <svrl:"));
+    }
+
+    /**
+     * Verifies the task is compatible with warning-mode fail and configuration cache.
+     */
+    @Test
+    public void schematronTaskDoesNotUseTaskProjectAtExecutionTime() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-cc-warning-fail'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('schematronTask', name.jurgenei.gradle.xml.SchematronTask) {
+              schema 'src/main/schematron/rules.sch'
+              transpilerStylesheet 'src/main/schematron/transpile.xsl'
+              source 'src/main/xml/invalid.xml'
+              outputDir.set(layout.buildDirectory.dir('out/schematron'))
+              failOnError.set(false)
+            }
+            """);
+
+        write("src/main/schematron/rules.sch", """
+            <schema xmlns='http://purl.oclc.org/dsdl/schematron'/>
+            """);
+        write("src/main/schematron/transpile.xsl", transpiler());
+        write("src/main/xml/invalid.xml", """
+            <root><value>BAD</value></root>
+            """);
+
+        BuildResult firstBuild = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("schematronTask", "--configuration-cache", "--warning-mode=fail")
+            .build();
+
+        BuildResult secondBuild = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("schematronTask", "--configuration-cache", "--warning-mode=fail")
+            .build();
+
+        BuildTask firstTask = firstBuild.task(":schematronTask");
+        BuildTask secondTask = secondBuild.task(":schematronTask");
+        assertNotNull(firstTask);
+        assertNotNull(secondTask);
+
+        TaskOutcome firstOutcome = firstTask.getOutcome();
+        TaskOutcome secondOutcome = secondTask.getOutcome();
+
+        assertTrue(firstOutcome == TaskOutcome.SUCCESS || firstOutcome == TaskOutcome.UP_TO_DATE);
+        assertTrue(secondOutcome == TaskOutcome.SUCCESS || secondOutcome == TaskOutcome.UP_TO_DATE);
     }
 
     private static String transpiler() {
