@@ -10,7 +10,11 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
+<<<<<<< HEAD
 version = "0.1.7"
+=======
+version = "0.1.6"
+>>>>>>> 1057a2e (fix Invocation of Task.project at execution time has been deprecated)
 
 repositories {
     mavenCentral()
