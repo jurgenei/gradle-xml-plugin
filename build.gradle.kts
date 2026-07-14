@@ -1,8 +1,18 @@
+import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.tasks.testing.Test
+import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
+import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
+import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
+import org.gradle.testing.jacoco.tasks.JacocoReport
+import org.gradle.plugins.signing.SigningExtension
+
 plugins {
-    `java-gradle-plugin`
-    jacoco
-    `maven-publish`
-    signing
+    id("java-gradle-plugin")
+    id("jacoco")
+    id("maven-publish")
+    id("signing")
     id("com.gradle.plugin-publish") version "2.1.1"
     id("org.owasp.dependencycheck") version "10.0.3"
     id("com.github.spotbugs") version "6.1.0"
@@ -20,7 +30,7 @@ repositories {
     mavenCentral()
 }
 
-java {
+extensions.configure<JavaPluginExtension> {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }
@@ -28,7 +38,7 @@ java {
     withJavadocJar()
 }
 
-gradlePlugin {
+extensions.configure<GradlePluginDevelopmentExtension> {
     website.set("https://github.com/jurgenei/gradle-xml-plugin")
     vcsUrl.set("https://github.com/jurgenei/gradle-xml-plugin.git")
 
@@ -55,7 +65,7 @@ gradlePlugin {
     }
 }
 
-publishing {
+extensions.configure<PublishingExtension> {
     repositories {
         maven {
             name = "central"
@@ -103,68 +113,77 @@ publishing {
 //    sign(publishing.publications)
 //}
 
-signing {
+extensions.configure<SigningExtension> {
     useGpgCmd()
-    sign(publishing.publications)
+    sign(extensions.getByType(PublishingExtension::class.java).publications)
 }
 
 // OWASP Dependency-Check configuration
-dependencyCheck {
-    format = "HTML,JSON,XML"
-    failBuildOnCVSS = 7.0f
-    suppressionFile = "dependency-check-suppressions.xml"
+extensions.getByName("dependencyCheck").withGroovyBuilder {
+    setProperty("format", "HTML,JSON,XML")
+    setProperty("failBuildOnCVSS", 7.0f)
+    setProperty("suppressionFile", "dependency-check-suppressions.xml")
 
     // NVD API key configuration (improves scan speed by 30-50%)
     // Get key from: https://nvd.nist.gov/developers/request-an-api-key
-    nvd.apiKey = providers.gradleProperty("org.owasp.dependencycheck.nvd.api.key").orNull
-        ?: System.getenv("NVD_API_KEY")
+    getProperty("nvd").withGroovyBuilder {
+        setProperty(
+            "apiKey",
+            providers.gradleProperty("org.owasp.dependencycheck.nvd.api.key").orNull
+                ?: System.getenv("NVD_API_KEY")
+        )
+    }
 }
 
 // SpotBugs configuration
-configure<com.github.spotbugs.snom.SpotBugsExtension> {
-    ignoreFailures.set(false)
-    effort.set(com.github.spotbugs.snom.Effort.DEFAULT)
-    reportLevel.set(com.github.spotbugs.snom.Confidence.MEDIUM)
+extensions.getByName("spotbugs").withGroovyBuilder {
+    setProperty("ignoreFailures", false)
+    setProperty("effort", "default")
+    setProperty("reportLevel", "medium")
 }
 
-tasks.named<com.github.spotbugs.snom.SpotBugsTask>("spotbugsMain") {
-    reports.maybeCreate("html").apply {
-        required.set(true)
-    }
-    reports.maybeCreate("xml").apply {
-        required.set(false)
+tasks.named("spotbugsMain") {
+    withGroovyBuilder {
+        "reports" {
+            "create"("html") {
+                setProperty("required", true)
+            }
+            "create"("xml") {
+                setProperty("required", false)
+            }
+        }
     }
 }
 
 // SonarQube configuration
-sonar {
-    properties {
-        property("sonar.projectKey", "gradle-xml-plugin")
-        property("sonar.projectName", "Gradle XML Plugin")
-        property("sonar.sourceEncoding", "UTF-8")
-        property("sonar.java.source", "21")
+extensions.getByName("sonar").withGroovyBuilder {
+    "properties" {
+        "property"("sonar.projectKey", "gradle-xml-plugin")
+        "property"("sonar.projectName", "Gradle XML Plugin")
+        "property"("sonar.sourceEncoding", "UTF-8")
+        "property"("sonar.java.source", "21")
     }
 }
 
 dependencies {
-    implementation("net.sf.saxon:Saxon-HE:12.5")
-    implementation("name.dmaus.schxslt:schxslt2:1.10.3")
+    add("implementation", "net.sf.saxon:Saxon-HE:12.5")
+    add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
 
-    testImplementation(gradleTestKit())
-    testImplementation("junit:junit:4.13.2")
+    add("testImplementation", gradleTestKit())
+    add("testImplementation", "junit:junit:4.13.2")
 }
 
-tasks.test {
+tasks.named<Test>("test") {
     useJUnit()
-    finalizedBy(tasks.jacocoTestReport)
+    finalizedBy(tasks.named("jacocoTestReport"))
 }
 
-jacoco {
+extensions.configure<JacocoPluginExtension> {
     toolVersion = "0.8.12"
 }
 
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
+tasks.named<JacocoReport>("jacocoTestReport") {
+    dependsOn(tasks.named("test"))
     reports {
         xml.required.set(true)
         html.required.set(true)
@@ -172,8 +191,8 @@ tasks.jacocoTestReport {
     }
 }
 
-tasks.jacocoTestCoverageVerification {
-    dependsOn(tasks.jacocoTestReport)
+tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.named("jacocoTestReport"))
     violationRules {
         rule {
             element = "BUNDLE"
@@ -189,11 +208,11 @@ tasks.jacocoTestCoverageVerification {
 tasks.register("coverage") {
     group = "verification"
     description = "Runs tests, generates JaCoCo report, and verifies minimum coverage threshold."
-    dependsOn(tasks.jacocoTestCoverageVerification)
+    dependsOn(tasks.named("jacocoTestCoverageVerification"))
 }
 
-tasks.check {
-    dependsOn(tasks.jacocoTestCoverageVerification)
+tasks.named("check") {
+    dependsOn(tasks.named("jacocoTestCoverageVerification"))
 }
 
 tasks.register("allSecurityChecks") {
