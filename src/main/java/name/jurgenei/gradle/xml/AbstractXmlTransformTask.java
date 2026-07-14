@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,6 +43,8 @@ import org.gradle.work.DisableCachingByDefault;
  */
 @DisableCachingByDefault(because = "Uses external transform engines and file trees")
 public abstract class AbstractXmlTransformTask extends SourceTask {
+
+    private static final Set<String> SUPPORTED_OUTPUT_METHODS = Set.of("xml", "json", "text");
 
     /**
      * Destination root directory for transformed files.
@@ -80,6 +84,18 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     @Input
     public abstract Property<String> getOutputExtension();
+
+    /**
+     * Optional explicit serializer output method used by Saxon.
+     *
+     * <p>Supported values are {@code xml}, {@code json}, and {@code text}. If not set,
+     * the method is inferred from the destination file extension.</p>
+     *
+     * @return output method property
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getOutputMethod();
 
     /**
      * Transform parameters exposed to the execution engine.
@@ -158,6 +174,15 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public void output(Object path) {
         getOutputFile().set(getProject().file(path));
+    }
+
+    /**
+     * Sets an explicit serializer output method (Gradle DSL friendly).
+     *
+     * @param method one of {@code xml}, {@code json}, {@code text}
+     */
+    public void outputMethod(String method) {
+        getOutputMethod().set(method);
     }
 
     @Override
@@ -325,6 +350,42 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         return inputFile.lastModified();
     }
 
+    /**
+     * Resolves the serializer output method from explicit task setting or output extension.
+     *
+     * @param outputFile destination file
+     * @return serializer method to pass to Saxon
+     */
+    protected String resolveSerializerMethod(File outputFile) {
+        if (getOutputMethod().isPresent()) {
+            return normalizeAndValidateMethod(getOutputMethod().get());
+        }
+        return inferSerializerMethod(outputFile);
+    }
+
+    private String inferSerializerMethod(File outputFile) {
+        String fileName = outputFile.getName().toLowerCase(Locale.ROOT);
+        if (fileName.endsWith(".json")) {
+            return "json";
+        }
+        if (fileName.endsWith(".txt") || fileName.endsWith(".text")) {
+            return "text";
+        }
+        return "xml";
+    }
+
+    private String normalizeAndValidateMethod(String configuredMethod) {
+        String normalized = configuredMethod == null ? "" : configuredMethod.trim().toLowerCase(Locale.ROOT);
+        if ("txt".equals(normalized)) {
+            normalized = "text";
+        }
+        if (!SUPPORTED_OUTPUT_METHODS.contains(normalized)) {
+            throw new GradleException("Unsupported outputMethod '" + configuredMethod
+                + "'. Supported values: xml, json, text");
+        }
+        return normalized;
+    }
+
     private File fingerprintMarkerFor(File outputFile) {
         return new File(outputFile.getParentFile(), outputFile.getName() + ".inputs.sha256");
     }
@@ -349,6 +410,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         StringBuilder builder = new StringBuilder();
         builder.append("task=").append(getClass().getName()).append('\n');
         builder.append("outputExtension=").append(getOutputExtension().get()).append('\n');
+        builder.append("outputMethod=").append(getOutputMethod().getOrElse("<auto>")).append('\n');
 
         List<String> keys = new ArrayList<>(params.keySet());
         Collections.sort(keys);

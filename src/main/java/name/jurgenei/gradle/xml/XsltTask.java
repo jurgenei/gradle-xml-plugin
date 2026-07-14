@@ -57,7 +57,7 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
         }
 
         Serializer serializer = processor.newSerializer(outputFile);
-        serializer.setOutputProperty(Serializer.Property.METHOD, "xml");
+        serializer.setOutputProperty(Serializer.Property.METHOD, resolveSerializerMethod(outputFile));
         transformer.setDestination(serializer);
         transformer.transform();
     }

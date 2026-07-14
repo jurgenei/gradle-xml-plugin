@@ -23,6 +23,7 @@ import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
@@ -64,6 +65,14 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     public abstract MapProperty<String, String> getParams();
 
     /**
+     * Project directory used during execution-time path resolution.
+     *
+     * @return project directory property
+     */
+    @Internal
+    public abstract DirectoryProperty getProjectDir();
+
+    /**
      * Creates a validation task with default conventions.
      */
     public AbstractXmlValidationTask() {
@@ -73,6 +82,7 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         getMaxFailures().convention(1);
         getReportFormat().convention(ReportFormat.SVRL);
         getJunitSuiteName().convention(getName());
+        getProjectDir().convention(getProject().getLayout().getProjectDirectory());
         getJunitOutputDir().convention(getProject().getLayout().getBuildDirectory().dir("reports/xml-validation/junit"));
     }
 
@@ -198,7 +208,7 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
     private File svrlFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
-        Path projectPath = getProject().getProjectDir().toPath().toAbsolutePath().normalize();
+        Path projectPath = getProjectDir().get().getAsFile().toPath().toAbsolutePath().normalize();
 
         String relative = relativePaths.get(inputPath);
         if (relative == null) {
@@ -216,7 +226,7 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
     private File junitFileFor(File inputFile, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
-        Path projectPath = getProject().getProjectDir().toPath().toAbsolutePath().normalize();
+        Path projectPath = getProjectDir().get().getAsFile().toPath().toAbsolutePath().normalize();
 
         String relative = relativePaths.get(inputPath);
         if (relative == null) {

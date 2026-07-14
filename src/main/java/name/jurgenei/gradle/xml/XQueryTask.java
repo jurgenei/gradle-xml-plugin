@@ -5,7 +5,6 @@ import java.util.Map;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XQueryCompiler;
 import net.sf.saxon.s9api.XQueryEvaluator;
@@ -60,7 +59,7 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
         }
 
         Serializer serializer = processor.newSerializer(outputFile);
-        serializer.setOutputProperty(Serializer.Property.METHOD, "xml");
+        serializer.setOutputProperty(Serializer.Property.METHOD, resolveSerializerMethod(outputFile));
         evaluator.run(serializer);
     }
 

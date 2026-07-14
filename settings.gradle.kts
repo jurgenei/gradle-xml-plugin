@@ -1,2 +1,2 @@
-rootProject.name = "gradle-xml-transform"
+rootProject.name = "gradle-xml-plugin"
 

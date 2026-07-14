@@ -16,7 +16,7 @@ pluginManagement {
 
 - `xslt-basic` - transform one XML with XSLT
 - `xquery-basic` - transform one XML with XQuery
-- `validation-basic` - validate XML with XSD and Schematron (SVRL and JUnit reports)
+- `validation-basic` - validate XML with XSD and Schematron (SVRL/JUnit), including a persisted compiled Schematron stylesheet (`style`) and transpiler params
 
 ## Run samples
 

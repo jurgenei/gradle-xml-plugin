@@ -14,9 +14,12 @@ tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
 
 tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
     schema 'src/main/schematron/rules.sch'
+    style 'build/generated/schematron/rules.compiled.xsl'
     source(fileTree('src/main/xml') { include '*.xml' })
     outputDir.set(layout.buildDirectory.dir('reports/schematron'))
     reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    phase.set('#ALL')
+    severityThreshold.set('warning')
     failOnError.set(false)
 }
 
@@ -28,6 +31,7 @@ tasks.register('verifySample') {
             file('build/reports/xsd/invalid.svrl.xml'),
             file('build/reports/schematron/valid.svrl.xml'),
             file('build/reports/schematron/invalid.svrl.xml'),
+            file('build/generated/schematron/rules.compiled.xsl'),
             file('build/reports/xml-validation/junit/valid.junit.xml'),
             file('build/reports/xml-validation/junit/invalid.junit.xml')
         ]
