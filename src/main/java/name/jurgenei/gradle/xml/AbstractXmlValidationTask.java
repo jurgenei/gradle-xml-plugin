@@ -74,6 +74,14 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     public abstract DirectoryProperty getProjectDir();
 
     /**
+     * Project directory used during execution-time path resolution.
+     *
+     * @return project directory property
+     */
+    @Internal
+    public abstract DirectoryProperty getProjectDir();
+
+    /**
      * Creates a validation task with default conventions.
      */
     public AbstractXmlValidationTask() {
