@@ -1,0 +1,342 @@
+package name.jurgenei.gradle.xml;
+
+import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.api.tasks.TaskAction;
+import org.gradle.work.DisableCachingByDefault;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Bootstraps a Schematron observation schema from an XSD file or URL.
+ */
+@DisableCachingByDefault(because = "Bootstrap generation is typically one-time setup and may consume remote URLs")
+public abstract class SchematronBootstrapTask extends DefaultTask {
+
+    private static final String XS_NS = "http://www.w3.org/2001/XMLSchema";
+
+    @Optional
+    @InputFile
+    @PathSensitive(PathSensitivity.RELATIVE)
+    public abstract RegularFileProperty getSchemaFile();
+
+    @Optional
+    @Input
+    public abstract Property<String> getSchemaUrl();
+
+    @OutputFile
+    public abstract RegularFileProperty getOutputFile();
+
+    @Input
+    public abstract Property<String> getNamespacePrefix();
+
+    public SchematronBootstrapTask() {
+        getNamespacePrefix().convention("c");
+    }
+
+    public void schema(Object path) {
+        File file = getProject().file(path);
+        if (!file.exists()) {
+            throw new GradleException("Schema file does not exist: " + file);
+        }
+        getSchemaFile().set(file);
+    }
+
+    public void schemaUrl(String value) {
+        getSchemaUrl().set(value);
+    }
+
+    public void output(Object path) {
+        getOutputFile().set(getProject().file(path));
+    }
+
+    @TaskAction
+    public void bootstrap() {
+        File output = getOutputFile().get().getAsFile();
+        if (output.exists()) {
+            getLogger().lifecycle("Schematron bootstrap skipped: output already exists and will not be overwritten: {}", output);
+            return;
+        }
+
+        try {
+            LoadedSchema loaded = loadSchemaDocument();
+            String schematron = renderSchematron(loaded.document(), loaded.schemaSource());
+            File parent = output.getParentFile();
+            if (parent != null) {
+                Files.createDirectories(parent.toPath());
+            }
+            Files.writeString(output.toPath(), schematron, StandardCharsets.UTF_8);
+            getLogger().lifecycle("Generated bootstrap Schematron at {}", output);
+        } catch (Exception e) {
+            throw new GradleException("Failed to bootstrap Schematron from XSD", e);
+        }
+    }
+
+    private LoadedSchema loadSchemaDocument() throws Exception {
+        if (getSchemaFile().isPresent()) {
+            File file = getSchemaFile().get().getAsFile();
+            try (InputStream in = Files.newInputStream(file.toPath())) {
+                return new LoadedSchema(parse(in), file.toURI().toString());
+            }
+        }
+
+        if (getSchemaUrl().isPresent()) {
+            String url = getSchemaUrl().get();
+            try (InputStream in = new URL(url).openStream()) {
+                return new LoadedSchema(parse(in), url);
+            }
+        }
+
+        throw new GradleException("Configure either schema(...) or schemaUrl(...) for Schematron bootstrap");
+    }
+
+    private Document parse(InputStream input) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        return factory.newDocumentBuilder().parse(input);
+    }
+
+    private String renderSchematron(Document xsd, String schemaSource) {
+        Element root = xsd.getDocumentElement();
+        String targetNamespace = root.getAttribute("targetNamespace");
+        String prefix = getNamespacePrefix().get();
+
+        Map<String, ElementObservation> complexTypes = collectComplexTypes(xsd);
+        List<ElementObservation> globalElements = collectGlobalElements(xsd, complexTypes);
+        globalElements.sort(Comparator.comparing(ElementObservation::context));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        sb.append("<sch:schema xmlns:sch=\"http://purl.oclc.org/dsdl/schematron\"\n");
+        sb.append("            xmlns:").append(prefix).append("=\"").append(escapeXml(targetNamespace)).append("\">\n");
+        sb.append("  <sch:title>Bootstrap observation Schematron</sch:title>\n");
+        sb.append("  <sch:ns prefix=\"").append(prefix).append("\" uri=\"").append(escapeXml(targetNamespace)).append("\"/>\n");
+        sb.append("  <sch:p>generated-from: ").append(escapeXml(schemaSource)).append("</sch:p>\n");
+        sb.append("  <sch:p>generated-at: ").append(escapeXml(Instant.now().toString())).append("</sch:p>\n");
+
+        for (ElementObservation observation : globalElements) {
+            sb.append("\n  <sch:pattern id=\"").append(escapeXml(observation.patternId())).append("\">\n");
+            sb.append("    <sch:title>").append(escapeXml(observation.context())).append(" observation</sch:title>\n");
+            sb.append("    <sch:rule context=\"").append(escapeXml(observation.context())).append("\">\n");
+            sb.append("      <sch:assert test=\"true()\">Bootstrap rule for ")
+                .append(escapeXml(observation.context()))
+                .append(" (always passing until customized)</sch:assert>\n");
+
+            if (!observation.requiredChildren().isEmpty()) {
+                sb.append("      <sch:p>required-children: ")
+                    .append(escapeXml(String.join(", ", observation.requiredChildren())))
+                    .append("</sch:p>\n");
+            }
+            if (!observation.optionalChildren().isEmpty()) {
+                sb.append("      <sch:p>optional-children: ")
+                    .append(escapeXml(String.join(", ", observation.optionalChildren())))
+                    .append("</sch:p>\n");
+            }
+            if (!observation.requiredAttributes().isEmpty()) {
+                sb.append("      <sch:p>required-attributes: ")
+                    .append(escapeXml(String.join(", ", observation.requiredAttributes())))
+                    .append("</sch:p>\n");
+            }
+
+            sb.append("    </sch:rule>\n");
+            sb.append("  </sch:pattern>\n");
+        }
+
+        sb.append("</sch:schema>\n");
+        return sb.toString();
+    }
+
+    private Map<String, ElementObservation> collectComplexTypes(Document xsd) {
+        Map<String, ElementObservation> map = new LinkedHashMap<>();
+        NodeList complexTypeNodes = xsd.getDocumentElement().getElementsByTagNameNS(XS_NS, "complexType");
+        for (int i = 0; i < complexTypeNodes.getLength(); i++) {
+            Element complexType = (Element) complexTypeNodes.item(i);
+            if (complexType.getParentNode() != xsd.getDocumentElement()) {
+                continue;
+            }
+            String name = complexType.getAttribute("name");
+            if (name.isEmpty()) {
+                continue;
+            }
+            map.put(name, extractObservation(name, complexType));
+        }
+        return map;
+    }
+
+    private List<ElementObservation> collectGlobalElements(Document xsd, Map<String, ElementObservation> complexTypes) {
+        List<ElementObservation> observations = new ArrayList<>();
+        NodeList elementNodes = xsd.getDocumentElement().getElementsByTagNameNS(XS_NS, "element");
+        for (int i = 0; i < elementNodes.getLength(); i++) {
+            Element element = (Element) elementNodes.item(i);
+            if (element.getParentNode() != xsd.getDocumentElement()) {
+                continue;
+            }
+            String name = element.getAttribute("name");
+            if (name.isEmpty()) {
+                continue;
+            }
+
+            ElementObservation observation = fromElementType(name, element, complexTypes);
+            observations.add(observation);
+        }
+        return observations;
+    }
+
+    private ElementObservation fromElementType(String elementName, Element element, Map<String, ElementObservation> complexTypes) {
+        String declaredType = element.getAttribute("type");
+        if (!declaredType.isEmpty()) {
+            String localType = declaredType.contains(":") ? declaredType.substring(declaredType.indexOf(':') + 1) : declaredType;
+            ElementObservation fromType = complexTypes.get(localType);
+            if (fromType != null) {
+                return new ElementObservation(elementName, fromType.requiredChildren(), fromType.optionalChildren(), fromType.requiredAttributes());
+            }
+        }
+
+        Element inlineComplexType = firstChildByName(element, "complexType");
+        if (inlineComplexType != null) {
+            return extractObservation(elementName, inlineComplexType);
+        }
+
+        return new ElementObservation(elementName, List.of(), List.of(), List.of());
+    }
+
+    private ElementObservation extractObservation(String context, Element complexType) {
+        List<String> requiredChildren = new ArrayList<>();
+        List<String> optionalChildren = new ArrayList<>();
+        List<String> requiredAttributes = new ArrayList<>();
+
+        collectChildElements(complexType, requiredChildren, optionalChildren);
+        collectRequiredAttributes(complexType, requiredAttributes);
+
+        requiredChildren.sort(String::compareTo);
+        optionalChildren.sort(String::compareTo);
+        requiredAttributes.sort(String::compareTo);
+        return new ElementObservation(context, requiredChildren, optionalChildren, requiredAttributes);
+    }
+
+    private void collectChildElements(Element complexType, List<String> requiredChildren, List<String> optionalChildren) {
+        NodeList descendants = complexType.getElementsByTagNameNS(XS_NS, "element");
+        for (int i = 0; i < descendants.getLength(); i++) {
+            Element child = (Element) descendants.item(i);
+            if (!isWithin(complexType, child)) {
+                continue;
+            }
+            String name = child.getAttribute("ref");
+            if (name.isEmpty()) {
+                name = child.getAttribute("name");
+            }
+            if (name.isEmpty()) {
+                continue;
+            }
+            if (name.contains(":")) {
+                name = name.substring(name.indexOf(':') + 1);
+            }
+
+            int minOccurs = 1;
+            String minOccursValue = child.getAttribute("minOccurs");
+            if (!minOccursValue.isEmpty()) {
+                try {
+                    minOccurs = Integer.parseInt(minOccursValue);
+                } catch (NumberFormatException ignored) {
+                    minOccurs = 1;
+                }
+            }
+
+            if (minOccurs > 0) {
+                requiredChildren.add(name);
+            } else {
+                optionalChildren.add(name);
+            }
+        }
+    }
+
+    private void collectRequiredAttributes(Element complexType, List<String> requiredAttributes) {
+        NodeList attributes = complexType.getElementsByTagNameNS(XS_NS, "attribute");
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Element attribute = (Element) attributes.item(i);
+            if (!isWithin(complexType, attribute)) {
+                continue;
+            }
+            if (!"required".equals(attribute.getAttribute("use"))) {
+                continue;
+            }
+            String name = attribute.getAttribute("name");
+            if (name.isEmpty()) {
+                name = attribute.getAttribute("ref");
+            }
+            if (name.contains(":")) {
+                name = name.substring(name.indexOf(':') + 1);
+            }
+            if (!name.isEmpty()) {
+                requiredAttributes.add(name);
+            }
+        }
+    }
+
+    private boolean isWithin(Element complexType, Element candidate) {
+        Node node = candidate;
+        while (node != null && node != complexType) {
+            node = node.getParentNode();
+        }
+        return node == complexType;
+    }
+
+    private Element firstChildByName(Element parent, String localName) {
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child instanceof Element element
+                    && XS_NS.equals(element.getNamespaceURI())
+                    && localName.equals(element.getLocalName())) {
+                return element;
+            }
+        }
+        return null;
+    }
+
+    private String escapeXml(String text) {
+        return text
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
+    }
+
+    private record LoadedSchema(Document document, String schemaSource) {
+    }
+
+    private record ElementObservation(String context,
+                                      List<String> requiredChildren,
+                                      List<String> optionalChildren,
+                                      List<String> requiredAttributes) {
+        String patternId() {
+            return "obs-" + context;
+        }
+    }
+}
+

@@ -1,0 +1,50 @@
+plugins {
+    id 'name.jurgenei.gradle.ooxml'
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
+    def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
+    schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
+    output 'src/main/schematron/canonical-observation.sch'
+}
+
+tasks.register('copyCanonicalXsd') {
+    doLast {
+        def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
+        def target = file('src/main/xsd/canonical.local.xsd')
+        if (!target.exists()) {
+            target.parentFile.mkdirs()
+            target.text = new URL(ooxmlExt.canonicalSchemaUrl.get()).getText('UTF-8')
+        }
+    }
+}
+
+tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
+    dependsOn tasks.named('copyCanonicalXsd')
+    schemaFile.set(layout.projectDirectory.file('src/main/xsd/canonical.local.xsd'))
+    output 'src/main/schematron/canonical-local.sch'
+}
+
+tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    dependsOn tasks.named('bootstrapCanonicalSchematron')
+    schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
+    source(fileTree('src/main/xml') {
+        include '**/*.xml'
+    })
+    outputDir.set(layout.buildDirectory.dir('reports/schematron'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn tasks.named('bootstrapCanonicalSchematron')
+    dependsOn tasks.named('bootstrapFromLocalXsd')
+    dependsOn tasks.named('validateCanonicalSchematron')
+    doLast {
+        assert file('src/main/schematron/canonical-observation.sch').exists()
+        assert file('src/main/schematron/canonical-local.sch').exists()
+        assert file('build/reports/schematron/canonical.svrl.xml').exists()
+    }
+}
+

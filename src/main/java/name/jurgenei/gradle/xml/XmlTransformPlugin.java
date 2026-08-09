@@ -6,8 +6,9 @@ import org.gradle.api.Project;
 /**
  * Registers the XML transform plugin marker and exposes task types for build scripts.
  *
- * <p>The plugin does not add tasks automatically; consumers register {@link XsltTask}
- * and {@link XQueryTask} explicitly to configure input/output behavior per use case.</p>
+ * <p>The plugin does not add tasks automatically; consumers register task types explicitly,
+ * including {@link XsltTask}, {@link XQueryTask}, {@link SchematronTask}, {@link XsdTask},
+ * and {@link SchematronBootstrapTask}.</p>
  */
 public class XmlTransformPlugin implements Plugin<Project> {
     /**

@@ -17,6 +17,7 @@ pluginManagement {
 - `xslt-basic` - transform one XML with XSLT
 - `xquery-basic` - transform one XML with XQuery
 - `validation-basic` - validate XML with XSD and Schematron (SVRL/JUnit), including a persisted compiled Schematron stylesheet (`style`) and transpiler params
+- `schematron-bootstrap-ooxml` - bootstrap Schematron from `gradle-ooxml-plugin` canonical schema URL, then validate canonical XML
 
 ## Run samples
 
@@ -26,6 +27,7 @@ From repository root:
 ./gradlew -p samples/xslt-basic runXslt
 ./gradlew -p samples/xquery-basic runXQuery
 ./gradlew -p samples/validation-basic runXsd runSchematron
+./gradlew -p samples/schematron-bootstrap-ooxml verifySample
 ```
 
 ## Smoke-test samples
@@ -37,5 +39,6 @@ and asserts expected output files exist.
 ./gradlew -p samples/xslt-basic verifySample
 ./gradlew -p samples/xquery-basic verifySample
 ./gradlew -p samples/validation-basic verifySample
+./gradlew -p samples/schematron-bootstrap-ooxml verifySample
 ```
 
