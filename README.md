@@ -254,24 +254,27 @@ Safety behavior:
 - If output `.sch` already exists, bootstrap does **not** overwrite it.
 - The task logs a lifecycle warning and exits.
 
-Example workflow (URL bootstrap + local copy bootstrap):
+Cross-plugin workflow (OOXML + XML plugins):
 
 ```groovy
 plugins {
+  id 'name.jurgenei.gradle.ooxml'
   id 'name.jurgenei.gradle.xml'
 }
 
 tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
-  schemaUrl(file('src/main/xsd/canonical.xsd').toURI().toString())
+  def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
+  schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
   output 'src/main/schematron/canonical-observation.sch'
 }
 
 tasks.register('copyCanonicalXsd') {
   doLast {
+    def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
     def target = file('src/main/xsd/canonical.local.xsd')
     if (!target.exists()) {
       target.parentFile.mkdirs()
-      target.text = file('src/main/xsd/canonical.xsd').getText('UTF-8')
+      target.text = new URL(ooxmlExt.canonicalSchemaUrl.get()).getText('UTF-8')
     }
   }
 }
