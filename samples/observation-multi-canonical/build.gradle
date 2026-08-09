@@ -1,0 +1,64 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+    schema 'src/main/schematron/observations.sch'
+    output 'build/generated/observation/observations.xsl'
+    groupOutput 'knowledge', 'observations/knowledge.xml'
+    groupOutput 'architecture', 'observations/architecture.xml'
+    groupOutput 'terminology', 'observations/terminology.xml'
+}
+
+tasks.register('extractObs', name.jurgenei.gradle.xml.SchematronExtractTask) {
+    dependsOn tasks.named('compileObservation')
+    schema 'src/main/schematron/observations.sch'
+    style 'build/generated/observation/observations.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/observations'))
+    groupOutput 'knowledge', 'observations/knowledge.xml'
+    groupOutput 'architecture', 'observations/architecture.xml'
+    groupOutput 'terminology', 'observations/terminology.xml'
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'extractObs'
+    doLast {
+        List<File> expected = [
+            file('build/generated/observation/observations.xsl'),
+            file('build/out/observations/canonical-order/observations/knowledge.xml'),
+            file('build/out/observations/canonical-order/observations/architecture.xml'),
+            file('build/out/observations/canonical-order/observations/terminology.xml'),
+            file('build/out/observations/canonical-integration/observations/knowledge.xml'),
+            file('build/out/observations/canonical-integration/observations/architecture.xml'),
+            file('build/out/observations/canonical-integration/observations/terminology.xml'),
+            file('build/out/observations/canonical-glossary/observations/knowledge.xml'),
+            file('build/out/observations/canonical-glossary/observations/architecture.xml'),
+            file('build/out/observations/canonical-glossary/observations/terminology.xml')
+        ]
+
+        List<File> missing = expected.findAll { !it.exists() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing expected sample outputs:\n - ${missing.join('\n - ')}")
+        }
+
+        String orderKnowledge = file('build/out/observations/canonical-order/observations/knowledge.xml').text
+        String integrationArchitecture = file('build/out/observations/canonical-integration/observations/architecture.xml').text
+        String glossaryTerminology = file('build/out/observations/canonical-glossary/observations/terminology.xml').text
+
+        assert orderKnowledge.contains('obs:Observation')
+        assert orderKnowledge.contains('type="paragraph"')
+        assert orderKnowledge.contains('<c:Paragraph')
+        assert orderKnowledge.contains('document="canonical-order.xml"')
+
+        assert integrationArchitecture.contains('type="relationship-candidate"')
+        assert integrationArchitecture.contains('<c:Connector')
+        assert integrationArchitecture.contains('source="sap"')
+        assert integrationArchitecture.contains('target="crm"')
+
+        assert glossaryTerminology.contains('type="term"')
+        assert glossaryTerminology.contains('<c:Term')
+        assert glossaryTerminology.contains('name="Master Data"')
+    }
+}

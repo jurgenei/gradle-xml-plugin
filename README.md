@@ -30,6 +30,8 @@ The plugin contributes four task types:
 - `name.jurgenei.gradle.xml.SchematronTask` — Schematron to SVRL validation
 - `name.jurgenei.gradle.xml.XsdTask` — XSD validation normalized to SVRL
 - `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
+- `name.jurgenei.gradle.xml.SchematronObservationCompileTask` — compile `obs:*` annotated Schematron into grouped observation stylesheet skeleton
+- `name.jurgenei.gradle.xml.SchematronExtractTask` — execute runtime observation extraction and emit grouped observation XML
 
 Both share a near-orthogonal API for unified Gradle-style configuration.
 
@@ -285,6 +287,43 @@ tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.Schematro
   schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
   source 'src/main/xml/canonical.xml'
   outputDir.set(layout.buildDirectory.dir('reports/schematron'))
+}
+```
+
+## Observation Compiler Skeleton (Phase 2)
+
+`SchematronObservationCompileTask` compiles `obs:*` rule metadata into an extraction stylesheet skeleton
+with grouped `xsl:result-document` outputs.
+
+```groovy
+tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+  schema 'src/main/schematron/observations.sch'
+  output 'build/generated/observation/observations.xsl'
+  groupOutput 'knowledge', 'observations/knowledge.xml'
+  groupOutput 'terminology', 'observations/terminology.xml'
+  groupOutput 'architecture', 'observations/architecture.xml'
+}
+```
+
+## Observation Runtime Extraction (Phase 3)
+
+`SchematronExtractTask` executes observation extraction against canonical XML and emits grouped outputs.
+It can either:
+
+- compile extraction style on the fly from `schema`, or
+- consume a precompiled style via `style`.
+
+```groovy
+tasks.register('extractObservations', name.jurgenei.gradle.xml.SchematronExtractTask) {
+  schema 'src/main/schematron/observations.sch'
+  // Optional if precompiled by SchematronObservationCompileTask:
+  // style 'build/generated/observation/observations.xsl'
+  source(fileTree('src/main/xml') { include '**/*.xml' })
+  outputDir.set(layout.buildDirectory.dir('reports/observations'))
+  groupOutput 'knowledge', 'observations/knowledge.xml'
+  groupOutput 'terminology', 'observations/terminology.xml'
+  groupOutput 'architecture', 'observations/architecture.xml'
+  failOnError.set(true)
 }
 ```
 

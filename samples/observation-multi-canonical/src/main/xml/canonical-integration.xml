@@ -1,0 +1,14 @@
+<c:Document xmlns:c='http://jurgenei.name/canonical' source-document='integration-map-2026'>
+  <c:Metadata>
+    <c:DocumentId>integration-map</c:DocumentId>
+    <c:Version>2.3</c:Version>
+  </c:Metadata>
+  <c:Body>
+    <c:Diagram>
+      <c:Title>Core Integration Landscape</c:Title>
+      <c:Connector source='sap' target='crm' protocol='REST'/>
+      <c:Connector source='crm' target='dwh' protocol='ETL'/>
+    </c:Diagram>
+  </c:Body>
+</c:Document>
+

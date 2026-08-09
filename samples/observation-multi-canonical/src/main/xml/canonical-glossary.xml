@@ -1,0 +1,14 @@
+<c:Document xmlns:c='http://jurgenei.name/canonical' source-document='glossary-2026'>
+  <c:Metadata>
+    <c:DocumentId>glossary</c:DocumentId>
+    <c:Version>1.2</c:Version>
+  </c:Metadata>
+  <c:Body>
+    <c:Glossary>
+      <c:Title>Business Terms</c:Title>
+      <c:Term name='Master Data'>Core entities shared across systems.</c:Term>
+      <c:Term name='Golden Record'>Authoritative customer profile.</c:Term>
+    </c:Glossary>
+  </c:Body>
+</c:Document>
+
