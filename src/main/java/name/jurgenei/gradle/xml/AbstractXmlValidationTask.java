@@ -114,14 +114,25 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Override
     @PathSensitive(PathSensitivity.RELATIVE)
     public org.gradle.api.file.FileTree getSource() {
-    /**
-     * Project directory used during execution-time path resolution.
-     *
-     * @return project directory property
-     */
-    @Internal
-    public abstract DirectoryProperty getProjectDir();
+        return super.getSource();
+    }
 
+    /**
+     * Executes validation for all resolved source files.
+     */
+    @TaskAction
+    public void validateAll() {
+        List<File> inputFiles = new ArrayList<>(getSource().getFiles());
+        Collections.sort(inputFiles);
+        Map<Path, String> relativePaths = resolveRelativePaths();
+
+        if (inputFiles.isEmpty()) {
+            getLogger().lifecycle("{}: no input files matched", getName());
+            return;
+        }
+
+        File outputRoot = getOutputDir().get().getAsFile();
+        mkdirs(outputRoot);
 
         if (getReportFormat().get().writesJunit()) {
             mkdirs(getJunitOutputDir().get().getAsFile());
