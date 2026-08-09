@@ -29,6 +29,9 @@ The plugin contributes four task types:
 - `name.jurgenei.gradle.xml.XQueryTask` — XQuery transformations
 - `name.jurgenei.gradle.xml.SchematronTask` — Schematron to SVRL validation
 - `name.jurgenei.gradle.xml.XsdTask` — XSD validation normalized to SVRL
+- `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
+- `name.jurgenei.gradle.xml.SchematronObservationCompileTask` — compile `obs:*` annotated Schematron into grouped observation stylesheet skeleton
+- `name.jurgenei.gradle.xml.SchematronExtractTask` — execute runtime observation extraction and emit grouped observation XML
 
 Both share a near-orthogonal API for unified Gradle-style configuration.
 
@@ -239,6 +242,93 @@ Schematron-specific options:
   - `terminateValidationOnError`, `reportActivePattern`, `reportFiredRule`, `reportSuppressedRule`
   - `reportSkippedAssertion`, `compactReport`, `severityThreshold`, `defaultSeverity`, `defaultFrom`
   - `checkAssembledSchema`, `handleDynamicErrors`
+
+## Schematron Bootstrap From XSD
+
+Use `SchematronBootstrapTask` to create an initial observation Schematron from an XSD.
+The generated file is comprehensive (captures required children/attributes as observations)
+but intentionally passing (bootstrap-safe) until you tighten rules manually.
+
+Safety behavior:
+
+- If output `.sch` already exists, bootstrap does **not** overwrite it.
+- The task logs a lifecycle warning and exits.
+
+Cross-plugin workflow (OOXML + XML plugins):
+
+```groovy
+plugins {
+  id 'name.jurgenei.gradle.ooxml'
+  id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
+  def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
+  schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
+  output 'src/main/schematron/canonical-observation.sch'
+}
+
+tasks.register('copyCanonicalXsd') {
+  doLast {
+    def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
+    def target = file('src/main/xsd/canonical.local.xsd')
+    if (!target.exists()) {
+      target.parentFile.mkdirs()
+      target.text = new URL(ooxmlExt.canonicalSchemaUrl.get()).getText('UTF-8')
+    }
+  }
+}
+
+tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
+  dependsOn tasks.named('copyCanonicalXsd')
+  schemaFile.set(layout.projectDirectory.file('src/main/xsd/canonical.local.xsd'))
+  output 'src/main/schematron/canonical-local.sch'
+}
+
+tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+  dependsOn tasks.named('bootstrapCanonicalSchematron')
+  schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
+  source 'src/main/xml/canonical.xml'
+  outputDir.set(layout.buildDirectory.dir('reports/schematron'))
+}
+```
+
+## Observation Compiler Skeleton (Phase 2)
+
+`SchematronObservationCompileTask` compiles `obs:*` rule metadata into an extraction stylesheet skeleton
+with grouped `xsl:result-document` outputs.
+
+```groovy
+tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+  schema 'src/main/schematron/observations.sch'
+  output 'build/generated/observation/observations.xsl'
+  groupOutput 'knowledge', 'observations/knowledge.xml'
+  groupOutput 'terminology', 'observations/terminology.xml'
+  groupOutput 'architecture', 'observations/architecture.xml'
+}
+```
+
+## Observation Runtime Extraction (Phase 3)
+
+`SchematronExtractTask` executes observation extraction against canonical XML and emits grouped outputs.
+It can either:
+
+- compile extraction style on the fly from `schema`, or
+- consume a precompiled style via `style`.
+
+```groovy
+tasks.register('extractObservations', name.jurgenei.gradle.xml.SchematronExtractTask) {
+  schema 'src/main/schematron/observations.sch'
+  // Optional if precompiled by SchematronObservationCompileTask:
+  // style 'build/generated/observation/observations.xsl'
+  source(fileTree('src/main/xml') { include '**/*.xml' })
+  outputDir.set(layout.buildDirectory.dir('reports/observations'))
+  groupOutput 'knowledge', 'observations/knowledge.xml'
+  groupOutput 'terminology', 'observations/terminology.xml'
+  groupOutput 'architecture', 'observations/architecture.xml'
+  failOnError.set(true)
+}
+```
 
 ## Run tests
 

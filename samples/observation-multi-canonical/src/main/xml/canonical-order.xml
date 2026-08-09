@@ -1,0 +1,14 @@
+<c:Document xmlns:c='http://jurgenei.name/canonical' source-document='sales-order-2026'>
+  <c:Metadata>
+    <c:DocumentId>sales-order</c:DocumentId>
+    <c:Version>1.0</c:Version>
+  </c:Metadata>
+  <c:Body>
+    <c:Section>
+      <c:Title>Order Summary</c:Title>
+      <c:Paragraph>SAP sends order status updates to CRM.</c:Paragraph>
+      <c:Paragraph>Nightly batch runs at 02:00 UTC.</c:Paragraph>
+    </c:Section>
+  </c:Body>
+</c:Document>
+
