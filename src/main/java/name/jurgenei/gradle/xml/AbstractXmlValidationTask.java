@@ -64,6 +64,8 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Input
     public abstract MapProperty<String, String> getParams();
 
+<<<<<<< HEAD
+
 
     /**
      * Project directory used during execution-time path resolution.
@@ -72,14 +74,8 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      */
     @Internal
     public abstract DirectoryProperty getProjectDir();
-
-    /**
-     * Project directory used during execution-time path resolution.
-     *
-     * @return project directory property
-     */
-    @Internal
-    public abstract DirectoryProperty getProjectDir();
+=======
+>>>>>>> bc59488 (fix merge conflicts)
 
     /**
      * Creates a validation task with default conventions.
