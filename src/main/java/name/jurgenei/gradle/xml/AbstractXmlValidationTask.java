@@ -64,7 +64,6 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Input
     public abstract MapProperty<String, String> getParams();
 
-<<<<<<< HEAD
     /**
      * Project directory used during execution-time path resolution.
      *
@@ -73,8 +72,6 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Internal
     public abstract DirectoryProperty getProjectDir();
 
-=======
->>>>>>> 9bca1f5 (0.1.6 (#5))
     /**
      * Creates a validation task with default conventions.
      */
@@ -117,25 +114,14 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Override
     @PathSensitive(PathSensitivity.RELATIVE)
     public org.gradle.api.file.FileTree getSource() {
-        return super.getSource();
-    }
-
     /**
-     * Executes validation for all resolved source files.
+     * Project directory used during execution-time path resolution.
+     *
+     * @return project directory property
      */
-    @TaskAction
-    public void validateAll() {
-        List<File> inputFiles = new ArrayList<>(getSource().getFiles());
-        Collections.sort(inputFiles);
-        Map<Path, String> relativePaths = resolveRelativePaths();
+    @Internal
+    public abstract DirectoryProperty getProjectDir();
 
-        if (inputFiles.isEmpty()) {
-            getLogger().lifecycle("{}: no input files matched", getName());
-            return;
-        }
-
-        File outputRoot = getOutputDir().get().getAsFile();
-        mkdirs(outputRoot);
 
         if (getReportFormat().get().writesJunit()) {
             mkdirs(getJunitOutputDir().get().getAsFile());
