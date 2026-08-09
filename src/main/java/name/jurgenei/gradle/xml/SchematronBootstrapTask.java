@@ -20,7 +20,6 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
@@ -105,7 +104,7 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
 
         if (getSchemaUrl().isPresent()) {
             String url = getSchemaUrl().get();
-            try (InputStream in = new URL(url).openStream()) {
+            try (InputStream in = java.net.URI.create(url).toURL().openStream()) {
                 return new LoadedSchema(parse(in), url);
             }
         }

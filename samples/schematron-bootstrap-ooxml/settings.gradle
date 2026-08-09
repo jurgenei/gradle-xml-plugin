@@ -1,7 +1,0 @@
-pluginManagement {
-    includeBuild('../..')
-    includeBuild('../../../gradle-ooxml-plugin')
-}
-
-rootProject.name = 'schematron-bootstrap-ooxml'
-

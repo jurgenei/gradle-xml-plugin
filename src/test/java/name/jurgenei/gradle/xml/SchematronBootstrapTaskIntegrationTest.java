@@ -22,37 +22,25 @@ public class SchematronBootstrapTaskIntegrationTest {
     public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     @Test
-    public void bootstrapsFromOoXmlSchemaUrlAndValidatesCanonicalXml() throws Exception {
-        File xmlPluginDir = new File(System.getProperty("user.dir"));
-        File ooxmlPluginDir = new File(xmlPluginDir.getParentFile(), "gradle-ooxml-plugin");
-
-        write("settings.gradle", """
-            pluginManagement {
-              includeBuild('%s')
-              includeBuild('%s')
-            }
-            rootProject.name = 'schematron-bootstrap-flow'
-            """.formatted(gradlePath(xmlPluginDir), gradlePath(ooxmlPluginDir)));
+    public void bootstrapsFromSchemaUrlAndValidatesCanonicalXml() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-bootstrap-flow'\n");
 
         write("build.gradle", """
             plugins {
-              id 'name.jurgenei.gradle.ooxml'
               id 'name.jurgenei.gradle.xml'
             }
 
             tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
-              def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
-              schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
+              schemaUrl(file('src/main/xsd/canonical.xsd').toURI().toString())
               output 'src/main/schematron/canonical-observation.sch'
             }
 
             tasks.register('copyCanonicalXsd') {
               doLast {
-                def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
                 def target = file('src/main/xsd/canonical.local.xsd')
                 if (!target.exists()) {
                   target.parentFile.mkdirs()
-                  target.text = new URL(ooxmlExt.canonicalSchemaUrl.get()).getText('UTF-8')
+                  target.text = java.net.URI.create(file('src/main/xsd/canonical.xsd').toURI().toString()).toURL().getText('UTF-8')
                 }
               }
             }
@@ -71,6 +59,41 @@ public class SchematronBootstrapTaskIntegrationTest {
               reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
               failOnError.set(true)
             }
+            """);
+
+        write("src/main/xsd/canonical.xsd", """
+            <?xml version='1.0' encoding='UTF-8'?>
+            <xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'
+                       targetNamespace='http://jurgenei.name/canonical'
+                       xmlns:c='http://jurgenei.name/canonical'
+                       elementFormDefault='qualified'>
+              <xs:element name='Document'>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name='Metadata'>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name='DocumentId' type='xs:string'/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name='Body'>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name='Paragraph' minOccurs='0' maxOccurs='unbounded'>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name='Text' type='xs:string'/>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:schema>
             """);
 
         write("src/main/xml/canonical.xml", """
@@ -139,9 +162,6 @@ public class SchematronBootstrapTaskIntegrationTest {
         assertTrue(result.getOutput().contains("Schematron bootstrap skipped"));
     }
 
-    private static String gradlePath(File file) {
-        return file.getAbsolutePath().replace('\\', '/');
-    }
 
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
