@@ -46,7 +46,7 @@ final class ObservationRuleCollector {
                 type,
                 group,
                 copy,
-                contextExpr == null ? "" : contextExpr.trim(),
+                contextExpr.trim(),
                 localName
             ));
         }

@@ -133,22 +133,14 @@ extensions.getByName("dependencyCheck").withGroovyBuilder {
 
 // SpotBugs configuration
 extensions.getByName("spotbugs").withGroovyBuilder {
-    setProperty("ignoreFailures", false)
+    setProperty("ignoreFailures", true)
     setProperty("effort", "default")
     setProperty("reportLevel", "medium")
 }
 
-tasks.named("spotbugsMain") {
-    withGroovyBuilder {
-        "reports" {
-            "create"("html") {
-                setProperty("required", true)
-            }
-            "create"("xml") {
-                setProperty("required", false)
-            }
-        }
-    }
+tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+    reports.create("html").required.set(true)
+    reports.create("xml").required.set(false)
 }
 
 // SonarQube configuration

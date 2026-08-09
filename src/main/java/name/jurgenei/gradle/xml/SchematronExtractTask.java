@@ -184,7 +184,10 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         for (String group : runtimeStylesheet.groups()) {
             String configured = getGroupOutputs().getOrElse(Map.of()).getOrDefault(group, "observations/" + group + ".xml");
             Path target = base.resolve(configured).normalize();
-            Files.createDirectories(target.getParent());
+            Path parent = target.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
             transformer.setParameter(new QName("output-" + group), new XdmAtomicValue(configured));
         }
 
