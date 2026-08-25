@@ -333,7 +333,7 @@ tasks.register('extractObservations', name.jurgenei.gradle.xml.SchematronExtract
 ## Run tests
 
 ```bash
-gradle test
+./gradlew test
 ```
 
 ## Test Coverage
@@ -356,7 +356,7 @@ To enable Codecov upload/badge, add repository secret `CODECOV_TOKEN`.
 ## Building
 
 ```bash
-gradle build
+./gradlew build
 ```
 
 Required Java version: **21+**
@@ -381,6 +381,7 @@ AbstractXmlValidationTask (shared base)
 2. Sort files deterministically
 3. Optionally parallelize using virtual-thread worker pool (if `workers > 1`)
 4. For each input file:
+   - Skip when output is newer than transform dependencies (source + style/query/schema)
    - Derive output file path using `outputExtension` mapping
    - Create output directories (thread-safe via `Files.createDirectories`)
    - Compile and execute transform (XSLT or XQuery)
@@ -410,10 +411,13 @@ See `samples/README.md` for run commands.
 JUnit 4 with Gradle TestKit for functional integration testing:
 
 ```bash
-gradle test --tests '*XsltTaskIntegrationTest'
-gradle test --tests '*XQueryTaskIntegrationTest'
-gradle test --tests '*SchematronTaskIntegrationTest'
-gradle test --tests '*XsdTaskIntegrationTest'
+./gradlew test --tests '*XsltTaskIntegrationTest'
+./gradlew test --tests '*XQueryTaskIntegrationTest'
+./gradlew test --tests '*SchematronTaskIntegrationTest'
+./gradlew test --tests '*XsdTaskIntegrationTest'
+./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
+./gradlew test --tests '*SchematronObservationCompileTaskIntegrationTest'
+./gradlew test --tests '*SchematronExtractTaskIntegrationTest'
 ```
 
 ### Code Style

@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.7"
+version = "0.1.8"
 
 repositories {
     mavenCentral()
@@ -131,14 +131,10 @@ extensions.getByName("dependencyCheck").withGroovyBuilder {
     }
 }
 
-// SpotBugs configuration
-extensions.getByName("spotbugs").withGroovyBuilder {
-    setProperty("ignoreFailures", true)
-    setProperty("effort", "default")
-    setProperty("reportLevel", "medium")
-}
-
 tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+    ignoreFailures = true
+    effort = com.github.spotbugs.snom.Effort.DEFAULT
+    reportLevel = com.github.spotbugs.snom.Confidence.MEDIUM
     reports.create("html").required.set(true)
     reports.create("xml").required.set(false)
 }

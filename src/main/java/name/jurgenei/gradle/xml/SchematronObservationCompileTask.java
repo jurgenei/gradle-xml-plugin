@@ -28,16 +28,34 @@ import java.util.Map;
 @DisableCachingByDefault(because = "Compiler output depends on schema content and extraction annotation metadata")
 public abstract class SchematronObservationCompileTask extends DefaultTask {
 
+    /**
+     * Input Schematron schema containing observation annotations.
+     *
+     * @return schema file property
+     */
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getSchema();
 
+    /**
+     * Destination compiled extraction stylesheet.
+     *
+     * @return output stylesheet property
+     */
     @OutputFile
     public abstract RegularFileProperty getOutputStylesheet();
 
+    /**
+     * Group-to-output-path mapping used by compiled stylesheet.
+     *
+     * @return group output mapping
+     */
     @Input
     public abstract MapProperty<String, String> getGroupOutputs();
 
+    /**
+     * Creates compile task.
+     */
     @Inject
     public SchematronObservationCompileTask() {
     }
@@ -74,6 +92,9 @@ public abstract class SchematronObservationCompileTask extends DefaultTask {
         getGroupOutputs().put(group, outputPath);
     }
 
+    /**
+     * Compiles observation extraction stylesheet from Schematron source.
+     */
     @TaskAction
     public void compile() {
         try {

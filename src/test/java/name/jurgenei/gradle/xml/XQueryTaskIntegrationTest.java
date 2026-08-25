@@ -282,10 +282,10 @@ public class XQueryTaskIntegrationTest {
     }
 
     /**
-     * Ensures per-file skipping is invalidated when non-file inputs (params) change.
+     * Verifies timestamp-based skip still applies even when non-file inputs (params) change.
      */
     @Test
-    public void rerunsTransformationWhenParamsChangeEvenIfOutputIsNewer() throws IOException {
+    public void skipsTransformationWhenOutputIsNewerEvenIfParamsChange() throws IOException {
         write("settings.gradle", """
             rootProject.name = 'xquery-param-fingerprint-test'
             """);
@@ -337,8 +337,8 @@ public class XQueryTaskIntegrationTest {
             .withArguments("runXQuery", "--rerun-tasks")
             .build();
 
-        assertTrue(secondRun.getOutput().contains("[SUCCESS]"));
-        assertTrue(read(output).contains("<result>Hi Gradle</result>"));
+        assertTrue(secondRun.getOutput().contains("[SKIP]"));
+        assertTrue(read(output).contains("<result>Hello Gradle</result>"));
     }
 
     private void write(String relativePath, String content) throws IOException {

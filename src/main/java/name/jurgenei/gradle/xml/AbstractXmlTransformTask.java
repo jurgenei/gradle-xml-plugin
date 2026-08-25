@@ -1,11 +1,8 @@
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -206,10 +203,9 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
 
         Map<String, String> params = Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
-        String nonFileInputFingerprint = computeNonFileInputFingerprint(params);
 
         if (hasExplicitInput) {
-            transformExplicit(params, nonFileInputFingerprint);
+            transformExplicit(params);
             return;
         }
 
@@ -236,10 +232,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         if (workers == 1 || inputFiles.size() == 1) {
             for (File inputFile : inputFiles) {
-                transformOne(inputFile, outputRoot, relativePaths, params, nonFileInputFingerprint, failures);
+                transformOne(inputFile, outputRoot, relativePaths, params, failures);
             }
         } else {
-            runParallel(inputFiles, outputRoot, relativePaths, params, nonFileInputFingerprint, workers, failures);
+            runParallel(inputFiles, outputRoot, relativePaths, params, workers, failures);
         }
 
         if (!failures.isEmpty()) {
@@ -247,18 +243,16 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformExplicit(Map<String, String> params, String nonFileInputFingerprint) {
+    private void transformExplicit(Map<String, String> params) {
         File inputFile = getInputFile().get().getAsFile();
         File outputFile = getOutputFile().get().getAsFile();
         if (!inputFile.isFile()) {
             throw new GradleException("Input file does not exist: " + inputFile);
         }
 
-        File fingerprintMarker = fingerprintMarkerFor(outputFile);
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
         if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp
-                && isFingerprintCurrent(fingerprintMarker, nonFileInputFingerprint)) {
+                && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -269,7 +263,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
                 Files.createDirectories(outputParent.toPath());
             }
             transform(inputFile, outputFile, params);
-            writeFingerprint(fingerprintMarker, nonFileInputFingerprint);
             getLogger().lifecycle("[SUCCESS] {} -> {}", inputFile, outputFile);
         } catch (Exception e) {
             getLogger().error("Failed to transform {}", inputFile, e);
@@ -280,11 +273,11 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, String nonFileInputFingerprint, int workers, List<Exception> failures) {
+    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, int workers, List<Exception> failures) {
         try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, params, nonFileInputFingerprint, failures)));
+                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, params, failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -304,14 +297,12 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, String nonFileInputFingerprint, List<Exception> failures) {
+    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, List<Exception> failures) {
         File outputFile = outputFileFor(inputFile, outputRoot, relativePaths);
-        File fingerprintMarker = fingerprintMarkerFor(outputFile);
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
 
         if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp
-                && isFingerprintCurrent(fingerprintMarker, nonFileInputFingerprint)) {
+                && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -326,7 +317,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         try {
             transform(inputFile, outputFile, params);
-            writeFingerprint(fingerprintMarker, nonFileInputFingerprint);
             getLogger().lifecycle("[SUCCESS] {} -> {}", inputFile, outputFile);
         } catch (Exception e) {
             getLogger().error("Failed to transform {}", inputFile, e);
@@ -386,56 +376,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         return normalized;
     }
 
-    private File fingerprintMarkerFor(File outputFile) {
-        return new File(outputFile.getParentFile(), outputFile.getName() + ".inputs.sha256");
-    }
-
-    private boolean isFingerprintCurrent(File markerFile, String currentFingerprint) {
-        if (!markerFile.isFile()) {
-            return false;
-        }
-        try {
-            String recorded = Files.readString(markerFile.toPath(), StandardCharsets.UTF_8).trim();
-            return currentFingerprint.equals(recorded);
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private void writeFingerprint(File markerFile, String fingerprint) throws Exception {
-        Files.writeString(markerFile.toPath(), fingerprint, StandardCharsets.UTF_8);
-    }
-
-    private String computeNonFileInputFingerprint(Map<String, String> params) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("task=").append(getClass().getName()).append('\n');
-        builder.append("outputExtension=").append(getOutputExtension().get()).append('\n');
-        builder.append("outputMethod=").append(getOutputMethod().getOrElse("<auto>")).append('\n');
-
-        List<String> keys = new ArrayList<>(params.keySet());
-        Collections.sort(keys);
-        for (String key : keys) {
-            String value = params.get(key);
-            builder.append("param:").append(key).append('=').append(value == null ? "" : value).append('\n');
-        }
-        return sha256(builder.toString());
-    }
-
-    private String sha256(String text) {
-        final byte[] digest;
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm is unavailable", e);
-        }
-
-        StringBuilder hex = new StringBuilder(digest.length * 2);
-        for (byte b : digest) {
-            hex.append(String.format("%02x", b));
-        }
-        return hex.toString();
-    }
 
     private File outputFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();

@@ -49,30 +49,63 @@ import java.util.Set;
 @DisableCachingByDefault(because = "Extraction output fan-out depends on source trees and dynamic grouped mappings")
 public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
 
+    /**
+     * Creates extraction task with fail-fast behavior enabled by default.
+     */
     @Inject
     public SchematronExtractTask() {
         getFailOnError().convention(true);
     }
 
+    /**
+     * Schematron schema containing observation rule metadata.
+     *
+     * @return schema file property
+     */
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getSchema();
 
+    /**
+     * Optional precompiled extraction stylesheet.
+     *
+     * @return stylesheet property
+     */
     @Optional
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getStyle();
 
+    /**
+     * Canonical XML sources used for extraction.
+     *
+     * @return source file collection
+     */
     @InputFiles
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract ConfigurableFileCollection getSourceFiles();
 
+    /**
+     * Output directory root for grouped extraction documents.
+     *
+     * @return output directory property
+     */
     @OutputDirectory
     public abstract DirectoryProperty getOutputDir();
 
+    /**
+     * Group-to-relative-path mapping for emitted observation documents.
+     *
+     * @return group output mapping
+     */
     @Input
     public abstract MapProperty<String, String> getGroupOutputs();
 
+    /**
+     * Controls build failure behavior when extraction errors occur.
+     *
+     * @return fail-on-error property
+     */
     @Input
     public abstract Property<Boolean> getFailOnError();
 
@@ -129,6 +162,9 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         getGroupOutputs().put(group, relativePath);
     }
 
+    /**
+     * Runs observation extraction for all configured source files.
+     */
     @TaskAction
     public void extract() {
         Set<File> rawInputs = new LinkedHashSet<>(getSourceFiles().getFiles());
