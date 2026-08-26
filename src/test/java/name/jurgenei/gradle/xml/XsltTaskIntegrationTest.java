@@ -531,6 +531,179 @@ public class XsltTaskIntegrationTest {
         assertTrue("Build should succeed with fileTree patterns", result.getOutput().contains("BUILD SUCCESSFUL"));
     }
 
+    @Test
+    public void transformsSexprInputToXml() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-sexpr-input-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/sexpr/input.sexpr'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+            }
+            """);
+        write("src/main/sexpr/input.sexpr", "(book (@id \"b1\") (title \"XML\"))");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
+        assertTrue(output.contains("<book id=\"b1\">"));
+        assertTrue(output.contains("<title>XML</title>"));
+    }
+
+    @Test
+    public void transformsXmlToSexprOutput() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-sexpr-output-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.sexpr')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.sexpr"));
+        assertTrue(output.contains("(book"));
+        assertTrue(output.contains("(@id \"b1\")"));
+        assertTrue(output.contains("(title \"XML\")"));
+    }
+
+    @Test
+    public void transformsXmlToBeautifiedSexprOutput() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-sexpr-output-beautified-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.sexpr')
+              sexprFormat.set('beautified')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.sexpr"));
+        assertTrue(output.contains("\n  (@id \"b1\")"));
+        assertTrue(output.contains("\n  (title"));
+    }
+
+    @Test
+    public void failsOnUnsupportedSexprFormat() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-sexpr-format-invalid-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.sexpr')
+              sexprFormat.set('invalid-mode')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        BuildResult result = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains("Unsupported sexprFormat 'invalid-mode'. Supported values: compact, beautified"));
+    }
+
+    @Test
+    public void roundtripsXmlThroughSexpr() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-sexpr-roundtrip-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/sexpr'))
+              outputExtension.set('.sexpr')
+            }
+            tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
+              dependsOn 'xmlToSexpr'
+              style 'src/main/xslt/identity.xsl'
+              input 'build/out/sexpr/input.sexpr'
+              output 'build/out/xml/result.xml'
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("sexprToXml")
+            .build()
+            .task(":sexprToXml")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xml/result.xml"));
+        assertTrue(output.contains("<book id=\"b1\">"));
+        assertTrue(output.contains("<title>XML</title>"));
+    }
+
 
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);

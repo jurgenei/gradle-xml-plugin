@@ -1,10 +1,18 @@
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
+import javax.xml.transform.Source;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
+import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
+import net.sf.saxon.s9api.Destination;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SAXDestination;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XQueryCompiler;
 import net.sf.saxon.s9api.XQueryEvaluator;
@@ -16,6 +24,7 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
+import org.xml.sax.InputSource;
 
 import org.gradle.work.DisableCachingByDefault;
 
@@ -51,16 +60,38 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
         XQueryExecutable executable = compiler.compile(getQueryFile().get().getAsFile());
         XQueryEvaluator evaluator = executable.load();
 
-        XdmNode context = processor.newDocumentBuilder().build(new StreamSource(inputFile));
+        XdmNode context = processor.newDocumentBuilder().build(sourceFor(inputFile));
         evaluator.setContextItem(context);
 
         for (Map.Entry<String, String> entry : params.entrySet()) {
             evaluator.setExternalVariable(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
         }
 
+        if (isSexprFile(outputFile)) {
+            if (outputFile.getParentFile() != null) {
+                Files.createDirectories(outputFile.getParentFile().toPath());
+            }
+            try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                Destination destination = new SAXDestination(new SExpressionSerializer(writer, resolveSexprOutputFormat()));
+                evaluator.run(destination);
+            }
+            return;
+        }
+
         Serializer serializer = processor.newSerializer(outputFile);
         serializer.setOutputProperty(Serializer.Property.METHOD, resolveSerializerMethod(outputFile));
         evaluator.run(serializer);
+    }
+
+    private Source sourceFor(File inputFile) {
+        if (isSexprFile(inputFile)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
+        return new StreamSource(inputFile);
+    }
+
+    private boolean isSexprFile(File file) {
+        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".sexpr");
     }
 
     @Override

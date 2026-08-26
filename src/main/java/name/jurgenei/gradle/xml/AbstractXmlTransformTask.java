@@ -13,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
@@ -42,6 +43,7 @@ import org.gradle.work.DisableCachingByDefault;
 public abstract class AbstractXmlTransformTask extends SourceTask {
 
     private static final Set<String> SUPPORTED_OUTPUT_METHODS = Set.of("xml", "json", "text");
+    private static final Set<String> SUPPORTED_SEXPR_FORMATS = Set.of("compact", "beautified");
 
     /**
      * Destination root directory for transformed files.
@@ -95,6 +97,17 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getOutputMethod();
 
     /**
+     * Optional S-expression output format used when writing {@code .sexpr} files.
+     *
+     * <p>Supported values are {@code compact} (default) and {@code beautified}.</p>
+     *
+     * @return S-expression output format property
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getSexprFormat();
+
+    /**
      * Transform parameters exposed to the execution engine.
      *
      * @return map of parameter names to values
@@ -123,6 +136,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public AbstractXmlTransformTask() {
         getOutputExtension().convention(".xml");
+        getSexprFormat().convention("compact");
         getWorkers().convention(1);
         getFailOnError().convention(true);
     }
@@ -180,6 +194,15 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public void outputMethod(String method) {
         getOutputMethod().set(method);
+    }
+
+    /**
+     * Sets explicit S-expression output format (Gradle DSL friendly).
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void sexprFormat(String format) {
+        getSexprFormat().set(format);
     }
 
     @Override
@@ -351,6 +374,26 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
             return normalizeAndValidateMethod(getOutputMethod().get());
         }
         return inferSerializerMethod(outputFile);
+    }
+
+    /**
+     * Resolves S-expression serializer format from explicit task setting.
+     *
+     * @return serializer format to use for {@code .sexpr} output
+     */
+    protected SExpressionSerializer.OutputFormat resolveSexprOutputFormat() {
+        String configured = getSexprFormat().getOrElse("compact");
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        if ("pretty".equals(normalized)) {
+            normalized = "beautified";
+        }
+        if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
+            throw new GradleException("Unsupported sexprFormat '" + configured
+                + "'. Supported values: compact, beautified");
+        }
+        return "beautified".equals(normalized)
+            ? SExpressionSerializer.OutputFormat.BEAUTIFIED
+            : SExpressionSerializer.OutputFormat.COMPACT;
     }
 
     private String inferSerializerMethod(File outputFile) {

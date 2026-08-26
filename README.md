@@ -47,6 +47,71 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Parameter passing** — externalize stylesheet/query variables
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
+- **S-expression I/O** — `.sexpr` input and output routing for XSLT/XQuery tasks
+
+## S-expression Support (MVP)
+
+`XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
+
+- Input `.sexpr` is parsed as SAX source.
+- Output `.sexpr` is serialized from Saxon result tree.
+- `sexprFormat` controls output style: `compact` (default) or `beautified`.
+
+Format conventions:
+
+```lisp
+; compact
+(book (@id "b1") (title "XML"))
+
+; beautified
+(book
+  (@id "b1")
+  (title "XML")
+)
+```
+
+### XSLT Example
+
+```groovy
+tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  source 'src/main/xml/input.xml'
+  outputDir.set(layout.buildDirectory.dir('out/xslt'))
+  outputExtension.set('.sexpr')
+}
+
+tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  input 'build/out/xslt/input.sexpr'
+  output 'build/out/xml/result.xml'
+}
+```
+
+### Beautified Output Switch
+
+Kotlin DSL:
+
+```kotlin
+tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToSexpr") {
+    style("src/main/xslt/identity.xsl")
+    source("src/main/xml/input.xml")
+    outputDir.set(layout.buildDirectory.dir("out/xslt"))
+    outputExtension.set(".sexpr")
+    sexprFormat.set("beautified")
+}
+```
+
+Groovy DSL:
+
+```groovy
+tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  source 'src/main/xml/input.xml'
+  outputDir.set(layout.buildDirectory.dir('out/xslt'))
+  outputExtension.set('.sexpr')
+  sexprFormat.set('beautified')
+}
+```
 
 ## Input/Output Modes
 

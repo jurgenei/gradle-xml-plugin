@@ -341,6 +341,93 @@ public class XQueryTaskIntegrationTest {
         assertTrue(read(output).contains("<result>Hello Gradle</result>"));
     }
 
+    @Test
+    public void transformsSexprInputWithXQuery() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-sexpr-input-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/sexpr/input.sexpr'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+            }
+            """);
+        write("src/main/sexpr/input.sexpr", "(book (@id \"b1\") (title \"XML\"))");
+        write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery")
+            .build()
+            .task(":runXQuery")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xml"));
+        assertTrue(output.contains("<result>XML</result>"));
+    }
+
+    @Test
+    public void writesSexprOutputWithXQuery() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-sexpr-output-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+              outputExtension.set('.sexpr')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery")
+            .build()
+            .task(":runXQuery")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
+        assertTrue(output.contains("(book"));
+        assertTrue(output.contains("(@id \"b1\")"));
+        assertTrue(output.contains("(title \"XML\")"));
+    }
+
+    @Test
+    public void writesBeautifiedSexprOutputWithXQuery() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-sexpr-output-beautified-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+              query 'src/main/xquery/main.xq'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xquery'))
+              outputExtension.set('.sexpr')
+              sexprFormat.set('beautified')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXQuery")
+            .build()
+            .task(":runXQuery")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
+        assertTrue(output.contains("\n  (@id \"b1\")"));
+        assertTrue(output.contains("\n  (title"));
+    }
+
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
         File parent = file.getParentFile();
