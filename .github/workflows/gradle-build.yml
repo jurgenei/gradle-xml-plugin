@@ -32,4 +32,10 @@ jobs:
         ./gradlew -p samples/xslt-basic verifySample --stacktrace
         ./gradlew -p samples/xquery-basic verifySample --stacktrace
         ./gradlew -p samples/validation-basic verifySample --stacktrace
+        
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: jurgenei/gradle-xml-plugin
 
