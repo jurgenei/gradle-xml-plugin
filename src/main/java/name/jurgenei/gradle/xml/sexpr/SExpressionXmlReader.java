@@ -39,6 +39,12 @@ public final class SExpressionXmlReader implements XMLReader {
     private Object lexicalHandler;
     private Object declarationHandler;
 
+    /**
+     * Creates XMLReader facade for S-expression input.
+     */
+    public SExpressionXmlReader() {
+    }
+
     @Override
     public boolean getFeature(String name) throws SAXNotRecognizedException {
         if (FEATURE_NAMESPACES.equals(name)) {

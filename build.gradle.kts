@@ -6,13 +6,13 @@ import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.gradle.plugins.signing.SigningExtension
+// import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     id("java-gradle-plugin")
     id("jacoco")
     id("maven-publish")
-    id("signing")
+    // id("signing")
     id("com.gradle.plugin-publish") version "2.1.1"
     id("org.owasp.dependencycheck") version "10.0.3"
     id("com.github.spotbugs") version "6.1.0"
@@ -109,10 +109,10 @@ extensions.configure<PublishingExtension> {
 //    sign(publishing.publications)
 //}
 
-extensions.configure<SigningExtension> {
-    useGpgCmd()
-    sign(extensions.getByType(PublishingExtension::class.java).publications)
-}
+//extensions.configure<SigningExtension> {
+//    useGpgCmd()
+//    sign(extensions.getByType(PublishingExtension::class.java).publications)
+//}
 
 // OWASP Dependency-Check configuration
 extensions.getByName("dependencyCheck").withGroovyBuilder {

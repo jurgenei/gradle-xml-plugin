@@ -20,15 +20,31 @@ public final class SExpressionSerializer implements ContentHandler {
     private final Deque<ElementFrame> stack = new ArrayDeque<>();
     private final OutputFormat format;
 
+    /**
+     * Rendering mode for serialized S-expression output.
+     */
     public enum OutputFormat {
+        /** Compact single-line output with minimal whitespace. */
         COMPACT,
+        /** Indented multi-line output for readability. */
         BEAUTIFIED
     }
 
+    /**
+     * Creates serializer using {@link OutputFormat#COMPACT} mode.
+     *
+     * @param writer destination writer
+     */
     public SExpressionSerializer(Writer writer) {
         this(writer, OutputFormat.COMPACT);
     }
 
+    /**
+     * Creates serializer with explicit output format.
+     *
+     * @param writer destination writer
+     * @param format requested rendering mode; defaults to compact when {@code null}
+     */
     public SExpressionSerializer(Writer writer, OutputFormat format) {
         this.writer = writer;
         this.format = format == null ? OutputFormat.COMPACT : format;

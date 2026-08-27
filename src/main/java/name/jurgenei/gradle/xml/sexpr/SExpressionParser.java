@@ -16,6 +16,20 @@ import java.util.Map;
  */
 public final class SExpressionParser {
 
+    /**
+     * Creates parser for minimal S-expression syntax.
+     */
+    public SExpressionParser() {
+    }
+
+    /**
+     * Parses S-expression input and emits equivalent SAX events.
+     *
+     * @param reader character stream containing S-expression document
+     * @param handler SAX handler receiving parsed events
+     * @throws IOException if input is malformed or cannot be read
+     * @throws SAXException if SAX handler fails while consuming events
+     */
     public void parse(Reader reader, ContentHandler handler) throws IOException, SAXException {
         StringBuilder source = new StringBuilder();
         char[] buffer = new char[4096];
