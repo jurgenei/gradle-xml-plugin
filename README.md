@@ -48,6 +48,7 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
 - **S-expression I/O** — `.sexpr` input and output routing for XSLT/XQuery tasks
+- **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
 
 ## S-expression Support (MVP)
 
@@ -56,6 +57,8 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - Input `.sexpr` is parsed as SAX source.
 - Output `.sexpr` is serialized from Saxon result tree.
 - `sexprFormat` controls output style: `compact` (default) or `beautified`.
+
+`sexprFormat` is also reused for canonical JSON output formatting.
 
 Format conventions:
 
@@ -84,6 +87,40 @@ tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
   style 'src/main/xslt/identity.xsl'
   input 'build/out/xslt/input.sexpr'
   output 'build/out/xml/result.xml'
+}
+```
+
+## Canonical JSON Support
+
+`XsltTask` and `XQueryTask` support optional canonical JSON parsing/serialization.
+
+- Canonical JSON maps XML element trees to JSON objects with `type`, `name`, `attributes`, `children`.
+- Canonical JSON mode is reversible for XML -> JSON -> XML roundtrips.
+- `sexprFormat` controls canonical JSON output style too: `compact` or `beautified`.
+
+Set JSON routing mode with `jsonMode`:
+
+- `auto` (default): canonical parser for `.json` input; for `.json` output, try canonical hierarchical JSON first and fall back to native Saxon JSON when canonical serialization is not applicable (for example map/array results)
+- `native`: no canonical JSON parser for input; for `.json` output, same canonical-first behavior with native fallback
+- `canonical`: canonical parser + canonical serializer for `.json` input/output (no fallback)
+
+### XSLT Canonical JSON Example
+
+```groovy
+tasks.register('xmlToJsonCanonical', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  source 'src/main/xml/input.xml'
+  outputDir.set(layout.buildDirectory.dir('out/json'))
+  outputExtension.set('.json')
+  jsonMode.set('canonical')
+  sexprFormat.set('beautified')
+}
+
+tasks.register('jsonCanonicalToXml', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  input 'build/out/json/input.json'
+  output 'build/out/xml/result.xml'
+  jsonMode.set('canonical')
 }
 ```
 

@@ -155,20 +155,24 @@ public final class SExpressionSerializer implements ContentHandler {
     private String renderBeautified(ElementFrame frame, int depth) {
         StringBuilder sb = new StringBuilder();
         sb.append(indent(depth)).append('(').append(frame.name);
-        if (frame.attributes.isEmpty() && frame.children.isEmpty()) {
-            sb.append(')');
-            return sb.toString();
-        }
-
         for (Attribute attribute : frame.attributes) {
-            sb.append('\n')
-                .append(indent(depth + 1))
+            sb.append(' ')
                 .append("(@")
                 .append(attribute.name)
                 .append(' ')
                 .append(quote(attribute.value))
                 .append(')');
         }
+
+        boolean hasElementChildren = frame.children.stream().anyMatch(child -> child.element != null);
+        if (!hasElementChildren) {
+            for (Child child : frame.children) {
+                sb.append(' ').append(child.text);
+            }
+            sb.append(')');
+            return sb.toString();
+        }
+
         for (Child child : frame.children) {
             sb.append('\n').append(renderChildBeautified(child, depth + 1));
         }

@@ -7,6 +7,8 @@ import java.util.Map;
 import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
+import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
+import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
 import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
 import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
 import net.sf.saxon.s9api.Destination;
@@ -58,12 +60,6 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
         XsltCompiler compiler = processor.newXsltCompiler();
 
         XsltExecutable executable = compiler.compile(new StreamSource(getStylesheet().get().getAsFile()));
-        XsltTransformer transformer = executable.load();
-        transformer.setSource(sourceFor(inputFile));
-
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            transformer.setParameter(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
-        }
 
         if (isSexprFile(outputFile)) {
             try {
@@ -71,6 +67,7 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
                     Files.createDirectories(outputFile.getParentFile().toPath());
                 }
                 try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                    XsltTransformer transformer = createTransformer(executable, inputFile, params);
                     Destination destination = new SAXDestination(new SExpressionSerializer(writer, resolveSexprOutputFormat()));
                     transformer.setDestination(destination);
                     transformer.transform();
@@ -81,22 +78,52 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
             return;
         }
 
+        if (shouldAttemptCanonicalJsonOutput(outputFile)) {
+            boolean strict = isStrictCanonicalJsonOutput(outputFile);
+            try {
+                if (outputFile.getParentFile() != null) {
+                    Files.createDirectories(outputFile.getParentFile().toPath());
+                }
+                try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                    XsltTransformer transformer = createTransformer(executable, inputFile, params);
+                    Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveSexprOutputFormat()));
+                    transformer.setDestination(destination);
+                    transformer.transform();
+                }
+                return;
+            } catch (Exception e) {
+                if (strict) {
+                    throw new SaxonApiException("Failed to write canonical JSON output", e);
+                }
+            }
+        }
+
+        XsltTransformer transformer = createTransformer(executable, inputFile, params);
         Serializer serializer = processor.newSerializer(outputFile);
         serializer.setOutputProperty(Serializer.Property.METHOD, resolveSerializerMethod(outputFile));
         transformer.setDestination(serializer);
         transformer.transform();
     }
 
+    private XsltTransformer createTransformer(XsltExecutable executable, File inputFile, Map<String, String> params) {
+        XsltTransformer transformer = executable.load();
+        transformer.setSource(sourceFor(inputFile));
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            transformer.setParameter(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
+        }
+        return transformer;
+    }
+
     private Source sourceFor(File inputFile) {
         if (isSexprFile(inputFile)) {
             return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
         }
+        if (useCanonicalJsonInput(inputFile)) {
+            return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
         return new StreamSource(inputFile);
     }
 
-    private boolean isSexprFile(File file) {
-        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".sexpr");
-    }
 
     @Override
     protected long latestDependencyTimestamp(File inputFile) {

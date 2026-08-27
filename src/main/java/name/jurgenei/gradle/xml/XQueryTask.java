@@ -7,6 +7,8 @@ import java.util.Map;
 import javax.xml.transform.Source;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
+import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
+import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
 import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
 import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
 import net.sf.saxon.s9api.Destination;
@@ -58,41 +60,63 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
         XQueryCompiler compiler = processor.newXQueryCompiler();
 
         XQueryExecutable executable = compiler.compile(getQueryFile().get().getAsFile());
-        XQueryEvaluator evaluator = executable.load();
-
-        XdmNode context = processor.newDocumentBuilder().build(sourceFor(inputFile));
-        evaluator.setContextItem(context);
-
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            evaluator.setExternalVariable(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
-        }
 
         if (isSexprFile(outputFile)) {
             if (outputFile.getParentFile() != null) {
                 Files.createDirectories(outputFile.getParentFile().toPath());
             }
             try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                XQueryEvaluator evaluator = createEvaluator(executable, processor, inputFile, params);
                 Destination destination = new SAXDestination(new SExpressionSerializer(writer, resolveSexprOutputFormat()));
                 evaluator.run(destination);
             }
             return;
         }
 
+        if (shouldAttemptCanonicalJsonOutput(outputFile)) {
+            boolean strict = isStrictCanonicalJsonOutput(outputFile);
+            if (outputFile.getParentFile() != null) {
+                Files.createDirectories(outputFile.getParentFile().toPath());
+            }
+            try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                XQueryEvaluator evaluator = createEvaluator(executable, processor, inputFile, params);
+                Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveSexprOutputFormat()));
+                evaluator.run(destination);
+                return;
+            } catch (Exception e) {
+                if (strict) {
+                    throw e;
+                }
+            }
+        }
+
+        XQueryEvaluator evaluator = createEvaluator(executable, processor, inputFile, params);
         Serializer serializer = processor.newSerializer(outputFile);
         serializer.setOutputProperty(Serializer.Property.METHOD, resolveSerializerMethod(outputFile));
         evaluator.run(serializer);
+    }
+
+    private XQueryEvaluator createEvaluator(XQueryExecutable executable, Processor processor, File inputFile, Map<String, String> params) throws Exception {
+        XQueryEvaluator evaluator = executable.load();
+        XdmNode context = processor.newDocumentBuilder().build(sourceFor(inputFile));
+        evaluator.setContextItem(context);
+
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            evaluator.setExternalVariable(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
+        }
+        return evaluator;
     }
 
     private Source sourceFor(File inputFile) {
         if (isSexprFile(inputFile)) {
             return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
         }
+        if (useCanonicalJsonInput(inputFile)) {
+            return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
         return new StreamSource(inputFile);
     }
 
-    private boolean isSexprFile(File file) {
-        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".sexpr");
-    }
 
     @Override
     protected long latestDependencyTimestamp(File inputFile) {

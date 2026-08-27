@@ -113,6 +113,86 @@ public class XsltTaskIntegrationTest {
         assertEquals("{\"value\":\"Gradle\"}", read(output).replaceAll("\\s+", ""));
     }
 
+    @Test
+    public void autoModeWritesHierarchicalJsonForXmlNodeResults() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-json-auto-hierarchical-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.json')
+              jsonMode.set('auto')
+            }
+            """);
+
+        write("src/main/xml/input.xml", "<book><title>XML</title></book>");
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.json"));
+        assertTrue(output.contains("\"type\":\"element\"") || output.contains("\"type\" : \"element\""));
+        assertTrue(output.contains("\"name\":\"book\"") || output.contains("\"name\" : \"book\""));
+        assertTrue(!output.contains("\"attributes\" : { }"));
+        assertTrue(!output.contains("\"attributes\":{}"));
+    }
+
+    @Test
+    public void nativeModeWritesHierarchicalJsonForXmlNodeResults() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xslt-json-native-hierarchical-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.json')
+              jsonMode.set('native')
+            }
+            """);
+
+        write("src/main/xml/input.xml", "<book><title>XML</title></book>");
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.json"));
+        assertTrue(output.contains("\"type\":\"element\"") || output.contains("\"type\" : \"element\""));
+        assertTrue(output.contains("\"name\":\"book\"") || output.contains("\"name\" : \"book\""));
+        assertTrue(!output.contains("\"attributes\" : { }"));
+        assertTrue(!output.contains("\"attributes\":{}"));
+    }
+
     /**
      * Verifies explicit outputMethod overrides extension-based inference.
      */
@@ -630,8 +710,8 @@ public class XsltTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.sexpr"));
-        assertTrue(output.contains("\n  (@id \"b1\")"));
-        assertTrue(output.contains("\n  (title"));
+        assertTrue(output.contains("(book (@id \"b1\")"));
+        assertTrue(output.contains("\n  (title \"XML\")"));
     }
 
     @Test
@@ -696,6 +776,138 @@ public class XsltTaskIntegrationTest {
             .withArguments("sexprToXml")
             .build()
             .task(":sexprToXml")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xml/result.xml"));
+        assertTrue(output.contains("<book id=\"b1\">"));
+        assertTrue(output.contains("<title>XML</title>"));
+    }
+
+    @Test
+    public void transformsCanonicalJsonInputToXml() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-json-input-canonical-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/json/input.json'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              jsonMode.set('canonical')
+            }
+            """);
+        write("src/main/json/input.json", """
+            {
+              "type": "element",
+              "name": "book",
+              "attributes": { "id": "b1" },
+              "children": [
+                {
+                  "type": "element",
+                  "name": "title",
+                  "attributes": {},
+                  "children": [
+                    { "type": "text", "value": "XML" }
+                  ]
+                }
+              ]
+            }
+            """);
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
+        assertTrue(output.contains("<book id=\"b1\">"));
+        assertTrue(output.contains("<title>XML</title>"));
+    }
+
+    @Test
+    public void transformsXmlToCanonicalJsonOutputWithBeautifiedFormat() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-json-output-canonical-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.json')
+              jsonMode.set('canonical')
+              sexprFormat.set('beautified')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.json"));
+        assertTrue(output.contains("\n"));
+        assertTrue(output.contains("\"type\" : \"element\""));
+        assertTrue(output.contains("\"name\" : \"book\""));
+        assertTrue(output.contains("\"value\" : \"XML\""));
+        assertTrue(!output.contains("\"attributes\" : { }"));
+        assertTrue(!output.contains("\"attributes\":{}"));
+    }
+
+    @Test
+    public void roundtripsXmlThroughCanonicalJson() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-json-roundtrip-canonical-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('xmlToJson', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/json'))
+              outputExtension.set('.json')
+              jsonMode.set('canonical')
+            }
+            tasks.register('jsonToXml', name.jurgenei.gradle.xml.XsltTask) {
+              dependsOn 'xmlToJson'
+              style 'src/main/xslt/identity.xsl'
+              input 'build/out/json/input.json'
+              output 'build/out/xml/result.xml'
+              jsonMode.set('canonical')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("jsonToXml")
+            .build()
+            .task(":jsonToXml")
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);

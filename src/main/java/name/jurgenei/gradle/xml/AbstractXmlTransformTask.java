@@ -44,6 +44,25 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
     private static final Set<String> SUPPORTED_OUTPUT_METHODS = Set.of("xml", "json", "text");
     private static final Set<String> SUPPORTED_SEXPR_FORMATS = Set.of("compact", "beautified");
+    private static final Set<String> SUPPORTED_JSON_MODES = Set.of("auto", "native", "canonical");
+
+    /**
+     * JSON routing mode for {@code .json} files.
+     */
+    public enum JsonMode {
+        /**
+         * Compatibility mode: canonical JSON parser for input, Saxon serializer for output.
+         */
+        AUTO,
+        /**
+         * Native Saxon routing for JSON output and no custom JSON parser for input.
+         */
+        NATIVE,
+        /**
+         * Canonical JSON parser and serializer for both JSON input and output.
+         */
+        CANONICAL
+    }
 
     /**
      * Destination root directory for transformed files.
@@ -108,6 +127,17 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getSexprFormat();
 
     /**
+     * Optional JSON mode controlling how {@code .json} input/output is routed.
+     *
+     * <p>Supported values are {@code auto} (default), {@code native}, and {@code canonical}.</p>
+     *
+     * @return JSON routing mode property
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getJsonMode();
+
+    /**
      * Transform parameters exposed to the execution engine.
      *
      * @return map of parameter names to values
@@ -137,6 +167,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public AbstractXmlTransformTask() {
         getOutputExtension().convention(".xml");
         getSexprFormat().convention("compact");
+        getJsonMode().convention("auto");
         getWorkers().convention(1);
         getFailOnError().convention(true);
     }
@@ -203,6 +234,15 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public void sexprFormat(String format) {
         getSexprFormat().set(format);
+    }
+
+    /**
+     * Sets JSON routing mode (Gradle DSL friendly).
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void jsonMode(String mode) {
+        getJsonMode().set(mode);
     }
 
     @Override
@@ -379,7 +419,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     /**
      * Resolves S-expression serializer format from explicit task setting.
      *
-     * @return serializer format to use for {@code .sexpr} output
+     * @return serializer format to use for {@code .sexpr} and canonical {@code .json} output
      */
     protected SExpressionSerializer.OutputFormat resolveSexprOutputFormat() {
         String configured = getSexprFormat().getOrElse("compact");
@@ -394,6 +434,89 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         return "beautified".equals(normalized)
             ? SExpressionSerializer.OutputFormat.BEAUTIFIED
             : SExpressionSerializer.OutputFormat.COMPACT;
+    }
+
+    /**
+     * Resolves JSON routing mode from explicit task setting.
+     *
+     * @return JSON mode
+     */
+    protected JsonMode resolveJsonMode() {
+        String configured = getJsonMode().getOrElse("auto");
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_JSON_MODES.contains(normalized)) {
+            throw new GradleException("Unsupported jsonMode '" + configured
+                + "'. Supported values: auto, native, canonical");
+        }
+        return switch (normalized) {
+            case "native" -> JsonMode.NATIVE;
+            case "canonical" -> JsonMode.CANONICAL;
+            default -> JsonMode.AUTO;
+        };
+    }
+
+    /**
+     * Checks whether file extension matches S-expression input/output.
+     *
+     * @param file candidate file
+     * @return true when file extension is {@code .sexpr}
+     */
+    protected boolean isSexprFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".sexpr");
+    }
+
+    /**
+     * Checks whether file extension matches JSON input/output.
+     *
+     * @param file candidate file
+     * @return true when file extension is {@code .json}
+     */
+    protected boolean isJsonFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".json");
+    }
+
+    /**
+     * AUTO and CANONICAL parse {@code .json} via canonical JSON reader.
+     *
+     * @param inputFile candidate source file
+     * @return true when task should parse input using canonical JSON mapping
+     */
+    protected boolean useCanonicalJsonInput(File inputFile) {
+        if (!isJsonFile(inputFile)) {
+            return false;
+        }
+        JsonMode mode = resolveJsonMode();
+        return mode == JsonMode.AUTO || mode == JsonMode.CANONICAL;
+    }
+
+    /**
+     * JSON output should attempt canonical hierarchical serialization.
+     *
+     * <p>CANONICAL mode always attempts canonical JSON. AUTO/NATIVE attempt canonical JSON when
+     * the resolved serializer method is {@code json}.</p>
+     *
+     * @param outputFile candidate destination file
+     * @return true when task should try canonical JSON serializer before native fallback
+     */
+    protected boolean shouldAttemptCanonicalJsonOutput(File outputFile) {
+        if (!isJsonFile(outputFile)) {
+            return false;
+        }
+        JsonMode mode = resolveJsonMode();
+        if (mode == JsonMode.CANONICAL) {
+            return true;
+        }
+        return "json".equals(resolveSerializerMethod(outputFile));
+    }
+
+    /**
+     * CANONICAL mode treats canonical JSON serialization failures as hard errors.
+     *
+     * @param outputFile candidate destination file
+     * @return true when canonical JSON serialization failure must fail task
+     */
+    protected boolean isStrictCanonicalJsonOutput(File outputFile) {
+        return isJsonFile(outputFile) && resolveJsonMode() == JsonMode.CANONICAL;
     }
 
     private String inferSerializerMethod(File outputFile) {

@@ -152,6 +152,7 @@ extensions.getByName("sonar").withGroovyBuilder {
 dependencies {
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
+    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.17.2")
 
     add("testImplementation", gradleTestKit())
     add("testImplementation", "junit:junit:4.13.2")
