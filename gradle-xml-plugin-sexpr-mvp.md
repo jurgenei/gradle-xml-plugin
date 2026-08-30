@@ -74,7 +74,7 @@ S-expression
 
 ```lisp
 (book
-  (@id "b1"))
+  [id "b1"])
 ```
 
 ### Mixed example
@@ -91,7 +91,7 @@ S-expression
 
 ```lisp
 (book
-  (@id "b1")
+  [id "b1"]
   (title "XML"))
 ```
 
@@ -104,7 +104,7 @@ S-expression
 Input:
 
 ```lisp
-(book (@id "b1") (title "XML"))
+(book [id "b1"] (title "XML"))
 ```
 
 Output:
@@ -153,7 +153,7 @@ Output:
 
 ```lisp
 (book
-  (@id "b1")
+  [id "b1"]
   (title "XML"))
 ```
 

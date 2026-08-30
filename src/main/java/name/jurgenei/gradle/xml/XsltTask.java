@@ -9,8 +9,8 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
-import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
-import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.xml.sexpr.SExpressionXmlReader;
 import net.sf.saxon.s9api.Destination;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
@@ -59,7 +59,7 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
         Processor processor = new Processor(false);
         XsltCompiler compiler = processor.newXsltCompiler();
 
-        XsltExecutable executable = compiler.compile(new StreamSource(getStylesheet().get().getAsFile()));
+        XsltExecutable executable = compiler.compile(stylesheetSource());
 
         if (isSexprFile(outputFile)) {
             try {
@@ -122,6 +122,14 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
             return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
         }
         return new StreamSource(inputFile);
+    }
+
+    private Source stylesheetSource() {
+        File stylesheetFile = getStylesheet().get().getAsFile();
+        if (isSexprFile(stylesheetFile)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(stylesheetFile.toURI().toString()));
+        }
+        return new StreamSource(stylesheetFile);
     }
 
 

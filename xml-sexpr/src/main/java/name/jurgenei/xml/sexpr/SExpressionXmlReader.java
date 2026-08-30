@@ -1,4 +1,4 @@
-package name.jurgenei.gradle.xml.sexpr;
+package name.jurgenei.xml.sexpr;
 
 import org.xml.sax.ContentHandler;
 import org.xml.sax.DTDHandler;
@@ -9,6 +9,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
 import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.XMLReader;
+import org.xml.sax.ext.LexicalHandler;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.IOException;
@@ -54,8 +55,8 @@ public final class SExpressionXmlReader implements XMLReader {
             return false;
         }
         if (FEATURE_VALIDATION.equals(name)
-                || FEATURE_EXTERNAL_GENERAL_ENTITIES.equals(name)
-                || FEATURE_EXTERNAL_PARAMETER_ENTITIES.equals(name)) {
+            || FEATURE_EXTERNAL_GENERAL_ENTITIES.equals(name)
+            || FEATURE_EXTERNAL_PARAMETER_ENTITIES.equals(name)) {
             return false;
         }
         throw new SAXNotRecognizedException(name);
@@ -70,17 +71,17 @@ public final class SExpressionXmlReader implements XMLReader {
             return;
         }
         if ((FEATURE_VALIDATION.equals(name)
-                || FEATURE_EXTERNAL_GENERAL_ENTITIES.equals(name)
-                || FEATURE_EXTERNAL_PARAMETER_ENTITIES.equals(name))
-                && !value) {
+            || FEATURE_EXTERNAL_GENERAL_ENTITIES.equals(name)
+            || FEATURE_EXTERNAL_PARAMETER_ENTITIES.equals(name))
+            && !value) {
             return;
         }
         if (FEATURE_NAMESPACES.equals(name) || FEATURE_NAMESPACE_PREFIXES.equals(name)) {
             throw new SAXNotSupportedException("Unsupported value for feature: " + name);
         }
         if (FEATURE_VALIDATION.equals(name)
-                || FEATURE_EXTERNAL_GENERAL_ENTITIES.equals(name)
-                || FEATURE_EXTERNAL_PARAMETER_ENTITIES.equals(name)) {
+            || FEATURE_EXTERNAL_GENERAL_ENTITIES.equals(name)
+            || FEATURE_EXTERNAL_PARAMETER_ENTITIES.equals(name)) {
             throw new SAXNotSupportedException("Unsupported value for feature: " + name);
         }
         throw new SAXNotRecognizedException(name);
@@ -153,7 +154,8 @@ public final class SExpressionXmlReader implements XMLReader {
     @Override
     public void parse(InputSource input) throws IOException, SAXException {
         try (Reader reader = openReader(input)) {
-            parser.parse(reader, contentHandler);
+            LexicalHandler lexical = lexicalHandler instanceof LexicalHandler value ? value : null;
+            parser.parse(reader, contentHandler, lexical);
         }
     }
 

@@ -55,6 +55,7 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 `XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
 
 - Input `.sexpr` is parsed as SAX source.
+- XSLT stylesheet may also be `.sexpr` (for `XsltTask.style(...)`).
 - Output `.sexpr` is serialized from Saxon result tree.
 - `sexprFormat` controls output style: `compact` (default) or `beautified`.
 
@@ -64,14 +65,28 @@ Format conventions:
 
 ```lisp
 ; compact
-(book (@id "b1") (title "XML"))
+(book [id "b1"] (title "XML"))
 
 ; beautified
 (book
-  (@id "b1")
-  (title "XML")
-)
+  [id "b1"]
+  (title "XML"))
 ```
+
+### Syntax Migration (Hard Cut)
+
+Old syntax removed. New bracket syntax required.
+
+| XML concept | Old (removed) | New (required) |
+|---|---|---|
+| Attribute | `(@id "b1")` | `[id "b1"]` |
+| Multiple attributes | `(@id "b1") (@version "1.0")` | `[id "b1" version "1.0"]` |
+| Default namespace | n/a | `[ns "http://www.w3.org/1998/Math/MathML"]` |
+| Prefixed namespace | n/a | `[ns "m" "http://www.w3.org/1998/Math/MathML"]` |
+| Comment | n/a | `(# "this is a comment")` |
+| Processing instruction | n/a | `(?xml-stylesheet type="text/xsl" href="style.xsl")` |
+
+Processing-instruction values must be quoted.
 
 ### XSLT Example
 
@@ -503,7 +518,9 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 Runnable minimal examples are available under `samples/`:
 
 - `samples/xslt-basic`
+- `samples/xslt-sexpr-identity`
 - `samples/xquery-basic`
+- `samples/xquery-sexpr-identity`
 - `samples/validation-basic`
 
 See `samples/README.md` for run commands.

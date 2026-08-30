@@ -422,7 +422,7 @@ public class XQueryTaskIntegrationTest {
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
             }
             """);
-        write("src/main/sexpr/input.sexpr", "(book (@id \"b1\") (title \"XML\"))");
+        write("src/main/sexpr/input.sexpr", "(book [id \"b1\"] (title \"XML\"))");
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
         TaskOutcome outcome = GradleRunner.create()
@@ -464,7 +464,7 @@ public class XQueryTaskIntegrationTest {
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
         assertTrue(output.contains("(book"));
-        assertTrue(output.contains("(@id \"b1\")"));
+        assertTrue(output.contains("[id \"b1\"]"));
         assertTrue(output.contains("(title \"XML\")"));
     }
 
@@ -494,7 +494,8 @@ public class XQueryTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
-        assertTrue(output.contains("(book (@id \"b1\")"));
+        assertTrue(output.contains("(book"));
+        assertTrue(output.contains("[id \"b1\"]"));
         assertTrue(output.contains("\n  (title \"XML\")"));
     }
 

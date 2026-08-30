@@ -1,0 +1,32 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+    query 'src/main/xquery/identity.xq'
+    source 'src/main/sexpr/input.sexpr'
+    outputDir.set(layout.buildDirectory.dir('out/xquery'))
+    outputExtension.set('.sexpr')
+    sexprFormat.set('beautified')
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runXQuery'
+    doLast {
+        File output = file('build/out/xquery/input.sexpr')
+        if (!output.exists()) {
+            throw new GradleException("Expected output file does not exist: ${output}")
+        }
+        String text = output.getText('UTF-8')
+        if (!text.contains('[ns "http://www.w3.org/1998/Math/MathML"]')) {
+            throw new GradleException("Expected namespace block in output: ${output}")
+        }
+        if (!text.contains('(# "this is a comment")')) {
+            throw new GradleException("Expected comment node in output: ${output}")
+        }
+        if (!text.contains('(?xml-stylesheet type="text/xsl" href="style.xsl")')) {
+            throw new GradleException("Expected processing instruction node in output: ${output}")
+        }
+    }
+}
+

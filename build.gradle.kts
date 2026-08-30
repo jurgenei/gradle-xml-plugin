@@ -150,6 +150,7 @@ extensions.getByName("sonar").withGroovyBuilder {
 }
 
 dependencies {
+    add("implementation", project(":xml-sexpr"))
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.17.2")
@@ -205,3 +206,24 @@ tasks.register("allSecurityChecks") {
     description = "Run all security and quality checks (Dependency-Check, SpotBugs, SonarQube)"
     dependsOn("check", "dependencyCheck", "spotbugsMain")
 }
+
+tasks.register<Exec>("verifyXsltSexprSample") {
+    group = "verification"
+    description = "Runs smoke verification for xslt-sexpr-identity sample."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/xslt-sexpr-identity", "verifySample")
+}
+
+tasks.register<Exec>("verifyXquerySexprSample") {
+    group = "verification"
+    description = "Runs smoke verification for xquery-sexpr-identity sample."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/xquery-sexpr-identity", "verifySample")
+}
+
+tasks.register("verifySexprSample") {
+    group = "verification"
+    description = "Runs S-expression sample smoke tests."
+    dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample")
+}
+
