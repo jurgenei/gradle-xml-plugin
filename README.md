@@ -521,6 +521,8 @@ Runnable minimal examples are available under `samples/`:
 - `samples/xslt-sexpr-identity`
 - `samples/xquery-basic`
 - `samples/xquery-sexpr-identity`
+- `samples/s-xsd`
+- `samples/s-schematron`
 - `samples/validation-basic`
 
 See `samples/README.md` for run commands.

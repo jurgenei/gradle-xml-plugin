@@ -334,7 +334,7 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
         XsltCompiler compiler = processor.newXsltCompiler();
         XsltExecutable executable = compiler.compile(new StreamSource(compiledFile));
         XsltTransformer validator = executable.load();
-        validator.setSource(new StreamSource(inputFile));
+        validator.setSource(sourceForValidation(inputFile));
 
         StringWriter output = new StringWriter();
         Serializer serializer = processor.newSerializer(output);
@@ -419,7 +419,7 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
             }
         }
 
-        transpilerTransformer.setSource(new StreamSource(getSchema().get().getAsFile()));
+        transpilerTransformer.setSource(sourceForValidation(getSchema().get().getAsFile()));
         Serializer serializer = processor.newSerializer(compiledFile);
         serializer.setOutputProperty(Serializer.Property.METHOD, "xml");
         transpilerTransformer.setDestination(serializer);
@@ -571,7 +571,7 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
 
     private Source loadTranspilerSource() throws Exception {
         if (getTranspilerStylesheet().isPresent()) {
-            return new StreamSource(getTranspilerStylesheet().get().getAsFile());
+            return sourceForValidation(getTranspilerStylesheet().get().getAsFile());
         }
 
         try (java.io.InputStream stream = getClass().getClassLoader().getResourceAsStream("content/transpile.xsl")) {

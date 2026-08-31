@@ -221,9 +221,23 @@ tasks.register<Exec>("verifyXquerySexprSample") {
     commandLine("./gradlew", "-p", "samples/xquery-sexpr-identity", "verifySample")
 }
 
+tasks.register<Exec>("verifySXsdSample") {
+    group = "verification"
+    description = "Runs smoke verification for s-xsd sample."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/s-xsd", "verifySample")
+}
+
+tasks.register<Exec>("verifySSchematronSample") {
+    group = "verification"
+    description = "Runs smoke verification for s-schematron sample."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/s-schematron", "verifySample")
+}
+
 tasks.register("verifySexprSample") {
     group = "verification"
     description = "Runs S-expression sample smoke tests."
-    dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample")
+    dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample", "verifySXsdSample", "verifySSchematronSample")
 }
 

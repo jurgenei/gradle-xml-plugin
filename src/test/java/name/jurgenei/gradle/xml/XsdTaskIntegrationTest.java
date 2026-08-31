@@ -117,6 +117,54 @@ public class XsdTaskIntegrationTest {
         assertTrue(!read(svrl).contains("failed-assert"));
     }
 
+    /**
+     * Verifies XSD validation accepts S-expression schema and data files.
+     */
+    @Test
+    public void validatesSexprSchemaAndData() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'xsd-sexpr-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
+              schema 'src/main/xsd/schema.sexpr'
+              source 'src/main/sexpr/invalid.sexpr'
+              outputDir.set(layout.buildDirectory.dir('out/xsd'))
+              reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+              failOnError.set(false)
+              engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.JAXP)
+            }
+            """);
+
+        write("src/main/xsd/schema.sexpr", """
+            (xs:schema
+              [ns "xs" "http://www.w3.org/2001/XMLSchema"]
+              (xs:element [name "root"]
+                (xs:complexType
+                  (xs:sequence
+                    (xs:element [name "value" type "xs:string"])))))
+            """);
+        write("src/main/sexpr/invalid.sexpr", """
+            (root
+              (wrong "bad"))
+            """);
+
+        GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXsd")
+            .build();
+
+        File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/invalid.svrl.xml");
+        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/invalid.junit.xml");
+
+        assertTrue(svrl.exists());
+        assertTrue(junit.exists());
+        assertTrue(read(svrl).contains("failed-assert"));
+        assertTrue(read(junit).contains("<failure"));
+    }
+
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
         File parent = file.getParentFile();

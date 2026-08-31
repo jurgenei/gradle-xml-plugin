@@ -295,6 +295,51 @@ public class SchematronTaskIntegrationTest {
         assertTrue(firstOutcome == TaskOutcome.SUCCESS || firstOutcome == TaskOutcome.UP_TO_DATE);
         assertTrue(secondOutcome == TaskOutcome.SUCCESS || secondOutcome == TaskOutcome.UP_TO_DATE);
     }
+
+    /**
+     * Verifies Schematron validation accepts S-expression schema and data files.
+     */
+    @Test
+    public void validatesSexprSchemaAndData() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'schematron-sexpr-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+              schema 'src/main/schematron/rules.sexpr'
+              transpilerStylesheet 'src/main/schematron/transpile.xsl'
+              source 'src/main/sexpr/invalid.sexpr'
+              outputDir.set(layout.buildDirectory.dir('out/schematron'))
+              reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+              failOnError.set(false)
+            }
+            """);
+
+        write("src/main/schematron/rules.sexpr", """
+            (schema [ns "http://purl.oclc.org/dsdl/schematron"])
+            """);
+        write("src/main/schematron/transpile.xsl", transpiler());
+        write("src/main/sexpr/invalid.sexpr", """
+            (root
+              (value "BAD"))
+            """);
+
+        GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runSchematron")
+            .build();
+
+        File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/invalid.svrl.xml");
+        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/invalid.junit.xml");
+
+        assertTrue(svrl.exists());
+        assertTrue(junit.exists());
+        assertTrue(read(svrl).contains("failed-assert"));
+        assertTrue(read(junit).contains("<failure"));
+    }
+
     private static String transpiler() {
         return """
             <xsl:stylesheet version='1.0'
