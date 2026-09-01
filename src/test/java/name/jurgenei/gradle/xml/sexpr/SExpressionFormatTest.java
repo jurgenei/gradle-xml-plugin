@@ -1,4 +1,4 @@
-package name.jurgenei.xml.sexpr;
+package name.jurgenei.gradle.xml.sexpr;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -139,5 +139,6 @@ public class SExpressionFormatTest {
         }
     }
 }
+
 
 

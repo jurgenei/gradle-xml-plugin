@@ -19,7 +19,7 @@ import name.jurgenei.gradle.xml.validation.ReportFormat;
 import name.jurgenei.gradle.xml.validation.SvrlSupport;
 import name.jurgenei.gradle.xml.validation.ValidationResult;
 import name.jurgenei.gradle.xml.validation.ValidationTaskSpec;
-import name.jurgenei.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;

@@ -54,10 +54,24 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 
 `XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
 
+S-expression runtime ships inside `gradle-xml-plugin` artifact.
+
+- Internal package: `name.jurgenei.gradle.xml.sexpr`
+- No separate `name.jurgenei.xml:xml-sexpr` dependency required
+
 - Input `.sexpr` is parsed as SAX source.
 - XSLT stylesheet may also be `.sexpr` (for `XsltTask.style(...)`).
 - Output `.sexpr` is serialized from Saxon result tree.
 - `sexprFormat` controls output style: `compact` (default) or `beautified`.
+
+S-expression format details:
+
+- Attributes: `[id "b1" version "1.0"]`
+- Namespaces:
+  - default: `[ns "http://www.w3.org/1998/Math/MathML"]`
+  - prefixed: `[ns "m" "http://www.w3.org/1998/Math/MathML"]`
+- Comments: `(# "text")`
+- Processing instructions: `(?xml-stylesheet type="text/xsl" href="style.xsl")`
 
 `sexprFormat` is also reused for canonical JSON output formatting.
 

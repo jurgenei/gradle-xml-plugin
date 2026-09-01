@@ -1,4 +1,4 @@
-package name.jurgenei.xml.sexpr;
+package name.jurgenei.gradle.xml.sexpr;
 
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -449,4 +449,5 @@ public final class SExpressionParser {
         }
     }
 }
+
 

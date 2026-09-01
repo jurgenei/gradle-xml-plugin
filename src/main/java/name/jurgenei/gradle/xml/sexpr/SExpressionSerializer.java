@@ -1,4 +1,4 @@
-package name.jurgenei.xml.sexpr;
+package name.jurgenei.gradle.xml.sexpr;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
@@ -532,4 +532,5 @@ public final class SExpressionSerializer implements ContentHandler, LexicalHandl
         }
     }
 }
+
 

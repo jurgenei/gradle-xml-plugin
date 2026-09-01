@@ -1,4 +1,4 @@
-package name.jurgenei.xml.sexpr;
+package name.jurgenei.gradle.xml.sexpr;
 
 import org.xml.sax.ContentHandler;
 import org.xml.sax.DTDHandler;
@@ -181,4 +181,5 @@ public final class SExpressionXmlReader implements XMLReader {
         return new InputStreamReader(stream, StandardCharsets.UTF_8);
     }
 }
+
 
