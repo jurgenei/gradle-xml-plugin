@@ -1,0 +1,8 @@
+(math
+  [ns "http://www.w3.org/1998/Math/MathML"]
+  (# "this is a comment")
+  (?xml-stylesheet type="text/xsl" href="style.xsl")
+  (mfrac
+    (mi "a")
+    (mi "b")))
+

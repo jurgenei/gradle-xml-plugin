@@ -1,11 +1,8 @@
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
@@ -45,6 +43,26 @@ import org.gradle.work.DisableCachingByDefault;
 public abstract class AbstractXmlTransformTask extends SourceTask {
 
     private static final Set<String> SUPPORTED_OUTPUT_METHODS = Set.of("xml", "json", "text");
+    private static final Set<String> SUPPORTED_SEXPR_FORMATS = Set.of("compact", "beautified");
+    private static final Set<String> SUPPORTED_JSON_MODES = Set.of("auto", "native", "canonical");
+
+    /**
+     * JSON routing mode for {@code .json} files.
+     */
+    public enum JsonMode {
+        /**
+         * Compatibility mode: canonical JSON parser for input, Saxon serializer for output.
+         */
+        AUTO,
+        /**
+         * Native Saxon routing for JSON output and no custom JSON parser for input.
+         */
+        NATIVE,
+        /**
+         * Canonical JSON parser and serializer for both JSON input and output.
+         */
+        CANONICAL
+    }
 
     /**
      * Destination root directory for transformed files.
@@ -98,6 +116,28 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getOutputMethod();
 
     /**
+     * Optional S-expression output format used when writing {@code .sexpr} files.
+     *
+     * <p>Supported values are {@code compact} (default) and {@code beautified}.</p>
+     *
+     * @return S-expression output format property
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getSexprFormat();
+
+    /**
+     * Optional JSON mode controlling how {@code .json} input/output is routed.
+     *
+     * <p>Supported values are {@code auto} (default), {@code native}, and {@code canonical}.</p>
+     *
+     * @return JSON routing mode property
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getJsonMode();
+
+    /**
      * Transform parameters exposed to the execution engine.
      *
      * @return map of parameter names to values
@@ -126,6 +166,8 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public AbstractXmlTransformTask() {
         getOutputExtension().convention(".xml");
+        getSexprFormat().convention("compact");
+        getJsonMode().convention("auto");
         getWorkers().convention(1);
         getFailOnError().convention(true);
     }
@@ -185,6 +227,24 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         getOutputMethod().set(method);
     }
 
+    /**
+     * Sets explicit S-expression output format (Gradle DSL friendly).
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void sexprFormat(String format) {
+        getSexprFormat().set(format);
+    }
+
+    /**
+     * Sets JSON routing mode (Gradle DSL friendly).
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void jsonMode(String mode) {
+        getJsonMode().set(mode);
+    }
+
     @Override
     @PathSensitive(PathSensitivity.RELATIVE)
     public org.gradle.api.file.FileTree getSource() {
@@ -206,10 +266,9 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
 
         Map<String, String> params = Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
-        String nonFileInputFingerprint = computeNonFileInputFingerprint(params);
 
         if (hasExplicitInput) {
-            transformExplicit(params, nonFileInputFingerprint);
+            transformExplicit(params);
             return;
         }
 
@@ -236,10 +295,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         if (workers == 1 || inputFiles.size() == 1) {
             for (File inputFile : inputFiles) {
-                transformOne(inputFile, outputRoot, relativePaths, params, nonFileInputFingerprint, failures);
+                transformOne(inputFile, outputRoot, relativePaths, params, failures);
             }
         } else {
-            runParallel(inputFiles, outputRoot, relativePaths, params, nonFileInputFingerprint, workers, failures);
+            runParallel(inputFiles, outputRoot, relativePaths, params, workers, failures);
         }
 
         if (!failures.isEmpty()) {
@@ -247,18 +306,16 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformExplicit(Map<String, String> params, String nonFileInputFingerprint) {
+    private void transformExplicit(Map<String, String> params) {
         File inputFile = getInputFile().get().getAsFile();
         File outputFile = getOutputFile().get().getAsFile();
         if (!inputFile.isFile()) {
             throw new GradleException("Input file does not exist: " + inputFile);
         }
 
-        File fingerprintMarker = fingerprintMarkerFor(outputFile);
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
         if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp
-                && isFingerprintCurrent(fingerprintMarker, nonFileInputFingerprint)) {
+                && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -269,7 +326,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
                 Files.createDirectories(outputParent.toPath());
             }
             transform(inputFile, outputFile, params);
-            writeFingerprint(fingerprintMarker, nonFileInputFingerprint);
             getLogger().lifecycle("[SUCCESS] {} -> {}", inputFile, outputFile);
         } catch (Exception e) {
             getLogger().error("Failed to transform {}", inputFile, e);
@@ -280,11 +336,11 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, String nonFileInputFingerprint, int workers, List<Exception> failures) {
+    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, int workers, List<Exception> failures) {
         try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, params, nonFileInputFingerprint, failures)));
+                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, params, failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -304,14 +360,12 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, String nonFileInputFingerprint, List<Exception> failures) {
+    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, List<Exception> failures) {
         File outputFile = outputFileFor(inputFile, outputRoot, relativePaths);
-        File fingerprintMarker = fingerprintMarkerFor(outputFile);
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
 
         if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp
-                && isFingerprintCurrent(fingerprintMarker, nonFileInputFingerprint)) {
+                && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -326,7 +380,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         try {
             transform(inputFile, outputFile, params);
-            writeFingerprint(fingerprintMarker, nonFileInputFingerprint);
             getLogger().lifecycle("[SUCCESS] {} -> {}", inputFile, outputFile);
         } catch (Exception e) {
             getLogger().error("Failed to transform {}", inputFile, e);
@@ -363,6 +416,109 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         return inferSerializerMethod(outputFile);
     }
 
+    /**
+     * Resolves S-expression serializer format from explicit task setting.
+     *
+     * @return serializer format to use for {@code .sexpr} and canonical {@code .json} output
+     */
+    protected SExpressionSerializer.OutputFormat resolveSexprOutputFormat() {
+        String configured = getSexprFormat().getOrElse("compact");
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        if ("pretty".equals(normalized)) {
+            normalized = "beautified";
+        }
+        if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
+            throw new GradleException("Unsupported sexprFormat '" + configured
+                + "'. Supported values: compact, beautified");
+        }
+        return "beautified".equals(normalized)
+            ? SExpressionSerializer.OutputFormat.BEAUTIFIED
+            : SExpressionSerializer.OutputFormat.COMPACT;
+    }
+
+    /**
+     * Resolves JSON routing mode from explicit task setting.
+     *
+     * @return JSON mode
+     */
+    protected JsonMode resolveJsonMode() {
+        String configured = getJsonMode().getOrElse("auto");
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_JSON_MODES.contains(normalized)) {
+            throw new GradleException("Unsupported jsonMode '" + configured
+                + "'. Supported values: auto, native, canonical");
+        }
+        return switch (normalized) {
+            case "native" -> JsonMode.NATIVE;
+            case "canonical" -> JsonMode.CANONICAL;
+            default -> JsonMode.AUTO;
+        };
+    }
+
+    /**
+     * Checks whether file extension matches S-expression input/output.
+     *
+     * @param file candidate file
+     * @return true when file extension is {@code .sexpr}
+     */
+    protected boolean isSexprFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".sexpr");
+    }
+
+    /**
+     * Checks whether file extension matches JSON input/output.
+     *
+     * @param file candidate file
+     * @return true when file extension is {@code .json}
+     */
+    protected boolean isJsonFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".json");
+    }
+
+    /**
+     * AUTO and CANONICAL parse {@code .json} via canonical JSON reader.
+     *
+     * @param inputFile candidate source file
+     * @return true when task should parse input using canonical JSON mapping
+     */
+    protected boolean useCanonicalJsonInput(File inputFile) {
+        if (!isJsonFile(inputFile)) {
+            return false;
+        }
+        JsonMode mode = resolveJsonMode();
+        return mode == JsonMode.AUTO || mode == JsonMode.CANONICAL;
+    }
+
+    /**
+     * JSON output should attempt canonical hierarchical serialization.
+     *
+     * <p>CANONICAL mode always attempts canonical JSON. AUTO/NATIVE attempt canonical JSON when
+     * the resolved serializer method is {@code json}.</p>
+     *
+     * @param outputFile candidate destination file
+     * @return true when task should try canonical JSON serializer before native fallback
+     */
+    protected boolean shouldAttemptCanonicalJsonOutput(File outputFile) {
+        if (!isJsonFile(outputFile)) {
+            return false;
+        }
+        JsonMode mode = resolveJsonMode();
+        if (mode == JsonMode.CANONICAL) {
+            return true;
+        }
+        return "json".equals(resolveSerializerMethod(outputFile));
+    }
+
+    /**
+     * CANONICAL mode treats canonical JSON serialization failures as hard errors.
+     *
+     * @param outputFile candidate destination file
+     * @return true when canonical JSON serialization failure must fail task
+     */
+    protected boolean isStrictCanonicalJsonOutput(File outputFile) {
+        return isJsonFile(outputFile) && resolveJsonMode() == JsonMode.CANONICAL;
+    }
+
     private String inferSerializerMethod(File outputFile) {
         String fileName = outputFile.getName().toLowerCase(Locale.ROOT);
         if (fileName.endsWith(".json")) {
@@ -386,56 +542,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         return normalized;
     }
 
-    private File fingerprintMarkerFor(File outputFile) {
-        return new File(outputFile.getParentFile(), outputFile.getName() + ".inputs.sha256");
-    }
-
-    private boolean isFingerprintCurrent(File markerFile, String currentFingerprint) {
-        if (!markerFile.isFile()) {
-            return false;
-        }
-        try {
-            String recorded = Files.readString(markerFile.toPath(), StandardCharsets.UTF_8).trim();
-            return currentFingerprint.equals(recorded);
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private void writeFingerprint(File markerFile, String fingerprint) throws Exception {
-        Files.writeString(markerFile.toPath(), fingerprint, StandardCharsets.UTF_8);
-    }
-
-    private String computeNonFileInputFingerprint(Map<String, String> params) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("task=").append(getClass().getName()).append('\n');
-        builder.append("outputExtension=").append(getOutputExtension().get()).append('\n');
-        builder.append("outputMethod=").append(getOutputMethod().getOrElse("<auto>")).append('\n');
-
-        List<String> keys = new ArrayList<>(params.keySet());
-        Collections.sort(keys);
-        for (String key : keys) {
-            String value = params.get(key);
-            builder.append("param:").append(key).append('=').append(value == null ? "" : value).append('\n');
-        }
-        return sha256(builder.toString());
-    }
-
-    private String sha256(String text) {
-        final byte[] digest;
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            digest = md.digest(text.getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm is unavailable", e);
-        }
-
-        StringBuilder hex = new StringBuilder(digest.length * 2);
-        for (byte b : digest) {
-            hex.append(String.format("%02x", b));
-        }
-        return hex.toString();
-    }
 
     private File outputFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();

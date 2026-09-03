@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import javax.xml.XMLConstants;
-import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 import name.jurgenei.gradle.xml.validation.ValidationIssue;
 import name.jurgenei.gradle.xml.validation.ValidationResult;
@@ -111,9 +110,9 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
             if (manager == null) {
                 throw new GradleException("Saxon SchemaManager unavailable in current runtime");
             }
-            manager.load(new StreamSource(getSchema().get().getAsFile()));
+            manager.load(sourceForValidation(getSchema().get().getAsFile()));
             SchemaValidator validator = manager.newSchemaValidator();
-            validator.validate(new StreamSource(inputFile));
+            validator.validate(sourceForValidation(inputFile));
         } catch (SaxonApiException e) {
             issues.add(ValidationIssue.error(e.getMessage(), inputFile.getPath()));
         }
@@ -123,7 +122,7 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
     private List<ValidationIssue> validateWithJaxp(File inputFile) throws Exception {
         List<ValidationIssue> issues = new ArrayList<>();
         SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        javax.xml.validation.Schema schema = factory.newSchema(getSchema().get().getAsFile());
+        javax.xml.validation.Schema schema = factory.newSchema(sourceForValidation(getSchema().get().getAsFile()));
         javax.xml.validation.Validator validator = schema.newValidator();
         validator.setErrorHandler(new ErrorHandler() {
             @Override
@@ -143,7 +142,7 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         });
 
         try {
-            validator.validate(new StreamSource(inputFile));
+            validator.validate(sourceForValidation(inputFile));
         } catch (Exception ignored) {
             // Findings are collected through ErrorHandler so we can continue and emit reports.
         }

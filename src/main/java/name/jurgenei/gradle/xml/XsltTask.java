@@ -1,10 +1,20 @@
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Map;
+import javax.xml.transform.Source;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
+import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
+import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
+import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
+import net.sf.saxon.s9api.Destination;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SAXDestination;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XdmAtomicValue;
@@ -16,6 +26,7 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
+import org.xml.sax.InputSource;
 
 import org.gradle.work.DisableCachingByDefault;
 
@@ -48,19 +59,79 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
         Processor processor = new Processor(false);
         XsltCompiler compiler = processor.newXsltCompiler();
 
-        XsltExecutable executable = compiler.compile(new StreamSource(getStylesheet().get().getAsFile()));
-        XsltTransformer transformer = executable.load();
-        transformer.setSource(new StreamSource(inputFile));
+        XsltExecutable executable = compiler.compile(stylesheetSource());
 
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            transformer.setParameter(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
+        if (isSexprFile(outputFile)) {
+            try {
+                if (outputFile.getParentFile() != null) {
+                    Files.createDirectories(outputFile.getParentFile().toPath());
+                }
+                try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                    XsltTransformer transformer = createTransformer(executable, inputFile, params);
+                    Destination destination = new SAXDestination(new SExpressionSerializer(writer, resolveSexprOutputFormat()));
+                    transformer.setDestination(destination);
+                    transformer.transform();
+                }
+            } catch (Exception e) {
+                throw new SaxonApiException("Failed to write S-expression output", e);
+            }
+            return;
         }
 
+        if (shouldAttemptCanonicalJsonOutput(outputFile)) {
+            boolean strict = isStrictCanonicalJsonOutput(outputFile);
+            try {
+                if (outputFile.getParentFile() != null) {
+                    Files.createDirectories(outputFile.getParentFile().toPath());
+                }
+                try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
+                    XsltTransformer transformer = createTransformer(executable, inputFile, params);
+                    Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveSexprOutputFormat()));
+                    transformer.setDestination(destination);
+                    transformer.transform();
+                }
+                return;
+            } catch (Exception e) {
+                if (strict) {
+                    throw new SaxonApiException("Failed to write canonical JSON output", e);
+                }
+            }
+        }
+
+        XsltTransformer transformer = createTransformer(executable, inputFile, params);
         Serializer serializer = processor.newSerializer(outputFile);
         serializer.setOutputProperty(Serializer.Property.METHOD, resolveSerializerMethod(outputFile));
         transformer.setDestination(serializer);
         transformer.transform();
     }
+
+    private XsltTransformer createTransformer(XsltExecutable executable, File inputFile, Map<String, String> params) {
+        XsltTransformer transformer = executable.load();
+        transformer.setSource(sourceFor(inputFile));
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            transformer.setParameter(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
+        }
+        return transformer;
+    }
+
+    private Source sourceFor(File inputFile) {
+        if (isSexprFile(inputFile)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
+        if (useCanonicalJsonInput(inputFile)) {
+            return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
+        return new StreamSource(inputFile);
+    }
+
+    private Source stylesheetSource() {
+        File stylesheetFile = getStylesheet().get().getAsFile();
+        if (isSexprFile(stylesheetFile)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(stylesheetFile.toURI().toString()));
+        }
+        return new StreamSource(stylesheetFile);
+    }
+
 
     @Override
     protected long latestDependencyTimestamp(File inputFile) {

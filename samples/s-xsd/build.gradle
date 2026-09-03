@@ -1,0 +1,28 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runSXsd', name.jurgenei.gradle.xml.XsdTask) {
+    schema 'src/main/xsd/schema.sexpr'
+    source 'src/main/sexpr/invalid.sexpr'
+    outputDir.set(layout.buildDirectory.dir('reports/xsd'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.JAXP)
+    failOnError.set(false)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSXsd'
+    doLast {
+        File svrl = file('build/reports/xsd/invalid.svrl.xml')
+        File junit = file('build/reports/xml-validation/junit/invalid.junit.xml')
+        if (!svrl.exists() || !junit.exists()) {
+            throw new GradleException("Missing expected outputs: ${svrl}, ${junit}")
+        }
+        String text = svrl.getText('UTF-8')
+        if (!text.contains('failed-assert')) {
+            throw new GradleException("Expected failed-assert in SVRL output")
+        }
+    }
+}
+

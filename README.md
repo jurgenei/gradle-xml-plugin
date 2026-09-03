@@ -47,6 +47,137 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Parameter passing** — externalize stylesheet/query variables
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
+- **S-expression I/O** — `.sexpr` input and output routing for XSLT/XQuery tasks
+- **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
+
+## S-expression Support (MVP)
+
+`XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
+
+S-expression runtime ships inside `gradle-xml-plugin` artifact.
+
+- Internal package: `name.jurgenei.gradle.xml.sexpr`
+- No separate `name.jurgenei.xml:xml-sexpr` dependency required
+
+- Input `.sexpr` is parsed as SAX source.
+- XSLT stylesheet may also be `.sexpr` (for `XsltTask.style(...)`).
+- Output `.sexpr` is serialized from Saxon result tree.
+- `sexprFormat` controls output style: `compact` (default) or `beautified`.
+
+S-expression format details:
+
+- Attributes: `[id "b1" version "1.0"]`
+- Namespaces:
+  - default: `[ns "http://www.w3.org/1998/Math/MathML"]`
+  - prefixed: `[ns "m" "http://www.w3.org/1998/Math/MathML"]`
+- Comments: `(# "text")`
+- Processing instructions: `(?xml-stylesheet type="text/xsl" href="style.xsl")`
+
+`sexprFormat` is also reused for canonical JSON output formatting.
+
+Format conventions:
+
+```lisp
+; compact
+(book [id "b1"] (title "XML"))
+
+; beautified
+(book
+  [id "b1"]
+  (title "XML"))
+```
+
+### Syntax Migration (Hard Cut)
+
+Old syntax removed. New bracket syntax required.
+
+| XML concept | Old (removed) | New (required) |
+|---|---|---|
+| Attribute | `(@id "b1")` | `[id "b1"]` |
+| Multiple attributes | `(@id "b1") (@version "1.0")` | `[id "b1" version "1.0"]` |
+| Default namespace | n/a | `[ns "http://www.w3.org/1998/Math/MathML"]` |
+| Prefixed namespace | n/a | `[ns "m" "http://www.w3.org/1998/Math/MathML"]` |
+| Comment | n/a | `(# "this is a comment")` |
+| Processing instruction | n/a | `(?xml-stylesheet type="text/xsl" href="style.xsl")` |
+
+Processing-instruction values must be quoted.
+
+### XSLT Example
+
+```groovy
+tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  source 'src/main/xml/input.xml'
+  outputDir.set(layout.buildDirectory.dir('out/xslt'))
+  outputExtension.set('.sexpr')
+}
+
+tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  input 'build/out/xslt/input.sexpr'
+  output 'build/out/xml/result.xml'
+}
+```
+
+## Canonical JSON Support
+
+`XsltTask` and `XQueryTask` support optional canonical JSON parsing/serialization.
+
+- Canonical JSON maps XML element trees to JSON objects with `type`, `name`, `attributes`, `children`.
+- Canonical JSON mode is reversible for XML -> JSON -> XML roundtrips.
+- `sexprFormat` controls canonical JSON output style too: `compact` or `beautified`.
+
+Set JSON routing mode with `jsonMode`:
+
+- `auto` (default): canonical parser for `.json` input; for `.json` output, try canonical hierarchical JSON first and fall back to native Saxon JSON when canonical serialization is not applicable (for example map/array results)
+- `native`: no canonical JSON parser for input; for `.json` output, same canonical-first behavior with native fallback
+- `canonical`: canonical parser + canonical serializer for `.json` input/output (no fallback)
+
+### XSLT Canonical JSON Example
+
+```groovy
+tasks.register('xmlToJsonCanonical', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  source 'src/main/xml/input.xml'
+  outputDir.set(layout.buildDirectory.dir('out/json'))
+  outputExtension.set('.json')
+  jsonMode.set('canonical')
+  sexprFormat.set('beautified')
+}
+
+tasks.register('jsonCanonicalToXml', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  input 'build/out/json/input.json'
+  output 'build/out/xml/result.xml'
+  jsonMode.set('canonical')
+}
+```
+
+### Beautified Output Switch
+
+Kotlin DSL:
+
+```kotlin
+tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToSexpr") {
+    style("src/main/xslt/identity.xsl")
+    source("src/main/xml/input.xml")
+    outputDir.set(layout.buildDirectory.dir("out/xslt"))
+    outputExtension.set(".sexpr")
+    sexprFormat.set("beautified")
+}
+```
+
+Groovy DSL:
+
+```groovy
+tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+  style 'src/main/xslt/identity.xsl'
+  source 'src/main/xml/input.xml'
+  outputDir.set(layout.buildDirectory.dir('out/xslt'))
+  outputExtension.set('.sexpr')
+  sexprFormat.set('beautified')
+}
+```
 
 ## Input/Output Modes
 
@@ -333,7 +464,7 @@ tasks.register('extractObservations', name.jurgenei.gradle.xml.SchematronExtract
 ## Run tests
 
 ```bash
-gradle test
+./gradlew test
 ```
 
 ## Test Coverage
@@ -356,7 +487,7 @@ To enable Codecov upload/badge, add repository secret `CODECOV_TOKEN`.
 ## Building
 
 ```bash
-gradle build
+./gradlew build
 ```
 
 Required Java version: **21+**
@@ -381,6 +512,7 @@ AbstractXmlValidationTask (shared base)
 2. Sort files deterministically
 3. Optionally parallelize using virtual-thread worker pool (if `workers > 1`)
 4. For each input file:
+   - Skip when output is newer than transform dependencies (source + style/query/schema)
    - Derive output file path using `outputExtension` mapping
    - Create output directories (thread-safe via `Files.createDirectories`)
    - Compile and execute transform (XSLT or XQuery)
@@ -400,7 +532,11 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 Runnable minimal examples are available under `samples/`:
 
 - `samples/xslt-basic`
+- `samples/xslt-sexpr-identity`
 - `samples/xquery-basic`
+- `samples/xquery-sexpr-identity`
+- `samples/s-xsd`
+- `samples/s-schematron`
 - `samples/validation-basic`
 
 See `samples/README.md` for run commands.
@@ -410,10 +546,13 @@ See `samples/README.md` for run commands.
 JUnit 4 with Gradle TestKit for functional integration testing:
 
 ```bash
-gradle test --tests '*XsltTaskIntegrationTest'
-gradle test --tests '*XQueryTaskIntegrationTest'
-gradle test --tests '*SchematronTaskIntegrationTest'
-gradle test --tests '*XsdTaskIntegrationTest'
+./gradlew test --tests '*XsltTaskIntegrationTest'
+./gradlew test --tests '*XQueryTaskIntegrationTest'
+./gradlew test --tests '*SchematronTaskIntegrationTest'
+./gradlew test --tests '*XsdTaskIntegrationTest'
+./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
+./gradlew test --tests '*SchematronObservationCompileTaskIntegrationTest'
+./gradlew test --tests '*SchematronExtractTaskIntegrationTest'
 ```
 
 ### Code Style

@@ -12,10 +12,14 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import javax.xml.transform.Source;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamSource;
 import name.jurgenei.gradle.xml.validation.ReportFormat;
 import name.jurgenei.gradle.xml.validation.SvrlSupport;
 import name.jurgenei.gradle.xml.validation.ValidationResult;
 import name.jurgenei.gradle.xml.validation.ValidationTaskSpec;
+import name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
@@ -30,6 +34,7 @@ import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SourceTask;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.work.DisableCachingByDefault;
+import org.xml.sax.InputSource;
 
 /**
  * Shared base task for XSD and Schematron validations producing SVRL and optional JUnit reports.
@@ -273,5 +278,28 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      * @throws Exception when validation cannot be performed
      */
     protected abstract ValidationResult validate(File inputFile, Map<String, String> params) throws Exception;
+
+    /**
+     * Resolves a transform source for XML-like validation inputs.
+     *
+     * @param file data or schema file
+     * @return stream source for XML files, SAX source for .sexpr files
+     */
+    protected Source sourceForValidation(File file) {
+        if (isSexprFile(file)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(file.toURI().toString()));
+        }
+        return new StreamSource(file);
+    }
+
+    /**
+     * Determines whether validation input uses S-expression format.
+     *
+     * @param file candidate file
+     * @return true when extension is .sexpr
+     */
+    protected boolean isSexprFile(File file) {
+        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".sexpr");
+    }
 }
 

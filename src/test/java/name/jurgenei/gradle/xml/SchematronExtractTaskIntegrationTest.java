@@ -54,18 +54,18 @@ public class SchematronExtractTaskIntegrationTest {
             """);
 
         write("src/main/xml/canonical.xml", """
-            <c:Document xmlns:c='http://jurgenei.name/canonical'>
-              <c:Metadata>
-                <c:DocumentId>sample</c:DocumentId>
-              </c:Metadata>
-              <c:Body>
-                <c:Section>
-                  <c:Title>Scope</c:Title>
-                  <c:Paragraph>Hello</c:Paragraph>
-                </c:Section>
-                <c:Connector source='a' target='b'/>
-              </c:Body>
-            </c:Document>
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Metadata>
+                <DocumentId>sample</DocumentId>
+              </Metadata>
+              <Body>
+                <Section>
+                  <Title>Scope</Title>
+                  <Paragraph>Hello</Paragraph>
+                </Section>
+                <Connector source='a' target='b'/>
+              </Body>
+            </Document>
             """);
 
         GradleRunner.create()
@@ -82,13 +82,13 @@ public class SchematronExtractTaskIntegrationTest {
         assertTrue(read(knowledge).contains("group=\"knowledge\""));
         assertTrue(read(knowledge).contains("obs:Observation"));
         assertTrue(read(knowledge).contains("obs:Evidence"));
-        assertTrue(read(knowledge).contains("<c:Paragraph"));
+        assertTrue(read(knowledge).contains("<Paragraph") || read(knowledge).contains("<c:Paragraph"));
         assertTrue(read(knowledge).contains("Hello"));
         assertTrue(read(knowledge).contains("obs:Context"));
-        assertTrue(read(knowledge).contains("<c:Title"));
+        assertTrue(read(knowledge).contains("<Title") || read(knowledge).contains("<c:Title"));
         assertTrue(read(knowledge).contains("Scope"));
         assertTrue(read(architecture).contains("type=\"relationship-candidate\""));
-        assertTrue(read(architecture).contains("<c:Connector"));
+        assertTrue(read(architecture).contains("<Connector") || read(architecture).contains("<c:Connector"));
         assertTrue(read(architecture).contains("source=\"a\""));
         assertTrue(read(architecture).contains("target=\"b\""));
     }
@@ -129,10 +129,10 @@ public class SchematronExtractTaskIntegrationTest {
             """);
 
         write("src/main/xml/canonical.xml", """
-            <c:Document xmlns:c='http://jurgenei.name/canonical'>
-              <c:Metadata><c:DocumentId>sample</c:DocumentId></c:Metadata>
-              <c:Body><c:Paragraph>Hello</c:Paragraph></c:Body>
-            </c:Document>
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Metadata><DocumentId>sample</DocumentId></Metadata>
+              <Body><Paragraph>Hello</Paragraph></Body>
+            </Document>
             """);
 
         GradleRunner.create()

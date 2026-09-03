@@ -6,13 +6,13 @@ import org.gradle.plugin.devel.GradlePluginDevelopmentExtension
 import org.gradle.testing.jacoco.plugins.JacocoPluginExtension
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.gradle.plugins.signing.SigningExtension
+// import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     id("java-gradle-plugin")
     id("jacoco")
     id("maven-publish")
-    id("signing")
+    // id("signing")
     id("com.gradle.plugin-publish") version "2.1.1"
     id("org.owasp.dependencycheck") version "10.0.3"
     id("com.github.spotbugs") version "6.1.0"
@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.7"
+version = "0.1.8"
 
 repositories {
     mavenCentral()
@@ -109,10 +109,10 @@ extensions.configure<PublishingExtension> {
 //    sign(publishing.publications)
 //}
 
-extensions.configure<SigningExtension> {
-    useGpgCmd()
-    sign(extensions.getByType(PublishingExtension::class.java).publications)
-}
+//extensions.configure<SigningExtension> {
+//    useGpgCmd()
+//    sign(extensions.getByType(PublishingExtension::class.java).publications)
+//}
 
 // OWASP Dependency-Check configuration
 extensions.getByName("dependencyCheck").withGroovyBuilder {
@@ -131,14 +131,10 @@ extensions.getByName("dependencyCheck").withGroovyBuilder {
     }
 }
 
-// SpotBugs configuration
-extensions.getByName("spotbugs").withGroovyBuilder {
-    setProperty("ignoreFailures", true)
-    setProperty("effort", "default")
-    setProperty("reportLevel", "medium")
-}
-
 tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+    ignoreFailures = true
+    effort = com.github.spotbugs.snom.Effort.DEFAULT
+    reportLevel = com.github.spotbugs.snom.Confidence.MEDIUM
     reports.create("html").required.set(true)
     reports.create("xml").required.set(false)
 }
@@ -156,6 +152,7 @@ extensions.getByName("sonar").withGroovyBuilder {
 dependencies {
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
+    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.17.2")
 
     add("testImplementation", gradleTestKit())
     add("testImplementation", "junit:junit:4.13.2")
@@ -208,3 +205,24 @@ tasks.register("allSecurityChecks") {
     description = "Run all security and quality checks (Dependency-Check, SpotBugs, SonarQube)"
     dependsOn("check", "dependencyCheck", "spotbugsMain")
 }
+
+tasks.register<Exec>("verifyXsltSexprSample") {
+    group = "verification"
+    description = "Runs smoke verification for xslt-sexpr-identity sample."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/xslt-sexpr-identity", "verifySample")
+}
+
+tasks.register<Exec>("verifyXquerySexprSample") {
+    group = "verification"
+    description = "Runs smoke verification for xquery-sexpr-identity sample."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/xquery-sexpr-identity", "verifySample")
+}
+
+tasks.register("verifySexprSample") {
+    group = "verification"
+    description = "Runs S-expression sample smoke tests."
+    dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample")
+}
+

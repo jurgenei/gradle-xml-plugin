@@ -1,0 +1,28 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runSSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    schema 'src/main/schematron/rules.sexpr'
+    transpilerStylesheet 'src/main/schematron/transpile.xsl'
+    source 'src/main/sexpr/invalid.sexpr'
+    outputDir.set(layout.buildDirectory.dir('reports/schematron'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    failOnError.set(false)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSSchematron'
+    doLast {
+        File svrl = file('build/reports/schematron/invalid.svrl.xml')
+        File junit = file('build/reports/xml-validation/junit/invalid.junit.xml')
+        if (!svrl.exists() || !junit.exists()) {
+            throw new GradleException("Missing expected outputs: ${svrl}, ${junit}")
+        }
+        String text = svrl.getText('UTF-8')
+        if (!text.contains('failed-assert')) {
+            throw new GradleException("Expected failed-assert in SVRL output")
+        }
+    }
+}
+
