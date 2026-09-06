@@ -18,7 +18,7 @@ tasks.register('verifySample') {
             throw new GradleException("Expected output file does not exist: ${output}")
         }
         String text = output.getText('UTF-8')
-        if (!text.contains('[id "b1"]') || !text.contains('(title "XML")')) {
+        if (!text.contains('{id "b1"}') || !text.contains('(title "XML")')) {
             throw new GradleException("Unexpected S-expression output: ${output}")
         }
     }

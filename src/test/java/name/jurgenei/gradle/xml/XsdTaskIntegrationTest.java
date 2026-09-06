@@ -139,11 +139,11 @@ public class XsdTaskIntegrationTest {
 
         write("src/main/xsd/schema.sexpr", """
             (xs:schema
-              [ns "xs" "http://www.w3.org/2001/XMLSchema"]
-              (xs:element [name "root"]
+              { xmlns:xs "http://www.w3.org/2001/XMLSchema" }
+              (xs:element { name "root" }
                 (xs:complexType
                   (xs:sequence
-                    (xs:element [name "value" type "xs:string"])))))
+                    (xs:element { name "value" type "xs:string" })))))
             """);
         write("src/main/sexpr/invalid.sexpr", """
             (root

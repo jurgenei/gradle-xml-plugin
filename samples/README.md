@@ -15,9 +15,9 @@ pluginManagement {
 ## Available samples
 
 - `xslt-basic` - transform one XML with XSLT
-- `xslt-sexpr-identity` - identity transform with S-expression input, S-expression stylesheet, and S-expression output
+- `s-xslt-sexpr-identity` - identity transform with S-expression input, S-expression stylesheet, and S-expression output
 - `xquery-basic` - transform one XML with XQuery
-- `xquery-sexpr-identity` - identity transform with S-expression input and output, preserving namespace/comment/PI nodes
+- `s-xquery-sexpr-identity` - identity transform with S-expression input and output, preserving namespace/comment/PI nodes
 - `s-xsd` - validate S-expression data against S-expression XSD schema
 - `s-schematron` - validate S-expression data against S-expression Schematron schema
 - `validation-basic` - validate XML with XSD and Schematron (SVRL/JUnit), including a persisted compiled Schematron stylesheet (`style`) and transpiler params
@@ -30,9 +30,9 @@ From repository root:
 
 ```bash
 ./gradlew -p samples/xslt-basic runXslt
-./gradlew -p samples/xslt-sexpr-identity runXslt
+./gradlew -p samples/s-xslt-sexpr-identity runXslt
 ./gradlew -p samples/xquery-basic runXQuery
-./gradlew -p samples/xquery-sexpr-identity runXQuery
+./gradlew -p samples/s-xquery-sexpr-identity runXQuery
 ./gradlew -p samples/s-xsd runSXsd
 ./gradlew -p samples/s-schematron runSSchematron
 ./gradlew -p samples/validation-basic runXsd runSchematron
@@ -47,9 +47,9 @@ and asserts expected output files exist.
 
 ```bash
 ./gradlew -p samples/xslt-basic verifySample
-./gradlew -p samples/xslt-sexpr-identity verifySample
+./gradlew -p samples/s-xslt-sexpr-identity verifySample
 ./gradlew -p samples/xquery-basic verifySample
-./gradlew -p samples/xquery-sexpr-identity verifySample
+./gradlew -p samples/s-xquery-sexpr-identity verifySample
 ./gradlew -p samples/s-xsd verifySample
 ./gradlew -p samples/s-schematron verifySample
 ./gradlew -p samples/validation-basic verifySample

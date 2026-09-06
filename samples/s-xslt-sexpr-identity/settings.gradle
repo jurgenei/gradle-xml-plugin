@@ -2,5 +2,5 @@ pluginManagement {
     includeBuild("../..")
 }
 
-rootProject.name = "xslt-sexpr-identity"
+rootProject.name = "s-xslt-sexpr-identity"
 

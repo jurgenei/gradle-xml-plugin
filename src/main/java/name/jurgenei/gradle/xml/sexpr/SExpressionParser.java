@@ -13,11 +13,24 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Parses bracket-based S-expression format into SAX events.
  */
 public final class SExpressionParser {
+    static final String INTERNAL_XDM_URI = "urn:name.jurgenei.gradle.xml:xdm";
+    static final String INTERNAL_XDM_PREFIX = "xdm";
+    private static final Set<String> SUPPORTED_TYPED_ATOMICS = Set.of(
+        "xs:string",
+        "xs:boolean",
+        "xs:integer",
+        "xs:decimal",
+        "xs:double",
+        "xs:date",
+        "xs:dateTime"
+    );
+    private static final Set<String> XML_DECLARATION_KEYS = Set.of("version", "encoding", "standalone");
 
     /**
      * Creates parser for bracket-based S-expression syntax.
@@ -58,9 +71,6 @@ public final class SExpressionParser {
         Cursor cursor = new Cursor(source.toString());
         cursor.skipTrivia();
         Item root = parseItem(cursor);
-        if (!(root instanceof ElementNode elementRoot)) {
-            throw new IOException("Root item must be element at position " + cursor.position());
-        }
 
         cursor.skipTrivia();
         if (!cursor.isEof()) {
@@ -68,11 +78,35 @@ public final class SExpressionParser {
         }
 
         handler.startDocument();
-        emitElement(elementRoot, handler, lexical, new ArrayDeque<>());
+        emitDocumentRoot(root, handler, lexical, new ArrayDeque<>());
         handler.endDocument();
     }
 
     private Item parseItem(Cursor cursor) throws IOException {
+        cursor.skipTrivia();
+        if (cursor.isEof()) {
+            throw new IOException("Unexpected end of input at position " + cursor.position());
+        }
+
+        char opener = cursor.peek();
+        if (opener == '{') {
+            return parseMap(cursor);
+        }
+        if (opener == '[') {
+            return parseArray(cursor);
+        }
+        if (opener == '"') {
+            return new TextNode(cursor.readString());
+        }
+
+        if (opener != '(') {
+            String symbol = cursor.readSymbol();
+            if (symbol.isBlank()) {
+                throw new IOException("Missing item head at position " + cursor.position());
+            }
+            return new AtomicNode(symbol, false);
+        }
+
         cursor.expect('(');
         cursor.skipTrivia();
         String head = cursor.readSymbol();
@@ -80,9 +114,12 @@ public final class SExpressionParser {
             throw new IOException("Missing item head at position " + cursor.position());
         }
 
-        if ("#".equals(head)) {
+        if ("#".equals(head) || "!".equals(head)) {
             String value = parseComment(cursor);
             return new CommentNode(value);
+        }
+        if (".".equals(head)) {
+            return parseDocumentNode(cursor);
         }
         if (head.startsWith("?")) {
             PiNode pi = parseProcessingInstruction(cursor, head.substring(1));
@@ -91,8 +128,12 @@ public final class SExpressionParser {
         if (head.startsWith("@")) {
             throw new IOException("Legacy @-attribute syntax not supported at position " + cursor.position());
         }
+        if (isTypedAtomicHead(head)) {
+            return parseTypedAtomic(cursor, head);
+        }
 
         ElementNode node = new ElementNode(head);
+        boolean hasStructuredContent = false;
         while (true) {
             cursor.skipTrivia();
             if (cursor.isEof()) {
@@ -106,18 +147,116 @@ public final class SExpressionParser {
             if (ch == '(') {
                 Item child = parseItem(cursor);
                 node.children.add(child);
+                hasStructuredContent = true;
                 continue;
             }
             if (ch == '[') {
-                parseBracketBlock(cursor, node);
+                node.children.add(parseArray(cursor));
+                hasStructuredContent = true;
+                continue;
+            }
+            if (ch == '{') {
+                MapNode map = parseMap(cursor);
+                if (!hasStructuredContent && isAttributeNamespaceBlock(map)) {
+                    applyAttributeNamespaceBlock(node, map);
+                } else {
+                    node.children.add(map);
+                    hasStructuredContent = true;
+                }
                 continue;
             }
             if (ch == '"') {
                 node.children.add(new TextNode(cursor.readString()));
+                hasStructuredContent = true;
                 continue;
             }
             throw new IOException("Unexpected token in element body at position " + cursor.position());
         }
+    }
+
+    private DocumentNode parseDocumentNode(Cursor cursor) throws IOException {
+        XmlDeclarationNode xmlDeclaration = null;
+        List<Item> children = new ArrayList<>();
+        while (true) {
+            cursor.skipTrivia();
+            if (cursor.isEof()) {
+                throw new IOException("Unexpected end of input in document node");
+            }
+            if (cursor.peek() == ')') {
+                cursor.next();
+                return new DocumentNode(xmlDeclaration, children);
+            }
+            Item child = parseItem(cursor);
+            if (xmlDeclaration == null
+                && children.isEmpty()
+                && child instanceof MapNode mapNode
+                && isXmlDeclarationMap(mapNode)) {
+                xmlDeclaration = toXmlDeclaration(mapNode);
+                continue;
+            }
+            children.add(child);
+        }
+    }
+
+    private boolean isXmlDeclarationMap(MapNode map) {
+        if (map.entries.isEmpty()) {
+            return false;
+        }
+        boolean hasVersion = false;
+        for (MapEntry entry : map.entries) {
+            if (!XML_DECLARATION_KEYS.contains(entry.key)) {
+                return false;
+            }
+            if (!(entry.value instanceof AtomicNode)) {
+                return false;
+            }
+            if ("version".equals(entry.key)) {
+                hasVersion = true;
+            }
+        }
+        return hasVersion;
+    }
+
+    private XmlDeclarationNode toXmlDeclaration(MapNode map) {
+        String version = null;
+        String encoding = null;
+        String standalone = null;
+        for (MapEntry entry : map.entries) {
+            AtomicNode value = (AtomicNode) entry.value;
+            switch (entry.key) {
+                case "version" -> version = value.value;
+                case "encoding" -> encoding = value.value;
+                case "standalone" -> standalone = value.value;
+                default -> {
+                    // guarded by isXmlDeclarationMap
+                }
+            }
+        }
+        return new XmlDeclarationNode(version, encoding, standalone);
+    }
+
+    private TypedAtomicNode parseTypedAtomic(Cursor cursor, String typeName) throws IOException {
+        cursor.skipTrivia();
+        if (cursor.isEof()) {
+            throw new IOException("Unexpected end of input in typed atomic value '" + typeName + "'");
+        }
+        AtomicNode value;
+        if (cursor.peek() == '"') {
+            value = new AtomicNode(cursor.readString(), true);
+        } else {
+            String symbol = cursor.readSymbol();
+            if (symbol.isBlank()) {
+                throw new IOException("Typed atomic value missing for '" + typeName + "' at position " + cursor.position());
+            }
+            value = new AtomicNode(symbol, false);
+        }
+        cursor.skipTrivia();
+        cursor.expect(')');
+        return new TypedAtomicNode(typeName, value);
+    }
+
+    private boolean isTypedAtomicHead(String head) {
+        return SUPPORTED_TYPED_ATOMICS.contains(head);
     }
 
     private String parseComment(Cursor cursor) throws IOException {
@@ -147,6 +286,19 @@ public final class SExpressionParser {
                 return new PiNode(target, tokens);
             }
 
+            if (cursor.peek() == '{') {
+                MapNode map = parseMap(cursor);
+                for (MapEntry entry : map.entries) {
+                    if (!(entry.value instanceof AtomicNode atomic)) {
+                        throw new IOException("Processing instruction value for key '" + entry.key + "' must be atomic");
+                    }
+                    tokens.add(new PiToken(entry.key, atomic.value));
+                }
+                cursor.skipTrivia();
+                cursor.expect(')');
+                return new PiNode(target, tokens);
+            }
+
             String key = cursor.readSymbol();
             if (key.isEmpty()) {
                 throw new IOException("Processing instruction key missing at position " + cursor.position());
@@ -160,78 +312,98 @@ public final class SExpressionParser {
         }
     }
 
-    private void parseBracketBlock(Cursor cursor, ElementNode node) throws IOException {
-        cursor.expect('[');
-        cursor.skipTrivia();
-        if (cursor.peek() == ']') {
-            throw new IOException("Empty bracket block not allowed at position " + cursor.position());
-        }
-
-        String first = cursor.readSymbol();
-        if (first.isBlank()) {
-            throw new IOException("Bracket block key missing at position " + cursor.position());
-        }
-
-        if ("ns".equals(first)) {
-            parseNamespaceBlock(cursor, node);
-            return;
-        }
-
-        String key = first;
-        while (true) {
-            cursor.skipTrivia();
-            if (cursor.peek() != '"') {
-                throw new IOException("Attribute value for '" + key + "' must be quoted at position " + cursor.position());
-            }
-            node.attributes.put(key, cursor.readString());
-            cursor.skipTrivia();
-
-            if (cursor.peek() == ']') {
-                cursor.next();
-                return;
-            }
-
-            key = cursor.readSymbol();
-            if (key.isBlank()) {
-                throw new IOException("Attribute name missing at position " + cursor.position());
-            }
-        }
-    }
-
-    private void parseNamespaceBlock(Cursor cursor, ElementNode node) throws IOException {
-        List<String> values = new ArrayList<>();
+    private MapNode parseMap(Cursor cursor) throws IOException {
+        cursor.expect('{');
+        List<MapEntry> entries = new ArrayList<>();
         while (true) {
             cursor.skipTrivia();
             if (cursor.isEof()) {
-                throw new IOException("Unexpected end of input in namespace block");
+                throw new IOException("Unexpected end of input while parsing map");
+            }
+            if (cursor.peek() == '}') {
+                cursor.next();
+                return new MapNode(entries);
+            }
+
+            String key;
+            if (cursor.peek() == '"') {
+                key = cursor.readString();
+            } else {
+                key = cursor.readSymbol();
+            }
+            if (key.isBlank()) {
+                throw new IOException("Map key missing at position " + cursor.position());
+            }
+
+            cursor.skipTrivia();
+            Item value = parseScalarOrStructured(cursor);
+            entries.add(new MapEntry(key, value));
+        }
+    }
+
+    private ArrayNode parseArray(Cursor cursor) throws IOException {
+        cursor.expect('[');
+        List<Item> items = new ArrayList<>();
+        while (true) {
+            cursor.skipTrivia();
+            if (cursor.isEof()) {
+                throw new IOException("Unexpected end of input while parsing array");
             }
             if (cursor.peek() == ']') {
                 cursor.next();
-                break;
+                return new ArrayNode(items);
             }
-            if (cursor.peek() != '"') {
-                throw new IOException("Namespace entries must be quoted strings at position " + cursor.position());
-            }
-            values.add(cursor.readString());
-        }
-
-        if (values.isEmpty()) {
-            throw new IOException("Namespace block requires at least one quoted value");
-        }
-
-        if (values.size() == 1) {
-            node.namespaceDeclarations.add(new NamespaceDecl("", values.get(0)));
-            return;
-        }
-
-        if ((values.size() % 2) != 0) {
-            throw new IOException("Namespace block requires one default URI or prefix/URI pairs");
-        }
-
-        for (int i = 0; i < values.size(); i += 2) {
-            node.namespaceDeclarations.add(new NamespaceDecl(values.get(i), values.get(i + 1)));
+            items.add(parseScalarOrStructured(cursor));
         }
     }
+
+    private Item parseScalarOrStructured(Cursor cursor) throws IOException {
+        cursor.skipTrivia();
+        if (cursor.isEof()) {
+            throw new IOException("Unexpected end of input while parsing value");
+        }
+        char ch = cursor.peek();
+        if (ch == '(' || ch == '{' || ch == '[') {
+            return parseItem(cursor);
+        }
+        if (ch == '"') {
+            return new AtomicNode(cursor.readString(), true);
+        }
+        String symbol = cursor.readSymbol();
+        if (symbol.isBlank()) {
+            throw new IOException("Value token missing at position " + cursor.position());
+        }
+        return new AtomicNode(symbol, false);
+    }
+
+    private boolean isAttributeNamespaceBlock(MapNode map) {
+        if (map.entries.isEmpty()) {
+            return false;
+        }
+        for (MapEntry entry : map.entries) {
+            if (!(entry.value instanceof AtomicNode atomic) || !atomic.quoted) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void applyAttributeNamespaceBlock(ElementNode node, MapNode map) {
+        for (MapEntry entry : map.entries) {
+            AtomicNode value = (AtomicNode) entry.value;
+            if ("xmlns".equals(entry.key)) {
+                node.namespaceDeclarations.add(new NamespaceDecl("", value.value));
+                continue;
+            }
+            if (entry.key.startsWith("xmlns:")) {
+                String prefix = entry.key.substring("xmlns:".length());
+                node.namespaceDeclarations.add(new NamespaceDecl(prefix, value.value));
+                continue;
+            }
+            node.attributes.put(entry.key, value.value);
+        }
+    }
+
 
     private void emitElement(ElementNode node, ContentHandler handler, LexicalHandler lexical, Deque<Map<String, String>> namespaceStack) throws SAXException {
         Map<String, String> parent = namespaceStack.isEmpty() ? Map.of() : namespaceStack.peek();
@@ -267,8 +439,20 @@ public final class SExpressionParser {
                 }
                 char[] chars = textNode.value.toCharArray();
                 handler.characters(chars, 0, chars.length);
+            } else if (child instanceof AtomicNode atomicNode) {
+                emitAtomic(atomicNode, handler);
             } else if (child instanceof ElementNode nested) {
                 emitElement(nested, handler, lexical, namespaceStack);
+            } else if (child instanceof MapNode mapNode) {
+                emitMap(mapNode, handler, lexical, namespaceStack);
+            } else if (child instanceof ArrayNode arrayNode) {
+                emitArray(arrayNode, handler, lexical, namespaceStack);
+            } else if (child instanceof TypedAtomicNode typedAtomicNode) {
+                emitTypedAtomic(typedAtomicNode, handler);
+            } else if (child instanceof DocumentNode documentNode) {
+                for (Item nestedChild : documentNode.children) {
+                    emitItemAtDocumentLevel(nestedChild, handler, lexical, namespaceStack);
+                }
             } else if (child instanceof CommentNode commentNode) {
                 if (lexical != null) {
                     char[] chars = commentNode.value.toCharArray();
@@ -285,6 +469,170 @@ public final class SExpressionParser {
         for (int i = node.namespaceDeclarations.size() - 1; i >= 0; i--) {
             handler.endPrefixMapping(node.namespaceDeclarations.get(i).prefix);
         }
+    }
+
+    private void emitDocumentRoot(Item root, ContentHandler handler, LexicalHandler lexical, Deque<Map<String, String>> namespaceStack) throws SAXException {
+        if (root instanceof DocumentNode documentNode) {
+            if (documentNode.xmlDeclaration != null) {
+                emitXmlDeclaration(documentNode.xmlDeclaration, handler);
+            }
+            for (Item item : documentNode.children) {
+                emitItemAtDocumentLevel(item, handler, lexical, namespaceStack);
+            }
+            return;
+        }
+        emitItemAtDocumentLevel(root, handler, lexical, namespaceStack);
+    }
+
+    private void emitItemAtDocumentLevel(Item item, ContentHandler handler, LexicalHandler lexical, Deque<Map<String, String>> namespaceStack) throws SAXException {
+        if (item instanceof ElementNode elementNode) {
+            emitElement(elementNode, handler, lexical, namespaceStack);
+            return;
+        }
+        if (item instanceof CommentNode commentNode) {
+            if (lexical != null) {
+                char[] chars = commentNode.value.toCharArray();
+                lexical.comment(chars, 0, chars.length);
+            }
+            return;
+        }
+        if (item instanceof PiNode piNode) {
+            handler.processingInstruction(piNode.target, toPiData(piNode.tokens));
+            return;
+        }
+        if (item instanceof TextNode textNode) {
+            char[] chars = textNode.value.toCharArray();
+            handler.characters(chars, 0, chars.length);
+            return;
+        }
+        if (item instanceof AtomicNode atomicNode) {
+            emitAtomic(atomicNode, handler);
+            return;
+        }
+        if (item instanceof MapNode mapNode) {
+            emitMap(mapNode, handler, lexical, namespaceStack);
+            return;
+        }
+        if (item instanceof ArrayNode arrayNode) {
+            emitArray(arrayNode, handler, lexical, namespaceStack);
+            return;
+        }
+        if (item instanceof TypedAtomicNode typedAtomicNode) {
+            emitTypedAtomic(typedAtomicNode, handler);
+        }
+    }
+
+    private void emitMap(MapNode map, ContentHandler handler, LexicalHandler lexical, Deque<Map<String, String>> namespaceStack) throws SAXException {
+        AttributesImpl attrs = new AttributesImpl();
+        startInternalElement("map", attrs, handler);
+        for (MapEntry entry : map.entries) {
+            AttributesImpl entryAttrs = new AttributesImpl();
+            entryAttrs.addAttribute("", "key", "key", "CDATA", entry.key);
+            startInternalElement("entry", entryAttrs, handler);
+            emitInternalValue(entry.value, handler, lexical, namespaceStack);
+            endInternalElement("entry", handler);
+        }
+        endInternalElement("map", handler);
+    }
+
+    private void emitArray(ArrayNode array, ContentHandler handler, LexicalHandler lexical, Deque<Map<String, String>> namespaceStack) throws SAXException {
+        AttributesImpl attrs = new AttributesImpl();
+        startInternalElement("array", attrs, handler);
+        for (Item value : array.items) {
+            startInternalElement("item", new AttributesImpl(), handler);
+            emitInternalValue(value, handler, lexical, namespaceStack);
+            endInternalElement("item", handler);
+        }
+        endInternalElement("array", handler);
+    }
+
+    private void emitTypedAtomic(TypedAtomicNode typedAtomic, ContentHandler handler) throws SAXException {
+        AttributesImpl attrs = new AttributesImpl();
+        attrs.addAttribute("", "type", "type", "CDATA", typedAtomic.typeName);
+        attrs.addAttribute("", "value", "value", "CDATA", typedAtomic.value.value);
+        attrs.addAttribute("", "quoted", "quoted", "CDATA", String.valueOf(typedAtomic.value.quoted));
+        startInternalElement("typed-atomic", attrs, handler);
+        endInternalElement("typed-atomic", handler);
+    }
+
+    private void emitAtomic(AtomicNode atomic, ContentHandler handler) throws SAXException {
+        AttributesImpl attrs = new AttributesImpl();
+        attrs.addAttribute("", "value", "value", "CDATA", atomic.value);
+        attrs.addAttribute("", "quoted", "quoted", "CDATA", String.valueOf(atomic.quoted));
+        startInternalElement("literal", attrs, handler);
+        endInternalElement("literal", handler);
+    }
+
+    private void emitInternalValue(Item value, ContentHandler handler, LexicalHandler lexical, Deque<Map<String, String>> namespaceStack) throws SAXException {
+        if (value instanceof ElementNode elementNode) {
+            emitElement(elementNode, handler, lexical, namespaceStack);
+            return;
+        }
+        if (value instanceof MapNode mapNode) {
+            emitMap(mapNode, handler, lexical, namespaceStack);
+            return;
+        }
+        if (value instanceof ArrayNode arrayNode) {
+            emitArray(arrayNode, handler, lexical, namespaceStack);
+            return;
+        }
+        if (value instanceof TypedAtomicNode typedAtomicNode) {
+            emitTypedAtomic(typedAtomicNode, handler);
+            return;
+        }
+        if (value instanceof AtomicNode atomicNode) {
+            emitAtomic(atomicNode, handler);
+            return;
+        }
+        if (value instanceof TextNode textNode) {
+            AtomicNode atomicNode = new AtomicNode(textNode.value, true);
+            emitAtomic(atomicNode, handler);
+            return;
+        }
+        if (value instanceof CommentNode commentNode) {
+            if (lexical != null) {
+                char[] chars = commentNode.value.toCharArray();
+                lexical.comment(chars, 0, chars.length);
+            }
+            return;
+        }
+        if (value instanceof PiNode piNode) {
+            handler.processingInstruction(piNode.target, toPiData(piNode.tokens));
+            return;
+        }
+        if (value instanceof DocumentNode documentNode) {
+            if (documentNode.xmlDeclaration != null) {
+                emitXmlDeclaration(documentNode.xmlDeclaration, handler);
+            }
+            for (Item child : documentNode.children) {
+                emitInternalValue(child, handler, lexical, namespaceStack);
+            }
+        }
+    }
+
+    private void emitXmlDeclaration(XmlDeclarationNode declaration, ContentHandler handler) throws SAXException {
+        AttributesImpl attrs = new AttributesImpl();
+        attrs.addAttribute("", "version", "version", "CDATA", declaration.version);
+        if (declaration.encoding != null) {
+            attrs.addAttribute("", "encoding", "encoding", "CDATA", declaration.encoding);
+        }
+        if (declaration.standalone != null) {
+            attrs.addAttribute("", "standalone", "standalone", "CDATA", declaration.standalone);
+        }
+        startInternalElement("xml-decl", attrs, handler);
+        endInternalElement("xml-decl", handler);
+    }
+
+    private void startInternalElement(String localName, AttributesImpl attributes, ContentHandler handler) throws SAXException {
+        String qName = INTERNAL_XDM_PREFIX + ":" + localName;
+        handler.startPrefixMapping(INTERNAL_XDM_PREFIX, INTERNAL_XDM_URI);
+        handler.startElement(INTERNAL_XDM_URI, localName, qName, attributes);
+    }
+
+    private void endInternalElement(String localName, ContentHandler handler) throws SAXException {
+        String qName = INTERNAL_XDM_PREFIX + ":" + localName;
+        handler.endElement(INTERNAL_XDM_URI, localName, qName);
+        handler.endPrefixMapping(INTERNAL_XDM_PREFIX);
     }
 
     private String toPiData(List<PiToken> tokens) {
@@ -326,7 +674,7 @@ public final class SExpressionParser {
         return qName.substring(index + 1);
     }
 
-    private sealed interface Item permits ElementNode, TextNode, CommentNode, PiNode {
+    private sealed interface Item permits ElementNode, TextNode, CommentNode, PiNode, DocumentNode, MapNode, ArrayNode, AtomicNode, TypedAtomicNode {
     }
 
     private static final class ElementNode implements Item {
@@ -347,6 +695,27 @@ public final class SExpressionParser {
     }
 
     private record PiNode(String target, List<PiToken> tokens) implements Item {
+    }
+
+    private record DocumentNode(XmlDeclarationNode xmlDeclaration, List<Item> children) implements Item {
+    }
+
+    private record XmlDeclarationNode(String version, String encoding, String standalone) {
+    }
+
+    private record MapNode(List<MapEntry> entries) implements Item {
+    }
+
+    private record ArrayNode(List<Item> items) implements Item {
+    }
+
+    private record AtomicNode(String value, boolean quoted) implements Item {
+    }
+
+    private record TypedAtomicNode(String typeName, AtomicNode value) implements Item {
+    }
+
+    private record MapEntry(String key, Item value) {
     }
 
     private record NamespaceDecl(String prefix, String uri) {
@@ -370,6 +739,7 @@ public final class SExpressionParser {
         private int position() {
             return index;
         }
+
 
         private char peek() {
             return source.charAt(index);
@@ -409,6 +779,8 @@ public final class SExpressionParser {
                 if (Character.isWhitespace(ch)
                     || ch == '('
                     || ch == ')'
+                    || ch == '{'
+                    || ch == '}'
                     || ch == '['
                     || ch == ']'
                     || ch == '"'
