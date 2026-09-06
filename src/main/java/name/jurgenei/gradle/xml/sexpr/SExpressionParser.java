@@ -21,6 +21,8 @@ import java.util.Set;
 public final class SExpressionParser {
     static final String INTERNAL_XDM_URI = "urn:name.jurgenei.gradle.xml:xdm";
     static final String INTERNAL_XDM_PREFIX = "xdm";
+    private static final String XDM_MAP_HEAD = "xdm:map";
+    private static final String XDM_ARRAY_HEAD = "xdm:array";
     private static final Set<String> SUPPORTED_TYPED_ATOMICS = Set.of(
         "xs:string",
         "xs:boolean",
@@ -90,10 +92,10 @@ public final class SExpressionParser {
 
         char opener = cursor.peek();
         if (opener == '{') {
-            return parseMap(cursor);
+            throw new IOException("Associative block must be attached to a node head at position " + cursor.position());
         }
         if (opener == '[') {
-            return parseArray(cursor);
+            throw new IOException("Sequence block must be wrapped in (xdm:array [...]) at position " + cursor.position());
         }
         if (opener == '"') {
             return new TextNode(cursor.readString());
@@ -128,6 +130,12 @@ public final class SExpressionParser {
         if (head.startsWith("@")) {
             throw new IOException("Legacy @-attribute syntax not supported at position " + cursor.position());
         }
+        if (XDM_MAP_HEAD.equals(head)) {
+            return parseXdmMapNode(cursor);
+        }
+        if (XDM_ARRAY_HEAD.equals(head)) {
+            return parseXdmArrayNode(cursor);
+        }
         if (isTypedAtomicHead(head)) {
             return parseTypedAtomic(cursor, head);
         }
@@ -151,17 +159,17 @@ public final class SExpressionParser {
                 continue;
             }
             if (ch == '[') {
-                node.children.add(parseArray(cursor));
-                hasStructuredContent = true;
-                continue;
+                throw new IOException("Sequence block must be wrapped in (xdm:array [...]) at position " + cursor.position());
             }
             if (ch == '{') {
+                if (hasStructuredContent) {
+                    throw new IOException("Associative block in element body allowed only before child nodes at position " + cursor.position());
+                }
                 MapNode map = parseMap(cursor);
                 if (!hasStructuredContent && isAttributeNamespaceBlock(map)) {
                     applyAttributeNamespaceBlock(node, map);
                 } else {
-                    node.children.add(map);
-                    hasStructuredContent = true;
+                    throw new IOException("Use (xdm:map {...}) for map child nodes at position " + cursor.position());
                 }
                 continue;
             }
@@ -186,16 +194,39 @@ public final class SExpressionParser {
                 cursor.next();
                 return new DocumentNode(xmlDeclaration, children);
             }
-            Item child = parseItem(cursor);
-            if (xmlDeclaration == null
-                && children.isEmpty()
-                && child instanceof MapNode mapNode
-                && isXmlDeclarationMap(mapNode)) {
+            if (xmlDeclaration == null && children.isEmpty() && cursor.peek() == '{') {
+                MapNode mapNode = parseMap(cursor);
+                if (!isXmlDeclarationMap(mapNode)) {
+                    throw new IOException("Document declaration map supports only version/encoding/standalone keys");
+                }
                 xmlDeclaration = toXmlDeclaration(mapNode);
                 continue;
             }
+            Item child = parseItem(cursor);
             children.add(child);
         }
+    }
+
+    private MapNode parseXdmMapNode(Cursor cursor) throws IOException {
+        cursor.skipTrivia();
+        if (cursor.isEof() || cursor.peek() != '{') {
+            throw new IOException("xdm:map requires associative payload block");
+        }
+        MapNode map = parseMap(cursor);
+        cursor.skipTrivia();
+        cursor.expect(')');
+        return map;
+    }
+
+    private ArrayNode parseXdmArrayNode(Cursor cursor) throws IOException {
+        cursor.skipTrivia();
+        if (cursor.isEof() || cursor.peek() != '[') {
+            throw new IOException("xdm:array requires sequence payload block");
+        }
+        ArrayNode array = parseArray(cursor);
+        cursor.skipTrivia();
+        cursor.expect(')');
+        return array;
     }
 
     private boolean isXmlDeclarationMap(MapNode map) {
@@ -363,8 +394,14 @@ public final class SExpressionParser {
             throw new IOException("Unexpected end of input while parsing value");
         }
         char ch = cursor.peek();
-        if (ch == '(' || ch == '{' || ch == '[') {
+        if (ch == '(') {
             return parseItem(cursor);
+        }
+        if (ch == '{') {
+            return parseMap(cursor);
+        }
+        if (ch == '[') {
+            return parseArray(cursor);
         }
         if (ch == '"') {
             return new AtomicNode(cursor.readString(), true);

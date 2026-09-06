@@ -71,8 +71,8 @@ public class SExpressionFormatTest {
               (! "lead comment")
               (book
                 { xmlns:m "urn:math" id "b1" }
-                { meta { name "John" age 42 } }
-                [ "A" 7 (xs:boolean true) ]
+                (xdm:map { meta (xdm:map { name "John" age 42 }) })
+                (xdm:array [ "A" 7 (xs:boolean true) ])
                 (xs:date "2026-09-06")
                 (?xml-stylesheet { href "main.xsl" type "text/xsl" })
                 (m:title "XML")))
@@ -95,8 +95,8 @@ public class SExpressionFormatTest {
             (.
               (book
                 { id "b1" }
-                { data { name "John" age 42 } }
-                [ "A" 7 (xs:boolean true) ]
+                (xdm:map { data (xdm:map { name "John" age 42 }) })
+                (xdm:array [ "A" 7 (xs:boolean true) ])
                 (xs:date "2026-09-06")))
             """;
 
@@ -105,19 +105,17 @@ public class SExpressionFormatTest {
         new SExpressionParser().parse(new StringReader(input), serializer, serializer);
 
         String output = writer.toString();
-        Assert.assertTrue(output.contains("{data {name \"John\" age 42}}"));
-        Assert.assertTrue(output.contains("[\"A\" 7 (xs:boolean true)]"));
+        Assert.assertTrue(output.contains("(xdm:map {data (xdm:map {name \"John\" age 42})})"));
+        Assert.assertTrue(output.contains("(xdm:array [\"A\" 7 (xs:boolean true)])"));
         Assert.assertTrue(output.contains("(xs:date \"2026-09-06\")"));
     }
 
     @Test
-    public void treatsBracketListAsArrayWhenNotLegacyAttributeBlock() throws Exception {
+    public void rejectsBareSequenceBlockAsNode() {
         String input = "(book [\"A\" \"B\"])";
-
-        RecordingHandler handler = new RecordingHandler();
-        new SExpressionParser().parse(new StringReader(input), handler, handler);
-
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:array")));
+        IOException error = Assert.assertThrows(IOException.class,
+            () -> new SExpressionParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(error.getMessage().contains("xdm:array"));
     }
 
     @Test
@@ -177,10 +175,11 @@ public class SExpressionFormatTest {
 
     @Test
     public void rejectsArrayWithMissingClosingBracket() {
-        String input = "(book [\"A\" \"B\")";
+        String input = "(book (xdm:array [\"A\" \"B\"))";
         IOException error = Assert.assertThrows(IOException.class,
             () -> new SExpressionParser().parse(new StringReader(input), new DefaultHandler()));
         Assert.assertTrue(error.getMessage().contains("Unexpected end of input while parsing array")
+            || error.getMessage().contains("Expected ')'")
             || error.getMessage().contains("Value token missing"));
     }
 

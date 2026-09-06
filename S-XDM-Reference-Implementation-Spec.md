@@ -114,21 +114,37 @@ Emits XML using standard SAX/JAXP transformer/serializer pipeline.
 ### Maps
 
 ```lisp
-{ name "John" age 42 }
+(xdm:map { name "John" age 42 })
 ```
 
 ### Arrays
 
 ```lisp
-[ "A" "B" "C" ]
+(xdm:array [ "A" "B" "C" ])
 ```
 
-## 6. Ambiguity Rules
+## 6. Disambiguation Rules
 
-- `(map)` is an XML element named map.
-- `{ ... }` is an XDM map.
-- `(array)` is an XML element named array.
-- `[ ... ]` is an XDM array.
+- `(qname ...)` denotes an XML element node.
+- `(. ...)` denotes document node.
+- `(! "text")` denotes comment node.
+- `(?target { ... })` denotes processing instruction node.
+
+Reserved typed heads for non-element XDM structures:
+
+- `(xdm:map { key value ... })` denotes XDM map.
+- `(xdm:array [ item ... ])` denotes XDM array.
+
+Container token classes:
+
+- `{ ... }` is associative payload container.
+- `[ ... ]` is sequence payload container.
+
+Therefore:
+
+- `(map ...)` is always XML element named `map`.
+- `(array ...)` is always XML element named `array`.
+- XDM map/array MUST use `xdm:map`/`xdm:array` heads.
 
 ## 7. Parsing Model
 

@@ -52,6 +52,10 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 
 ## S-expression Support
 
+S-expression support provides a compact, human- and AI-friendly representation of XML and XDM-based technologies. Rather than introducing new semantics, it offers an alternative serialization syntax for established standards such as XML, XDM, XPath, XSLT, and XML Schema.
+
+By reducing serialization overhead while preserving structure, typing, and validation capabilities, S-expressions make it easier to work with existing XML assets in modern development and AI workflows. All processing continues to rely on the same mature standards and implementations that have evolved within the XML ecosystem for more than two decades.
+
 `XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
 
 S-expression runtime ships inside `gradle-xml-plugin` artifact.
@@ -79,11 +83,16 @@ Canonical examples:
 - Element node: `(book (title "XML"))`
 - Element associative block (attributes + namespaces): `(book { id "b1" xmlns:m "urn:math" } (m:title "XML"))`
 - Document with XML declaration map: `(. { version "1.0" encoding "UTF-8" } (book))`
-- Map: `{ name "John" age 42 }`
-- Array: `[ "A" "B" "C" ]`
+- Map node: `(xdm:map { name "John" age 42 })`
+- Array node: `(xdm:array [ "A" "B" "C" ])`
 - Typed atomics: `(xs:boolean true)`, `(xs:date "2026-09-06")`
 - Comment: `(! "text")`
 - Processing instruction: `(?xml-stylesheet { href "main.xsl" type "text/xsl" })`
+
+Disambiguation:
+
+- `(map ...)` and `(array ...)` are XML elements named `map`/`array`.
+- XDM map/array nodes use explicit heads: `xdm:map` and `xdm:array`.
 
 Serializer compatibility modes:
 

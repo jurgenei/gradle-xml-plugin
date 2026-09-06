@@ -481,8 +481,16 @@ public final class SExpressionSerializer implements ContentHandler, LexicalHandl
 
     private String renderMap(NodeFrame frame, int depth) {
         if (format == OutputFormat.BEAUTIFIED) {
-            return renderMapBeautified(frame, depth);
+            StringBuilder sb = new StringBuilder();
+            sb.append(indent(depth)).append("(xdm:map");
+            sb.append('\n').append(renderMapPayloadBeautified(frame, depth + 1));
+            sb.append(')');
+            return sb.toString();
         }
+        return "(xdm:map " + renderMapPayloadCompact(frame, depth + 1) + ')';
+    }
+
+    private String renderMapPayloadCompact(NodeFrame frame, int depth) {
         StringBuilder sb = new StringBuilder();
         sb.append('{');
         boolean first = true;
@@ -493,14 +501,14 @@ public final class SExpressionSerializer implements ContentHandler, LexicalHandl
             if (!first) {
                 sb.append(' ');
             }
-            sb.append(child.node.entryKey).append(' ').append(renderEntryValue(child.node, depth + 1));
+            sb.append(child.node.entryKey).append(' ').append(renderEntryValue(child.node, depth));
             first = false;
         }
         sb.append('}');
         return sb.toString();
     }
 
-    private String renderMapBeautified(NodeFrame frame, int depth) {
+    private String renderMapPayloadBeautified(NodeFrame frame, int depth) {
         if (frame.children.isEmpty()) {
             return indent(depth) + "{}";
         }
@@ -522,8 +530,16 @@ public final class SExpressionSerializer implements ContentHandler, LexicalHandl
 
     private String renderArray(NodeFrame frame, int depth) {
         if (format == OutputFormat.BEAUTIFIED) {
-            return renderArrayBeautified(frame, depth);
+            StringBuilder sb = new StringBuilder();
+            sb.append(indent(depth)).append("(xdm:array");
+            sb.append('\n').append(renderArrayPayloadBeautified(frame, depth + 1));
+            sb.append(')');
+            return sb.toString();
         }
+        return "(xdm:array " + renderArrayPayloadCompact(frame, depth + 1) + ')';
+    }
+
+    private String renderArrayPayloadCompact(NodeFrame frame, int depth) {
         StringBuilder sb = new StringBuilder();
         sb.append('[');
         boolean first = true;
@@ -534,14 +550,14 @@ public final class SExpressionSerializer implements ContentHandler, LexicalHandl
             if (!first) {
                 sb.append(' ');
             }
-            sb.append(renderItemValue(child.node, depth + 1));
+            sb.append(renderItemValue(child.node, depth));
             first = false;
         }
         sb.append(']');
         return sb.toString();
     }
 
-    private String renderArrayBeautified(NodeFrame frame, int depth) {
+    private String renderArrayPayloadBeautified(NodeFrame frame, int depth) {
         if (frame.children.isEmpty()) {
             return indent(depth) + "[]";
         }
