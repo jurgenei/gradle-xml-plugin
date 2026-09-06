@@ -5,6 +5,10 @@
 [![Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/name.jurgenei.gradle.xml?label=Plugin%20Portal)](https://plugins.gradle.org/plugin/name.jurgenei.gradle.xml)
 [![Build and Test](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/gradle-build.yml)
 [![Coverage CI](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/coverage.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/coverage.yml)
+[![CodeQL](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/codeql.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/codeql.yml)
+[![Dependency Check](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/dependency-check.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/dependency-check.yml)
+[![SpotBugs Security](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/spotbugs-security.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/spotbugs-security.yml)
+[![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/jurgenei/gradle-xml-plugin/security/dependabot)
 [![Coverage](https://codecov.io/gh/jurgenei/gradle-xml-plugin/graph/badge.svg)](https://codecov.io/gh/jurgenei/gradle-xml-plugin)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
@@ -47,6 +51,7 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Parameter passing** — externalize stylesheet/query variables
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
+- **Security automation** — CodeQL, OWASP Dependency-Check, SpotBugs + FindSecBugs, Dependabot
 - **S-expression I/O** — `.sexpr` input and output routing for XSLT/XQuery tasks
 - **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
 
@@ -499,6 +504,25 @@ Coverage report outputs:
 CI coverage workflow: `.github/workflows/coverage.yml`
 
 To enable Codecov upload/badge, add repository secret `CODECOV_TOKEN`.
+
+## Security Scanning
+
+Security automation runs in GitHub Actions:
+
+- CodeQL static analysis: `.github/workflows/codeql.yml`
+- OWASP Dependency-Check: `.github/workflows/dependency-check.yml`
+- SpotBugs + FindSecBugs: `.github/workflows/spotbugs-security.yml`
+- Dependabot updates: `.github/dependabot.yml`
+
+Set repository secret `NVD_API_KEY` for faster/more reliable Dependency-Check NVD lookups.
+
+Run locally:
+
+```bash
+./gradlew dependencyCheckAnalyze --no-configuration-cache
+./gradlew spotbugsMain -PspotbugsIgnoreFailures=false --no-configuration-cache
+./gradlew allSecurityChecks
+```
 
 ## Building
 
