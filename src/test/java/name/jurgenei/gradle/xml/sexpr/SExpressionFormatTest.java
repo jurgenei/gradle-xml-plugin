@@ -199,6 +199,30 @@ public class SExpressionFormatTest {
         Assert.assertTrue(error.getMessage().contains("must be atomic"));
     }
 
+    @Test
+    public void rejectsTopLevelAssociativeBlockWithoutNodeHead() {
+        String input = "{ key \"value\" }";
+        IOException error = Assert.assertThrows(IOException.class,
+            () -> new SExpressionParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(error.getMessage().contains("Associative block must be attached to a node head"));
+    }
+
+    @Test
+    public void rejectsXdmMapWithoutAssociativePayload() {
+        String input = "(xdm:map \"oops\")";
+        IOException error = Assert.assertThrows(IOException.class,
+            () -> new SExpressionParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(error.getMessage().contains("xdm:map requires associative payload block"));
+    }
+
+    @Test
+    public void rejectsAssociativeBlockAfterStructuredChildren() {
+        String input = "(book (title \"x\") { id \"b1\" })";
+        IOException error = Assert.assertThrows(IOException.class,
+            () -> new SExpressionParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(error.getMessage().contains("allowed only before child nodes"));
+    }
+
     private static final class RecordingHandler extends DefaultHandler implements LexicalHandler {
         private final List<String> events = new ArrayList<>();
 
