@@ -317,7 +317,7 @@ public class SchematronTaskIntegrationTest {
             """);
 
         write("src/main/schematron/rules.sexpr", """
-            (schema [ns "http://purl.oclc.org/dsdl/schematron"])
+            (schema { xmlns "http://purl.oclc.org/dsdl/schematron" })
             """);
         write("src/main/schematron/transpile.xsl", transpiler());
         write("src/main/sexpr/invalid.sexpr", """

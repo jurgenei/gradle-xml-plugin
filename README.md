@@ -5,7 +5,7 @@
 [![Plugin Portal](https://img.shields.io/gradle-plugin-portal/v/name.jurgenei.gradle.xml?label=Plugin%20Portal)](https://plugins.gradle.org/plugin/name.jurgenei.gradle.xml)
 [![Build and Test](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/gradle-build.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/gradle-build.yml)
 [![Coverage CI](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/coverage.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/coverage.yml)
-[![Coverage](https://codecov.io/gh/jurgenei/gradle-xml-plugin/branch/main/graph/badge.svg)](https://codecov.io/gh/jurgenei/gradle-xml-plugin)
+[![Coverage](https://codecov.io/gh/jurgenei/gradle-xml-plugin/graph/badge.svg)](https://codecov.io/gh/jurgenei/gradle-xml-plugin)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
 [![Gradle](https://img.shields.io/badge/gradle-9.5+-blue.svg)](https://gradle.org/)
@@ -50,7 +50,11 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **S-expression I/O** — `.sexpr` input and output routing for XSLT/XQuery tasks
 - **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
 
-## S-expression Support (MVP)
+## S-expression Support
+
+S-expression support provides a compact, human- and AI-friendly representation of XML and XDM-based technologies. Rather than introducing new semantics, it offers an alternative serialization syntax for established standards such as XML, XDM, XPath, XSLT, and XML Schema.
+
+By reducing serialization overhead while preserving structure, typing, and validation capabilities, S-expressions make it easier to work with existing XML assets in modern development and AI workflows. All processing continues to rely on the same mature standards and implementations that have evolved within the XML ecosystem for more than two decades.
 
 `XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
 
@@ -58,20 +62,47 @@ S-expression runtime ships inside `gradle-xml-plugin` artifact.
 
 - Internal package: `name.jurgenei.gradle.xml.sexpr`
 - No separate `name.jurgenei.xml:xml-sexpr` dependency required
+- S-expression parser/serializer runtime is Saxon-agnostic (`java.xml` SAX/JAXP APIs)
 
 - Input `.sexpr` is parsed as SAX source.
 - XSLT stylesheet may also be `.sexpr` (for `XsltTask.style(...)`).
-- Output `.sexpr` is serialized from Saxon result tree.
+- Output `.sexpr` is serialized from XML result events through SAX/JAXP pipeline.
 - `sexprFormat` controls output style: `compact` (default) or `beautified`.
 
 S-expression format details:
 
-- Attributes: `[id "b1" version "1.0"]`
-- Namespaces:
-  - default: `[ns "http://www.w3.org/1998/Math/MathML"]`
-  - prefixed: `[ns "m" "http://www.w3.org/1998/Math/MathML"]`
-- Comments: `(# "text")`
-- Processing instructions: `(?xml-stylesheet type="text/xsl" href="style.xsl")`
+- `()` = nodes
+- `{}` = associative structures
+- `[]` = sequences
+- `.` = document node head
+- `?` = processing instruction head
+- `!` = comment node head
+
+Canonical examples:
+
+- Element node: `(book (title "XML"))`
+- Element associative block (attributes + namespaces): `(book { id "b1" xmlns:m "urn:math" } (m:title "XML"))`
+- Document with XML declaration map: `(. { version "1.0" encoding "UTF-8" } (book))`
+- Map node: `(xdm:map { name "John" age 42 })`
+- Array node: `(xdm:array [ "A" "B" "C" ])`
+- Typed atomics: `(xs:boolean true)`, `(xs:date "2026-09-06")`
+- Comment: `(! "text")`
+- Processing instruction: `(?xml-stylesheet { href "main.xsl" type "text/xsl" })`
+
+Disambiguation:
+
+- `(map ...)` and `(array ...)` are XML elements named `map`/`array`.
+- XDM map/array nodes use explicit heads: `xdm:map` and `xdm:array`.
+
+Serializer compatibility modes:
+
+- Canonical mode (default): canonical token classes and forms shown above
+- Legacy mode: retained for compatibility output only
+
+Internal bridge note:
+
+- SAX cannot represent XDM map/array/typed-atomic/xml-declaration directly.
+- Runtime uses internal `xdm:*` helper elements in URI `urn:name.jurgenei.gradle.xml:xdm` as lossless bridge between parser and serializer.
 
 `sexprFormat` is also reused for canonical JSON output formatting.
 
@@ -79,28 +110,13 @@ Format conventions:
 
 ```lisp
 ; compact
-(book [id "b1"] (title "XML"))
+(book {id "b1"} (title "XML"))
 
 ; beautified
 (book
-  [id "b1"]
+  {id "b1"}
   (title "XML"))
 ```
-
-### Syntax Migration (Hard Cut)
-
-Old syntax removed. New bracket syntax required.
-
-| XML concept | Old (removed) | New (required) |
-|---|---|---|
-| Attribute | `(@id "b1")` | `[id "b1"]` |
-| Multiple attributes | `(@id "b1") (@version "1.0")` | `[id "b1" version "1.0"]` |
-| Default namespace | n/a | `[ns "http://www.w3.org/1998/Math/MathML"]` |
-| Prefixed namespace | n/a | `[ns "m" "http://www.w3.org/1998/Math/MathML"]` |
-| Comment | n/a | `(# "this is a comment")` |
-| Processing instruction | n/a | `(?xml-stylesheet type="text/xsl" href="style.xsl")` |
-
-Processing-instruction values must be quoted.
 
 ### XSLT Example
 
@@ -532,9 +548,9 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 Runnable minimal examples are available under `samples/`:
 
 - `samples/xslt-basic`
-- `samples/xslt-sexpr-identity`
+- `samples/s-xslt-sexpr-identity`
 - `samples/xquery-basic`
-- `samples/xquery-sexpr-identity`
+- `samples/s-xquery-sexpr-identity`
 - `samples/s-xsd`
 - `samples/s-schematron`
 - `samples/validation-basic`

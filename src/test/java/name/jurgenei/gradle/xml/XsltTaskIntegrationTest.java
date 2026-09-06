@@ -622,7 +622,7 @@ public class XsltTaskIntegrationTest {
               outputDir.set(layout.buildDirectory.dir('out/xslt'))
             }
             """);
-        write("src/main/sexpr/input.sexpr", "(book [id \"b1\"] (title \"XML\"))");
+        write("src/main/sexpr/input.sexpr", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xslt/identity.xsl", """
             <?xml version='1.0'?>
             <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
@@ -675,7 +675,7 @@ public class XsltTaskIntegrationTest {
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.sexpr"));
         assertTrue(output.contains("(book"));
-        assertTrue(output.contains("[id \"b1\"]"));
+        assertTrue(output.contains("{id \"b1\"}"));
         assertTrue(output.contains("(title \"XML\")"));
     }
 
@@ -711,8 +711,8 @@ public class XsltTaskIntegrationTest {
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.sexpr"));
         assertTrue(output.contains("(book"));
-        assertTrue(output.contains("[id \"b1\"]"));
-        assertTrue(output.contains("\n  (title \"XML\")"));
+        assertTrue(output.contains("{id \"b1\"}"));
+        assertTrue(output.contains("(title \"XML\")"));
     }
 
     @Test
@@ -826,7 +826,7 @@ public class XsltTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String sexpr = read(new File(testProjectDir.getRoot(), "build/out/sexpr/input.sexpr"));
-        assertTrue(sexpr.contains("[ns \"http://www.w3.org/1998/Math/MathML\"]"));
+        assertTrue(sexpr.contains("{xmlns \"http://www.w3.org/1998/Math/MathML\"}"));
         String xml = read(new File(testProjectDir.getRoot(), "build/out/xml/result.xml"));
         assertTrue(xml.contains("<math xmlns=\"http://www.w3.org/1998/Math/MathML\">"));
         assertTrue(xml.contains("<mfrac>"));
@@ -845,12 +845,11 @@ public class XsltTaskIntegrationTest {
               sexprFormat.set('beautified')
             }
             """);
-        write("src/main/sexpr/input.sexpr", "(book [id \"b1\"] (title \"XML\"))");
+        write("src/main/sexpr/input.sexpr", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xslt/identity.sexpr", """
             (xsl:stylesheet
-              [version "3.0"]
-              [ns "xsl" "http://www.w3.org/1999/XSL/Transform"]
-              (xsl:mode [on-no-match "shallow-copy"]))
+              { version "3.0" xmlns:xsl "http://www.w3.org/1999/XSL/Transform" }
+              (xsl:mode { on-no-match "shallow-copy" }))
             """);
 
         TaskOutcome outcome = GradleRunner.create()
@@ -864,7 +863,7 @@ public class XsltTaskIntegrationTest {
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.sexpr"));
         assertTrue(output.contains("(book"));
-        assertTrue(output.contains("[id \"b1\"]"));
+        assertTrue(output.contains("{id \"b1\"}"));
         assertTrue(output.contains("(title \"XML\")"));
     }
 

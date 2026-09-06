@@ -208,16 +208,16 @@ tasks.register("allSecurityChecks") {
 
 tasks.register<Exec>("verifyXsltSexprSample") {
     group = "verification"
-    description = "Runs smoke verification for xslt-sexpr-identity sample."
+    description = "Runs smoke verification for s-xslt-sexpr-identity sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/xslt-sexpr-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/s-xslt-sexpr-identity", "verifySample")
 }
 
 tasks.register<Exec>("verifyXquerySexprSample") {
     group = "verification"
-    description = "Runs smoke verification for xquery-sexpr-identity sample."
+    description = "Runs smoke verification for s-xquery-sexpr-identity sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/xquery-sexpr-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/s-xquery-sexpr-identity", "verifySample")
 }
 
 tasks.register("verifySexprSample") {
