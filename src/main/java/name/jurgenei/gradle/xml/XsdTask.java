@@ -122,8 +122,13 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
     private List<ValidationIssue> validateWithJaxp(File inputFile) throws Exception {
         List<ValidationIssue> issues = new ArrayList<>();
         SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         javax.xml.validation.Schema schema = factory.newSchema(sourceForValidation(getSchema().get().getAsFile()));
         javax.xml.validation.Validator validator = schema.newValidator();
+        validator.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        validator.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         validator.setErrorHandler(new ErrorHandler() {
             @Override
             public void warning(SAXParseException exception) {

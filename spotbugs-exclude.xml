@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- SAX XMLReader contract requires returning configured handlers and parser state. -->
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader"/>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.json.JsonCanonicalSerializer"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.sexpr.SExpressionSerializer"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Output paths come from Gradle source trees and remain under task-owned output dirs. -->
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.AbstractXmlTransformTask"/>
+        <Method name="outputFileFor"/>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.AbstractXmlValidationTask"/>
+        <Method name="svrlFileFor"/>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.AbstractXmlValidationTask"/>
+        <Method name="junitFileFor"/>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.SchematronTask"/>
+        <Method name="fingerprintMarkerFor"/>
+        <Bug pattern="PATH_TRAVERSAL_IN"/>
+    </Match>
+
+    <!-- Input URLs come from trusted Gradle task configuration, not remote request context. -->
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.SchematronBootstrapTask"/>
+        <Method name="loadSchemaDocument"/>
+        <Bug pattern="URLCONNECTION_SSRF_FD"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader"/>
+        <Method name="openReader"/>
+        <Bug pattern="URLCONNECTION_SSRF_FD"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader"/>
+        <Method name="openReader"/>
+        <Bug pattern="URLCONNECTION_SSRF_FD"/>
+    </Match>
+
+    <!-- XML fragments escaped before append; FindSecBugs cannot infer sanitizer flow here. -->
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.ObservationStylesheetCompiler"/>
+        <Method name="render"/>
+        <Bug pattern="POTENTIAL_XML_INJECTION"/>
+    </Match>
+    <Match>
+        <Class name="name.jurgenei.gradle.xml.SchematronBootstrapTask"/>
+        <Method name="renderSchematron"/>
+        <Bug pattern="POTENTIAL_XML_INJECTION"/>
+    </Match>
+</FindBugsFilter>
+

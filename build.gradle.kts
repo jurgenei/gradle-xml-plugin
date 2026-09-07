@@ -14,13 +14,13 @@ plugins {
     id("maven-publish")
     // id("signing")
     id("com.gradle.plugin-publish") version "2.1.1"
-    id("org.owasp.dependencycheck") version "10.0.3"
+    id("org.owasp.dependencycheck") version "12.1.8"
     id("com.github.spotbugs") version "6.1.0"
     id("org.sonarqube") version "6.0.1.5171"
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.8"
+version = "0.1.9"
 
 repositories {
     mavenCentral()
@@ -116,9 +116,11 @@ extensions.configure<PublishingExtension> {
 
 // OWASP Dependency-Check configuration
 extensions.getByName("dependencyCheck").withGroovyBuilder {
-    setProperty("format", "HTML,JSON,XML")
+    setProperty("formats", listOf("HTML", "JSON", "XML"))
     setProperty("failBuildOnCVSS", 7.0f)
     setProperty("suppressionFile", "dependency-check-suppressions.xml")
+    // Exclude scanner toolchain dependencies from application vulnerability gate.
+    setProperty("skipConfigurations", listOf("spotbugs", "spotbugsPlugins"))
 
     // NVD API key configuration (improves scan speed by 30-50%)
     // Get key from: https://nvd.nist.gov/developers/request-an-api-key
@@ -132,9 +134,13 @@ extensions.getByName("dependencyCheck").withGroovyBuilder {
 }
 
 tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
-    ignoreFailures = true
+    ignoreFailures = providers.gradleProperty("spotbugsIgnoreFailures")
+        .map { it.toBoolean() }
+        .orElse(true)
+        .get()
     effort = com.github.spotbugs.snom.Effort.DEFAULT
     reportLevel = com.github.spotbugs.snom.Confidence.MEDIUM
+    excludeFilter.set(file("spotbugs-exclude.xml"))
     reports.create("html").required.set(true)
     reports.create("xml").required.set(false)
 }
@@ -150,9 +156,16 @@ extensions.getByName("sonar").withGroovyBuilder {
 }
 
 dependencies {
+    constraints {
+        add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.3")
+        add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.4.3")
+        add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
+    }
+
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
-    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.17.2")
+    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.1")
+    add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
 
     add("testImplementation", gradleTestKit())
     add("testImplementation", "junit:junit:4.13.2")
@@ -203,7 +216,11 @@ tasks.named("check") {
 tasks.register("allSecurityChecks") {
     group = "verification"
     description = "Run all security and quality checks (Dependency-Check, SpotBugs, SonarQube)"
-    dependsOn("check", "dependencyCheck", "spotbugsMain")
+    dependsOn("check", "spotbugsMain")
+    val dependencyCheckTask = tasks.findByName("dependencyCheckAnalyze") ?: tasks.findByName("dependencyCheck")
+    if (dependencyCheckTask != null) {
+        dependsOn(dependencyCheckTask)
+    }
 }
 
 tasks.register<Exec>("verifyXsltSexprSample") {
