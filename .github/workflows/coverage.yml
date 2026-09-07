@@ -51,7 +51,7 @@ jobs:
           echo "- Changed files: ${{ steps.jacoco.outputs.coverage-changed-files }}%" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage HTML report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-html-report
           path: build/reports/jacoco/test/html/
