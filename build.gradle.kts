@@ -140,6 +140,7 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
         .get()
     effort = com.github.spotbugs.snom.Effort.DEFAULT
     reportLevel = com.github.spotbugs.snom.Confidence.MEDIUM
+    excludeFilter.set(file("spotbugs-exclude.xml"))
     reports.create("html").required.set(true)
     reports.create("xml").required.set(false)
 }
