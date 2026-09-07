@@ -30,6 +30,8 @@ jobs:
           cache: gradle
 
       - name: Run OWASP Dependency-Check
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./gradlew dependencyCheckAnalyze --no-daemon --no-configuration-cache --stacktrace
 
       - name: Upload Dependency-Check HTML report
