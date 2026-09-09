@@ -1,5 +1,6 @@
 package name.jurgenei.gradle.xml.sexpr;
 
+import name.jurgenei.xml.sexpr.SExpressionXmlReader;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xml.sax.ContentHandler;

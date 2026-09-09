@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.9"
+version = "0.1.10"
 
 repositories {
     mavenCentral()
@@ -162,6 +162,7 @@ dependencies {
         add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
     }
 
+    add("implementation", "name.jurgenei:xml-sax-sexpr:0.1.0")
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.1")
