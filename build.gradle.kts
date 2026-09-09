@@ -16,7 +16,7 @@ plugins {
     id("com.gradle.plugin-publish") version "2.1.1"
     id("org.owasp.dependencycheck") version "12.1.8"
     id("com.github.spotbugs") version "6.1.0"
-    id("org.sonarqube") version "6.0.1.5171"
+    id("org.sonarqube") version "7.5.0.8588"
 }
 
 group = "name.jurgenei.gradle"
