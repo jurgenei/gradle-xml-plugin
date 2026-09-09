@@ -164,6 +164,8 @@ dependencies {
 
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
+    add("implementation", "net.sf.saxon:Saxon-HE:13.0")
+    add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.2")
     add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
 
