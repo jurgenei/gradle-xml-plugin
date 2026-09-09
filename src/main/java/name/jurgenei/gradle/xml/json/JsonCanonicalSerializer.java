@@ -12,7 +12,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import name.jurgenei.gradle.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.xml.sexpr.SExpressionSerializer;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
