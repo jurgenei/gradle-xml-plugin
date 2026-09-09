@@ -165,7 +165,7 @@ dependencies {
     add("implementation", "name.jurgenei:xml-sax-sexpr:0.1.0")
     add("implementation", "net.sf.saxon:Saxon-HE:12.5")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.10.3")
-    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.1")
+    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.2")
     add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
 
     add("testImplementation", gradleTestKit())
