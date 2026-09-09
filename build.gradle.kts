@@ -157,7 +157,7 @@ extensions.getByName("sonar").withGroovyBuilder {
 
 dependencies {
     constraints {
-        add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.3")
+        add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.4")
         add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.4.3")
         add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.3")
     }
