@@ -13,7 +13,7 @@ plugins {
     id("jacoco")
     id("maven-publish")
     // id("signing")
-    id("com.gradle.plugin-publish") version "2.1.1"
+    id("com.gradle.plugin-publish") version "2.2.1"
     id("org.owasp.dependencycheck") version "13.0.0"
     id("com.github.spotbugs") version "6.5.11"
     id("org.sonarqube") version "7.5.0.8588"
