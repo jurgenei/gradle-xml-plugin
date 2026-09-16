@@ -51,7 +51,7 @@ public class SchematronTaskIntegrationTest {
             <root><value>BAD</value></root>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -103,7 +103,7 @@ public class SchematronTaskIntegrationTest {
             <root><value>BAD</value></root>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -148,7 +148,7 @@ public class SchematronTaskIntegrationTest {
             <root><value>BAD</value></root>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -160,7 +160,7 @@ public class SchematronTaskIntegrationTest {
 
         Thread.sleep(1200L);
 
-        TaskOutcome secondOutcome = GradleRunner.create()
+        TaskOutcome secondOutcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -188,7 +188,7 @@ public class SchematronTaskIntegrationTest {
 
         Thread.sleep(1200L);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -232,7 +232,7 @@ public class SchematronTaskIntegrationTest {
             <root><value>BAD</value></root>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -272,13 +272,13 @@ public class SchematronTaskIntegrationTest {
             <root><value>BAD</value></root>
             """);
 
-        BuildResult firstBuild = GradleRunner.create()
+        BuildResult firstBuild = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("schematronTask", "--configuration-cache", "--warning-mode=fail")
             .build();
 
-        BuildResult secondBuild = GradleRunner.create()
+        BuildResult secondBuild = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("schematronTask", "--configuration-cache", "--warning-mode=fail")
@@ -325,7 +325,7 @@ public class SchematronTaskIntegrationTest {
               (value "BAD"))
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -365,7 +365,7 @@ public class SchematronTaskIntegrationTest {
         String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
         write("src/main/schematron/transpile.xsl", transpilerWithLookupDoc(lookupUri));
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runSchematron")
@@ -437,6 +437,10 @@ public class SchematronTaskIntegrationTest {
             throw new IOException("Could not create directory: " + parent);
         }
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+    }
+
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
     }
 
     private String read(File file) throws IOException {

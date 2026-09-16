@@ -80,7 +80,7 @@ public class SchematronBootstrapTaskIntegrationTest {
             </Document>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("bootstrapCanonicalSchematron", "bootstrapFromLocalXsd", "validateCanonicalSchematron")
             .withPluginClasspath()
@@ -117,7 +117,7 @@ public class SchematronBootstrapTaskIntegrationTest {
             """);
         write("src/main/schematron/rules.sch", "<sentinel/>\n");
 
-        BuildResult result = GradleRunner.create()
+        BuildResult result = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("bootstrapSchematron")
             .withPluginClasspath()
@@ -138,8 +138,11 @@ public class SchematronBootstrapTaskIntegrationTest {
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
+    }
+
     private String read(File file) throws IOException {
         return Files.readString(file.toPath(), StandardCharsets.UTF_8);
     }
 }
-

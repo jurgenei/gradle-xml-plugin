@@ -55,7 +55,7 @@ public class SchematronObservationCompileTaskIntegrationTest {
             </sch:schema>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("compileObservation")
             .withPluginClasspath()
@@ -95,7 +95,7 @@ public class SchematronObservationCompileTaskIntegrationTest {
             </sch:schema>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("compileObservation")
             .withPluginClasspath()
@@ -118,8 +118,11 @@ public class SchematronObservationCompileTaskIntegrationTest {
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
+    }
+
     private String read(File file) throws IOException {
         return Files.readString(file.toPath(), StandardCharsets.UTF_8);
     }
 }
-

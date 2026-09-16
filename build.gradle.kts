@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.10"
+version = "0.1.11"
 
 repositories {
     mavenCentral()
@@ -172,8 +172,20 @@ dependencies {
     add("testImplementation", "junit:junit:4.13.2")
 }
 
+val testkitJacocoExec = layout.buildDirectory.file("jacoco/testkit.exec")
+val testkitJacocoAgent = layout.buildDirectory.file("jacoco/jacocoagent.jar")
+val unpackTestkitJacocoAgent = tasks.register<org.gradle.api.tasks.Copy>("unpackTestkitJacocoAgent") {
+    from(zipTree(configurations.getByName("jacocoAgent").singleFile)) {
+        include("jacocoagent.jar")
+    }
+    into(testkitJacocoAgent.get().asFile.parentFile)
+}
+
 tasks.named<Test>("test") {
     useJUnit()
+    dependsOn(unpackTestkitJacocoAgent)
+    systemProperty("test.jacoco.agent.path", testkitJacocoAgent.get().asFile.absolutePath)
+    systemProperty("test.jacoco.destfile", testkitJacocoExec.get().asFile.absolutePath)
     finalizedBy(tasks.named("jacocoTestReport"))
 }
 
@@ -183,6 +195,9 @@ extensions.configure<JacocoPluginExtension> {
 
 tasks.named<JacocoReport>("jacocoTestReport") {
     dependsOn(tasks.named("test"))
+    executionData(fileTree(layout.buildDirectory) {
+        include("jacoco/*.exec")
+    })
     reports {
         xml.required.set(true)
         html.required.set(true)
@@ -243,4 +258,3 @@ tasks.register("verifySexprSample") {
     description = "Runs S-expression sample smoke tests."
     dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample")
 }
-

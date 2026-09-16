@@ -48,7 +48,7 @@ public class XQueryTaskIntegrationTest {
             <result>{ $prefix }{ /root/value/text() }</result>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -88,7 +88,7 @@ public class XQueryTaskIntegrationTest {
             map { 'value': data(/root/value) }
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -122,7 +122,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book><title>XML</title></book>");
         write("src/main/xquery/main.xq", ".");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -157,7 +157,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book><title>XML</title></book>");
         write("src/main/xquery/main.xq", ".");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -199,7 +199,7 @@ public class XQueryTaskIntegrationTest {
             concat('VALUE=', data(/root/value))
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -238,7 +238,7 @@ public class XQueryTaskIntegrationTest {
             <result>{ /root/value/text() }</result>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -288,7 +288,7 @@ public class XQueryTaskIntegrationTest {
             <result>{ /root/value/text() }</result>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -329,7 +329,7 @@ public class XQueryTaskIntegrationTest {
             <result>{ /root/value/text() }</result>
             """);
 
-        BuildResult firstRun = GradleRunner.create()
+        BuildResult firstRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery", "--rerun-tasks")
@@ -342,7 +342,7 @@ public class XQueryTaskIntegrationTest {
         long futureTimestamp = System.currentTimeMillis() + 60_000;
         assertTrue(output.setLastModified(futureTimestamp));
 
-        BuildResult secondRun = GradleRunner.create()
+        BuildResult secondRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery", "--rerun-tasks")
@@ -377,7 +377,7 @@ public class XQueryTaskIntegrationTest {
             <result>{ $prefix }{ /root/value/text() }</result>
             """);
 
-        BuildResult firstRun = GradleRunner.create()
+        BuildResult firstRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery", "--rerun-tasks")
@@ -401,7 +401,7 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        BuildResult secondRun = GradleRunner.create()
+        BuildResult secondRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery", "--rerun-tasks")
@@ -425,7 +425,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/sexpr/input.sexpr", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -456,7 +456,7 @@ public class XQueryTaskIntegrationTest {
             <result>{ doc("%s")/lookup/value/text() }</result>
             """.formatted(lookupUri));
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -490,7 +490,7 @@ public class XQueryTaskIntegrationTest {
             return <result count="{count($docs)}">{ for $d in $docs return <name>{$d/name/text()}</name> }</result>
             """.formatted(collectionUri));
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -520,7 +520,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
         write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -551,7 +551,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
         write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -597,7 +597,7 @@ public class XQueryTaskIntegrationTest {
             """);
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -627,7 +627,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
         write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXQuery")
@@ -667,7 +667,7 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
         write("src/main/xquery/main.xq", ".");
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("jsonToXml")
@@ -688,6 +688,10 @@ public class XQueryTaskIntegrationTest {
             throw new IOException("Could not create directory: " + parent);
         }
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+    }
+
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
     }
 
     private String read(File file) throws IOException {

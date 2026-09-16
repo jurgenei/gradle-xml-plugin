@@ -68,7 +68,7 @@ public class SchematronExtractTaskIntegrationTest {
             </Document>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("extractObs")
             .withPluginClasspath()
@@ -135,7 +135,7 @@ public class SchematronExtractTaskIntegrationTest {
             </Document>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("extractObs")
             .withPluginClasspath()
@@ -174,7 +174,7 @@ public class SchematronExtractTaskIntegrationTest {
         String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
         write("src/main/xslt/extract.xsl", extractionStyleWithLookupDoc(lookupUri));
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("extractObs")
             .withPluginClasspath()
@@ -211,6 +211,10 @@ public class SchematronExtractTaskIntegrationTest {
             throw new IOException("Could not create directory: " + parent);
         }
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+    }
+
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
     }
 
     private String read(File file) throws IOException {
