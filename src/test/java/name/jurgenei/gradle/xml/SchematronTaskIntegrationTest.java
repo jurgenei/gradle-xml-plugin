@@ -340,6 +340,42 @@ public class SchematronTaskIntegrationTest {
         assertTrue(read(junit).contains("<failure"));
     }
 
+    @Test
+    public void resolvesSexprViaDocFunctionInCompiledSchematronStylesheet() throws IOException {
+        write("settings.gradle", """
+            rootProject.name = 'schematron-doc-sexpr-test'
+            """);
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+              schema 'src/main/schematron/rules.sch'
+              transpilerStylesheet 'src/main/schematron/transpile.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/schematron'))
+              reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL)
+              failOnError.set(false)
+            }
+            """);
+
+        write("src/main/schematron/rules.sch", """
+            <schema xmlns='http://purl.oclc.org/dsdl/schematron'/>
+            """);
+        write("src/main/xml/input.xml", "<root><value>BAD</value></root>");
+        write("src/main/sexpr/lookup.sexpr", "(lookup (allowed \"yes\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/schematron/transpile.xsl", transpilerWithLookupDoc(lookupUri));
+
+        GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runSchematron")
+            .build();
+
+        File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/input.svrl.xml");
+        assertTrue(svrl.exists());
+        assertTrue(!read(svrl).contains("failed-assert"));
+    }
+
     private static String transpiler() {
         return """
             <xsl:stylesheet version='1.0'
@@ -367,6 +403,33 @@ public class SchematronTaskIntegrationTest {
             """;
     }
 
+    private static String transpilerWithLookupDoc(String lookupUri) {
+        return """
+            <xsl:stylesheet version='1.0'
+                xmlns:xsl='http://www.w3.org/1999/XSL/Transform'
+                xmlns:axsl='http://www.w3.org/1999/XSL/TransformAlias'
+                xmlns:svrl='http://purl.oclc.org/dsdl/svrl'>
+              <xsl:output method='xml' indent='yes'/>
+              <xsl:namespace-alias stylesheet-prefix='axsl' result-prefix='xsl'/>
+
+              <xsl:template match='/'>
+                <axsl:stylesheet version='1.0' xmlns:svrl='http://purl.oclc.org/dsdl/svrl'>
+                  <axsl:output method='xml' indent='yes'/>
+                  <axsl:template match='/'>
+                    <svrl:schematron-output>
+                      <axsl:if test="not(doc('%s')/lookup/allowed='yes')">
+                        <svrl:failed-assert test="doc('%s')/lookup/allowed='yes'" location='/'>
+                          <svrl:text>Lookup must allow validation</svrl:text>
+                        </svrl:failed-assert>
+                      </axsl:if>
+                    </svrl:schematron-output>
+                  </axsl:template>
+                </axsl:stylesheet>
+              </xsl:template>
+            </xsl:stylesheet>
+            """.formatted(lookupUri, lookupUri);
+    }
+
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
         File parent = file.getParentFile();
@@ -380,4 +443,3 @@ public class SchematronTaskIntegrationTest {
         return Files.readString(file.toPath(), StandardCharsets.UTF_8);
     }
 }
-

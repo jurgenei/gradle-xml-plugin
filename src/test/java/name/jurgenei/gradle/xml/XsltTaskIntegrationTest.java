@@ -645,6 +645,87 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
+    public void resolvesSexprViaDocFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-doc-sexpr-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+            }
+            """);
+        write("src/main/xml/input.xml", "<root/>");
+        write("src/main/sexpr/lookup.sexpr", "(lookup (value \"from-sexpr\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <result><xsl:value-of select="doc('%s')/lookup/value"/></result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """.formatted(lookupUri));
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
+        assertTrue(output.contains("<result>from-sexpr</result>"));
+    }
+
+    @Test
+    public void resolvesSexprViaCollectionFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-collection-sexpr-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+            }
+            """);
+        write("src/main/xml/input.xml", "<root/>");
+        write("src/main/sexpr/a.sexpr", "(item (name \"A\"))");
+        write("src/main/sexpr/b.sexpr", "(item (name \"B\"))");
+        String collectionUri = new File(testProjectDir.getRoot(), "src/main/sexpr/").toURI().toString()
+            + "?select=*.sexpr;recurse=no";
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <xsl:variable name='items' select="collection('%s')/item"/>
+                <result count="{count($items)}">
+                  <xsl:for-each select="$items">
+                    <name><xsl:value-of select="name"/></name>
+                  </xsl:for-each>
+                </result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """.formatted(collectionUri));
+
+        TaskOutcome outcome = GradleRunner.create()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
+        assertTrue(output.contains("count=\"2\""));
+        assertTrue(output.contains("<name>A</name>"));
+        assertTrue(output.contains("<name>B</name>"));
+    }
+
+    @Test
     public void transformsXmlToSexprOutput() throws IOException {
         write("settings.gradle", "rootProject.name = 'xslt-sexpr-output-test'");
         write("build.gradle", """

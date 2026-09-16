@@ -72,6 +72,7 @@ S-expression runtime ships inside `gradle-xml-plugin` artifact.
 - Input `.sexpr` is parsed as SAX source.
 - XSLT stylesheet may also be `.sexpr` (for `XsltTask.style(...)`).
 - Output `.sexpr` is serialized from XML result events through SAX/JAXP pipeline.
+- Saxon URI dereferencing routes `.sexpr` resources through the same SAX parser path for `doc()` and `collection()` calls.
 - `sexprFormat` controls output style: `compact` (default) or `beautified`.
 
 S-expression format details:
