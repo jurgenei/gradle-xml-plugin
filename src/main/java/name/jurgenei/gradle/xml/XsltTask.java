@@ -9,6 +9,7 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
+import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
 import name.jurgenei.xml.sexpr.SExpressionSerializer;
 import name.jurgenei.xml.sexpr.SExpressionXmlReader;
 import net.sf.saxon.s9api.Destination;
@@ -57,7 +58,9 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
     @Override
     protected void transform(File inputFile, File outputFile, Map<String, String> params) throws SaxonApiException {
         Processor processor = new Processor(false);
+        SaxonSexprResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
+        SaxonSexprResolvers.configure(compiler);
 
         XsltExecutable executable = compiler.compile(stylesheetSource());
 
@@ -153,5 +156,4 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
         getStylesheet().set(file);
     }
 }
-
 

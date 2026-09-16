@@ -68,7 +68,7 @@ public class SchematronExtractTaskIntegrationTest {
             </Document>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("extractObs")
             .withPluginClasspath()
@@ -135,7 +135,7 @@ public class SchematronExtractTaskIntegrationTest {
             </Document>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withArguments("extractObs")
             .withPluginClasspath()
@@ -144,6 +144,64 @@ public class SchematronExtractTaskIntegrationTest {
         File knowledge = new File(testProjectDir.getRoot(), "build/out/observations/canonical/observations/knowledge.xml");
         assertTrue(knowledge.exists());
         assertTrue(read(knowledge).contains("obs:Observation"));
+    }
+
+    @Test
+    public void resolvesSexprViaDocFunctionInPrecompiledExtractionStyle() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-extract-doc-sexpr'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractObs', name.jurgenei.gradle.xml.SchematronExtractTask) {
+              schema 'src/main/schematron/observations.sch'
+              style 'src/main/xslt/extract.xsl'
+              source 'src/main/xml/canonical.xml'
+              outputDir.set(layout.buildDirectory.dir('out/observations'))
+              groupOutput 'default', 'observations/default.xml'
+              failOnError.set(true)
+            }
+            """);
+
+        write("src/main/schematron/observations.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>
+            """);
+        write("src/main/xml/canonical.xml", """
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Metadata><DocumentId>sample</DocumentId></Metadata>
+            </Document>
+            """);
+        write("src/main/sexpr/lookup.sexpr", "(lookup (value \"doc-sexpr-ok\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/xslt/extract.xsl", extractionStyleWithLookupDoc(lookupUri));
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractObs")
+            .withPluginClasspath()
+            .build();
+
+        File output = new File(testProjectDir.getRoot(), "build/out/observations/canonical/observations/default.xml");
+        assertTrue(output.exists());
+        assertTrue(read(output).contains("doc-sexpr-ok"));
+    }
+
+    private static String extractionStyleWithLookupDoc(String lookupUri) {
+        return """
+            <xsl:stylesheet version='3.0'
+                xmlns:xsl='http://www.w3.org/1999/XSL/Transform'
+                xmlns:obs='http://jurgenei.name/observation'>
+              <xsl:param name='source-document'/>
+              <xsl:param name='output-default' as='xs:string' xmlns:xs='http://www.w3.org/2001/XMLSchema'/>
+
+              <xsl:template match='/'>
+                <xsl:result-document href='{$output-default}' method='xml' indent='yes'>
+                  <obs:Observations>
+                    <obs:Lookup><xsl:value-of select="doc('%s')/lookup/value"/></obs:Lookup>
+                  </obs:Observations>
+                </xsl:result-document>
+              </xsl:template>
+            </xsl:stylesheet>
+            """.formatted(lookupUri);
     }
 
     private void write(String relativePath, String content) throws IOException {
@@ -155,8 +213,11 @@ public class SchematronExtractTaskIntegrationTest {
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
+    }
+
     private String read(File file) throws IOException {
         return Files.readString(file.toPath(), StandardCharsets.UTF_8);
     }
 }
-

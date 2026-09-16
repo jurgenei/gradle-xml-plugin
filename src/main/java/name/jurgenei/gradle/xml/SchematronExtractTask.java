@@ -1,5 +1,6 @@
 package name.jurgenei.gradle.xml;
 
+import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.Serializer;
@@ -210,7 +211,9 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         Files.createDirectories(base);
 
         Processor processor = new Processor(false);
+        SaxonSexprResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
+        SaxonSexprResolvers.configure(compiler);
         XsltExecutable executable = compiler.compile(new StreamSource(runtimeStylesheet.stylesheet().toFile()));
         XsltTransformer transformer = executable.load();
         transformer.setSource(new StreamSource(inputFile));
@@ -260,5 +263,4 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
     private record RuntimeStylesheet(Path stylesheet, List<String> groups) {
     }
 }
-
 

@@ -53,7 +53,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -98,7 +98,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -137,7 +137,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -177,7 +177,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -224,7 +224,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -268,7 +268,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -323,7 +323,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -369,7 +369,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        BuildResult firstRun = GradleRunner.create()
+        BuildResult firstRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt", "--rerun-tasks")
@@ -382,7 +382,7 @@ public class XsltTaskIntegrationTest {
         long futureTimestamp = System.currentTimeMillis() + 60_000;
         assertTrue(output.setLastModified(futureTimestamp));
 
-        BuildResult secondRun = GradleRunner.create()
+        BuildResult secondRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt", "--rerun-tasks")
@@ -422,7 +422,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        BuildResult firstRun = GradleRunner.create()
+        BuildResult firstRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt", "--rerun-tasks")
@@ -446,7 +446,7 @@ public class XsltTaskIntegrationTest {
             }
             """);
 
-        BuildResult secondRun = GradleRunner.create()
+        BuildResult secondRun = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt", "--rerun-tasks")
@@ -533,7 +533,7 @@ public class XsltTaskIntegrationTest {
             """);
 
         // Execute the gradle-xml-plugin task
-        BuildResult result = GradleRunner.create()
+        BuildResult result = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("buildSchemaIndex")
@@ -599,7 +599,7 @@ public class XsltTaskIntegrationTest {
             """);
 
         // Process all files
-        BuildResult result = GradleRunner.create()
+        BuildResult result = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("indexSchemas", "--rerun-tasks")
@@ -630,7 +630,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -642,6 +642,87 @@ public class XsltTaskIntegrationTest {
         String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
         assertTrue(output.contains("<book id=\"b1\">"));
         assertTrue(output.contains("<title>XML</title>"));
+    }
+
+    @Test
+    public void resolvesSexprViaDocFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-doc-sexpr-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+            }
+            """);
+        write("src/main/xml/input.xml", "<root/>");
+        write("src/main/sexpr/lookup.sexpr", "(lookup (value \"from-sexpr\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <result><xsl:value-of select="doc('%s')/lookup/value"/></result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """.formatted(lookupUri));
+
+        TaskOutcome outcome = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
+        assertTrue(output.contains("<result>from-sexpr</result>"));
+    }
+
+    @Test
+    public void resolvesSexprViaCollectionFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-collection-sexpr-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/main.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+            }
+            """);
+        write("src/main/xml/input.xml", "<root/>");
+        write("src/main/sexpr/a.sexpr", "(item (name \"A\"))");
+        write("src/main/sexpr/b.sexpr", "(item (name \"B\"))");
+        String collectionUri = new File(testProjectDir.getRoot(), "src/main/sexpr/").toURI().toString()
+            + "?select=*.sexpr;recurse=no";
+        write("src/main/xslt/main.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:template match='/'>
+                <xsl:variable name='items' select="collection('%s')/item"/>
+                <result count="{count($items)}">
+                  <xsl:for-each select="$items">
+                    <name><xsl:value-of select="name"/></name>
+                  </xsl:for-each>
+                </result>
+              </xsl:template>
+            </xsl:stylesheet>
+            """.formatted(collectionUri));
+
+        TaskOutcome outcome = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
+        assertTrue(output.contains("count=\"2\""));
+        assertTrue(output.contains("<name>A</name>"));
+        assertTrue(output.contains("<name>B</name>"));
     }
 
     @Test
@@ -664,7 +745,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -700,7 +781,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -736,7 +817,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        BuildResult result = GradleRunner.create()
+        BuildResult result = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -771,7 +852,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("sexprToXml")
@@ -816,7 +897,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("sexprToXml")
@@ -852,7 +933,7 @@ public class XsltTaskIntegrationTest {
               (xsl:mode { on-no-match "shallow-copy" }))
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -903,7 +984,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -939,7 +1020,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXslt")
@@ -985,7 +1066,7 @@ public class XsltTaskIntegrationTest {
             </xsl:stylesheet>
             """);
 
-        TaskOutcome outcome = GradleRunner.create()
+        TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("jsonToXml")
@@ -1007,6 +1088,10 @@ public class XsltTaskIntegrationTest {
             throw new IOException("Could not create directory: " + parent);
         }
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
+    }
+
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
     }
 
     private String read(File file) throws IOException {

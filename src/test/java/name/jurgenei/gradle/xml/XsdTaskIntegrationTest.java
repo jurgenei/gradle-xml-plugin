@@ -55,7 +55,7 @@ public class XsdTaskIntegrationTest {
             <root><wrong>bad</wrong></root>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXsd")
@@ -106,7 +106,7 @@ public class XsdTaskIntegrationTest {
             <root><value>ok</value></root>
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXsd")
@@ -150,7 +150,7 @@ public class XsdTaskIntegrationTest {
               (wrong "bad"))
             """);
 
-        GradleRunner.create()
+        newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
             .withArguments("runXsd")
@@ -174,8 +174,11 @@ public class XsdTaskIntegrationTest {
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 
+    private GradleRunner newGradleRunner() {
+        return TestKitCoverageSupport.newGradleRunner(testProjectDir.getRoot());
+    }
+
     private String read(File file) throws IOException {
         return Files.readString(file.toPath(), StandardCharsets.UTF_8);
     }
 }
-
