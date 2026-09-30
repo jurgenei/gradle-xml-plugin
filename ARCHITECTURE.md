@@ -81,7 +81,7 @@ click node_svrl_support "https://github.com/jurgenei/gradle-xml-plugin/blob/main
 click node_schematron_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronTask.java"
 click node_xsd_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XsdTask.java"
 click node_bootstrap_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronBootstrapTask.java"
-click node_observation_compile "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronObservationCompileTask.java"
+click node_observation_compile "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronSelCompileTask.java"
 click node_observation_extract "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronExtractTask.java"
 
 classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a

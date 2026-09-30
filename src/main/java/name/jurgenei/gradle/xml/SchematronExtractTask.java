@@ -192,14 +192,14 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
 
     private RuntimeStylesheet resolveRuntimeStylesheet() throws Exception {
         Document schemaDoc = parseSchema(getSchema().get().getAsFile());
-        List<ObservationRuleDescriptor> rules = ObservationRuleCollector.collect(schemaDoc);
+        List<SelRuleDescriptor> rules = SelRuleCollector.collect(schemaDoc);
         List<String> groups = collectGroups(rules);
 
         if (getStyle().isPresent()) {
             return new RuntimeStylesheet(getStyle().get().getAsFile().toPath(), groups);
         }
 
-        String stylesheetXml = ObservationStylesheetCompiler.render(rules, getGroupOutputs().getOrElse(Map.of()));
+        String stylesheetXml = SelStylesheetCompiler.render(rules, getGroupOutputs().getOrElse(Map.of()));
         Path temp = Files.createTempFile("observation-compiled-", ".xsl");
         Files.writeString(temp, stylesheetXml, StandardCharsets.UTF_8);
         temp.toFile().deleteOnExit();
@@ -237,9 +237,9 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         transformer.transform();
     }
 
-    private List<String> collectGroups(List<ObservationRuleDescriptor> rules) {
+    private List<String> collectGroups(List<SelRuleDescriptor> rules) {
         LinkedHashSet<String> groups = new LinkedHashSet<>();
-        for (ObservationRuleDescriptor rule : rules) {
+        for (SelRuleDescriptor rule : rules) {
             groups.add(rule.group());
         }
         if (groups.isEmpty()) {

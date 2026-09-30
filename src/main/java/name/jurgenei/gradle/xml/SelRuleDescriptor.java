@@ -11,7 +11,7 @@ package name.jurgenei.gradle.xml;
  * @param contextExpr optional XPath selecting contextual payload.
  * @param sourceElement Schematron element type (`report` or `assert`).
  */
-record ObservationRuleDescriptor(
+record SelRuleDescriptor(
     String context,
     String test,
     String type,

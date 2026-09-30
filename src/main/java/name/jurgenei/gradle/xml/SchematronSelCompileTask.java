@@ -26,7 +26,7 @@ import java.util.Map;
  * Compiles annotation-bearing Schematron rules into an executable phase-2 observation stylesheet.
  */
 @DisableCachingByDefault(because = "Compiler output depends on schema content and extraction annotation metadata")
-public abstract class SchematronObservationCompileTask extends DefaultTask {
+public abstract class SchematronSelCompileTask extends DefaultTask {
 
     /**
      * Input Schematron schema containing observation annotations.
@@ -57,7 +57,7 @@ public abstract class SchematronObservationCompileTask extends DefaultTask {
      * Creates compile task.
      */
     @Inject
-    public SchematronObservationCompileTask() {
+    public SchematronSelCompileTask() {
     }
 
     /**
@@ -99,9 +99,9 @@ public abstract class SchematronObservationCompileTask extends DefaultTask {
     public void compile() {
         try {
             Document document = parseSchema(getSchema().get().getAsFile());
-            List<ObservationRuleDescriptor> rules = ObservationRuleCollector.collect(document);
+            List<SelRuleDescriptor> rules = SelRuleCollector.collect(document);
             Map<String, String> groupOutputs = getGroupOutputs().getOrElse(Map.of());
-            String stylesheet = ObservationStylesheetCompiler.render(rules, groupOutputs);
+            String stylesheet = SelStylesheetCompiler.render(rules, groupOutputs);
 
             File outputFile = getOutputStylesheet().get().getAsFile();
             File parent = outputFile.getParentFile();

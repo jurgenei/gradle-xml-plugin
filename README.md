@@ -449,11 +449,11 @@ tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.Schematro
 
 ## Observation Compiler Skeleton (Phase 2)
 
-`SchematronObservationCompileTask` compiles `obs:*` rule metadata into an extraction stylesheet skeleton
+`SchematronSelCompileTask` compiles `obs:*` rule metadata into an extraction stylesheet skeleton
 with grouped `xsl:result-document` outputs.
 
 ```groovy
-tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
   schema 'src/main/schematron/observations.sch'
   output 'build/generated/observation/observations.xsl'
   groupOutput 'knowledge', 'observations/knowledge.xml'
@@ -473,7 +473,7 @@ It can either:
 ```groovy
 tasks.register('extractObservations', name.jurgenei.gradle.xml.SchematronExtractTask) {
   schema 'src/main/schematron/observations.sch'
-  // Optional if precompiled by SchematronObservationCompileTask:
+  // Optional if precompiled by SchematronSelCompileTask:
   // style 'build/generated/observation/observations.xsl'
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/observations'))
@@ -593,7 +593,7 @@ JUnit 4 with Gradle TestKit for functional integration testing:
 ./gradlew test --tests '*SchematronTaskIntegrationTest'
 ./gradlew test --tests '*XsdTaskIntegrationTest'
 ./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
-./gradlew test --tests '*SchematronObservationCompileTaskIntegrationTest'
+./gradlew test --tests '*SchematronSelCompileTaskIntegrationTest'
 ./gradlew test --tests '*SchematronExtractTaskIntegrationTest'
 ```
 

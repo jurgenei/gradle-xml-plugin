@@ -99,7 +99,7 @@ public class SchematronExtractTaskIntegrationTest {
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
 
-            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
               schema 'src/main/schematron/observations.sch'
               output 'build/generated/observation/observations.xsl'
               groupOutput 'knowledge', 'observations/knowledge.xml'

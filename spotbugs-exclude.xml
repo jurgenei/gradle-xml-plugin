@@ -59,7 +59,7 @@
 
     <!-- XML fragments escaped before append; FindSecBugs cannot infer sanitizer flow here. -->
     <Match>
-        <Class name="name.jurgenei.gradle.xml.ObservationStylesheetCompiler"/>
+        <Class name="name.jurgenei.gradle.xml.SelStylesheetCompiler"/>
         <Method name="render"/>
         <Bug pattern="POTENTIAL_XML_INJECTION"/>
     </Match>

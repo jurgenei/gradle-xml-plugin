@@ -7,14 +7,14 @@ import java.util.Map;
 /**
  * Renders an executable phase-2 extraction stylesheet from normalized observation rules.
  */
-final class ObservationStylesheetCompiler {
-    private ObservationStylesheetCompiler() {
+final class SelStylesheetCompiler {
+    private SelStylesheetCompiler() {
     }
 
-    static String render(List<ObservationRuleDescriptor> rules, Map<String, String> configuredGroupOutputs) {
+    static String render(List<SelRuleDescriptor> rules, Map<String, String> configuredGroupOutputs) {
         Map<String, String> groups = new LinkedHashMap<>();
         groups.putAll(configuredGroupOutputs);
-        for (ObservationRuleDescriptor rule : rules) {
+        for (SelRuleDescriptor rule : rules) {
             groups.putIfAbsent(rule.group(), "observations/" + rule.group() + ".xml");
         }
         if (groups.isEmpty()) {
@@ -62,7 +62,7 @@ final class ObservationStylesheetCompiler {
                 .append(escape(group))
                 .append("\">\n");
             for (int i = 0; i < rules.size(); i++) {
-                ObservationRuleDescriptor rule = rules.get(i);
+                SelRuleDescriptor rule = rules.get(i);
                 if (!group.equals(rule.group())) {
                     continue;
                 }
@@ -76,7 +76,7 @@ final class ObservationStylesheetCompiler {
         xml.append("  </xsl:template>\n");
 
         for (int i = 0; i < rules.size(); i++) {
-            ObservationRuleDescriptor rule = rules.get(i);
+            SelRuleDescriptor rule = rules.get(i);
             String condition = "assert".equals(rule.sourceElement())
                 ? "not(" + rule.test() + ")"
                 : "(" + rule.test() + ")";

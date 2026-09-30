@@ -10,22 +10,22 @@ import java.util.List;
 /**
  * Extracts `obs:*` annotated rule metadata from a Schematron document.
  */
-final class ObservationRuleCollector {
+final class SelRuleCollector {
     static final String SCH_NS = "http://purl.oclc.org/dsdl/schematron";
     static final String OBS_NS = "http://jurgenei.name/observation";
 
-    private ObservationRuleCollector() {
+    private SelRuleCollector() {
     }
 
-    static List<ObservationRuleDescriptor> collect(Document schematron) {
-        List<ObservationRuleDescriptor> descriptors = new ArrayList<>();
+    static List<SelRuleDescriptor> collect(Document schematron) {
+        List<SelRuleDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(collectFromElements(schematron, "report"));
         descriptors.addAll(collectFromElements(schematron, "assert"));
         return descriptors;
     }
 
-    private static List<ObservationRuleDescriptor> collectFromElements(Document schematron, String localName) {
-        List<ObservationRuleDescriptor> descriptors = new ArrayList<>();
+    private static List<SelRuleDescriptor> collectFromElements(Document schematron, String localName) {
+        List<SelRuleDescriptor> descriptors = new ArrayList<>();
         NodeList reports = schematron.getElementsByTagNameNS(SCH_NS, localName);
         for (int i = 0; i < reports.getLength(); i++) {
             Element ruleNode = (Element) reports.item(i);
@@ -40,7 +40,7 @@ final class ObservationRuleCollector {
             String copy = nonBlank(ruleNode.getAttributeNS(OBS_NS, "copy"), ".");
             String contextExpr = ruleNode.getAttributeNS(OBS_NS, "context");
 
-            descriptors.add(new ObservationRuleDescriptor(
+            descriptors.add(new SelRuleDescriptor(
                 context,
                 test,
                 type,

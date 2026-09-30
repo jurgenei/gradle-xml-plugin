@@ -13,9 +13,9 @@ import java.nio.file.Files;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Integration tests for {@link SchematronObservationCompileTask}.
+ * Integration tests for {@link SchematronSelCompileTask}.
  */
-public class SchematronObservationCompileTaskIntegrationTest {
+public class SchematronSelCompileTaskIntegrationTest {
 
     @Rule
     public final TemporaryFolder testProjectDir = new TemporaryFolder();
@@ -26,7 +26,7 @@ public class SchematronObservationCompileTaskIntegrationTest {
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
 
-            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
               schema 'src/main/schematron/observations.sch'
               output 'build/generated/observation/observations.xsl'
               groupOutput 'knowledge', 'observations/knowledge.xml'
@@ -79,7 +79,7 @@ public class SchematronObservationCompileTaskIntegrationTest {
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
 
-            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronObservationCompileTask) {
+            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
               schema 'src/main/schematron/observations.sch'
               output 'build/generated/observation/observations.xsl'
             }
