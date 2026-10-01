@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Extracts `obs:*` annotated rule metadata from a Schematron document.
+ * Extracts `sel:*` annotated rule metadata from a Schematron document.
  */
 final class SelRuleCollector {
     static final String SCH_NS = "http://purl.oclc.org/dsdl/schematron";
-    static final String OBS_NS = "http://jurgenei.name/observation";
+    static final String SEL_NS = "http://jurgenei.name/sel";
 
     private SelRuleCollector() {
     }
@@ -35,10 +35,10 @@ final class SelRuleCollector {
             Element parentRule = (Element) ruleNode.getParentNode();
             String context = nonBlank(parentRule.getAttribute("context"), "*");
             String test = nonBlank(ruleNode.getAttribute("test"), "true()");
-            String type = nonBlank(ruleNode.getAttributeNS(OBS_NS, "type"), "observation");
-            String group = nonBlank(ruleNode.getAttributeNS(OBS_NS, "group"), "default");
-            String copy = nonBlank(ruleNode.getAttributeNS(OBS_NS, "copy"), ".");
-            String contextExpr = ruleNode.getAttributeNS(OBS_NS, "context");
+            String type = nonBlank(ruleNode.getAttributeNS(SEL_NS, "type"), "sel");
+            String group = nonBlank(ruleNode.getAttributeNS(SEL_NS, "group"), "default");
+            String copy = nonBlank(ruleNode.getAttributeNS(SEL_NS, "copy"), ".");
+            String contextExpr = ruleNode.getAttributeNS(SEL_NS, "context");
 
             descriptors.add(new SelRuleDescriptor(
                 context,
@@ -54,9 +54,9 @@ final class SelRuleCollector {
     }
 
     private static boolean isEmitEnabled(Element node) {
-        String emit = node.getAttributeNS(OBS_NS, "emit");
+        String emit = node.getAttributeNS(SEL_NS, "emit");
         if (emit == null || emit.isBlank()) {
-            emit = node.getAttribute("obs:emit");
+            emit = node.getAttribute("sel:emit");
         }
         return "true".equalsIgnoreCase(emit.trim());
     }
@@ -68,4 +68,3 @@ final class SelRuleCollector {
         return value.trim();
     }
 }
-

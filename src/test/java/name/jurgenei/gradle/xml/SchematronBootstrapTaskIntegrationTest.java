@@ -32,7 +32,7 @@ public class SchematronBootstrapTaskIntegrationTest {
 
             tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
               schemaUrl(file('src/main/xsd/canonical.xsd').toURI().toString())
-              output 'src/main/schematron/canonical-observation.sch'
+              output 'src/main/schematron/canonical-sel.sch'
             }
 
             tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
@@ -42,7 +42,7 @@ public class SchematronBootstrapTaskIntegrationTest {
 
             tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
               dependsOn tasks.named('bootstrapCanonicalSchematron')
-              schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
+              schema.set(layout.projectDirectory.file('src/main/schematron/canonical-sel.sch'))
               source 'src/main/xml/canonical.xml'
               outputDir.set(layout.buildDirectory.dir('out/schematron'))
               reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
@@ -86,14 +86,14 @@ public class SchematronBootstrapTaskIntegrationTest {
             .withPluginClasspath()
             .build();
 
-        File generatedSch = new File(testProjectDir.getRoot(), "src/main/schematron/canonical-observation.sch");
+        File generatedSch = new File(testProjectDir.getRoot(), "src/main/schematron/canonical-sel.sch");
         File localSch = new File(testProjectDir.getRoot(), "src/main/schematron/canonical-local.sch");
         File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/canonical.svrl.xml");
 
         assertTrue(generatedSch.exists());
         assertTrue(localSch.exists());
         assertTrue(svrl.exists());
-        assertTrue(read(generatedSch).contains("Bootstrap observation Schematron"));
+        assertTrue(read(generatedSch).contains("Bootstrap SEL Schematron"));
         assertTrue(!read(svrl).contains("failed-assert"));
     }
 

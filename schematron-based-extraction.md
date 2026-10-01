@@ -1,12 +1,12 @@
-# Schematron-Based Observation Extraction
+# Schematron-Based SEL Extraction
 
 ## Purpose
 
-Use Schematron as a declarative language for corpus observation extraction.
+Use Schematron as a declarative language for corpus SEL extraction.
 
 Instead of building separate:
 
-- Observation DSL
+- SEL DSL
 - Fragment DSL
 - Corpus DSL
 
@@ -24,7 +24,7 @@ Validation asks:
 
     Which nodes are problematic?
 
-Observation Extraction asks:
+SEL Extraction asks:
 
     Which nodes are interesting?
 ```
@@ -40,9 +40,9 @@ OOXML
     ↓
 Canonical XML
     ↓
-Observation Schematron
+SEL Schematron
     ↓
-Observation XML
+SEL XML
     ↓
 Terminology Mining
     ↓
@@ -53,15 +53,15 @@ Knowledge XML
 Neo4j
 ```
 
-Observations represent evidence.
+SELs represent evidence.
 
-Observations do not represent knowledge.
+SELs do not represent knowledge.
 
 ---
 
-# Observation Philosophy
+# SEL Philosophy
 
-Observation extraction performs:
+SEL extraction performs:
 
 ```text
 Selection
@@ -69,7 +69,7 @@ Aggregation
 Context Preservation
 ```
 
-Observation extraction does not perform:
+SEL extraction does not perform:
 
 ```text
 Semantic Classification
@@ -77,13 +77,13 @@ Knowledge Extraction
 Ontology Mapping
 ```
 
-Good Observation:
+Good SEL:
 
 ```text
 This paragraph is interesting.
 ```
 
-Bad Observation:
+Bad SEL:
 
 ```text
 This paragraph describes an application.
@@ -109,14 +109,14 @@ corpus/
         FD-003.xml
 ```
 
-Observations are derived artifacts.
+SELs are derived artifacts.
 
 ```text
 Canonical XML
      ↓
-Observation Rules
+SEL Rules
      ↓
-Observation XML
+SEL XML
 ```
 
 The corpus remains:
@@ -127,34 +127,34 @@ Canonical XML
 
 ---
 
-# Observation Namespace
+# SEL Namespace
 
 ```xml
-xmlns:obs="http://jurgenei.name/observation"
+xmlns:obs="http://jurgenei.name/sel"
 ```
 
 Used as extension attributes in Schematron.
 
 ---
 
-# Observation Annotations
+# SEL Annotations
 
-## obs:emit
+## sel:emit
 
-Enable observation generation.
+Enable sel generation.
 
 ```xml
-obs:emit="true"
+sel:emit="true"
 ```
 
 ---
 
-## obs:type
+## sel:type
 
-Logical observation type.
+Logical sel type.
 
 ```xml
-obs:type="paragraph"
+sel:type="paragraph"
 ```
 
 Examples:
@@ -171,12 +171,12 @@ relationship-candidate
 
 ---
 
-## obs:group
+## sel:group
 
-Logical observation destination.
+Logical sel destination.
 
 ```xml
-obs:group="knowledge"
+sel:group="knowledge"
 ```
 
 Examples:
@@ -193,38 +193,38 @@ Groups are not filenames.
 
 ---
 
-## obs:copy
+## sel:copy
 
 XPath expression describing what evidence should be copied.
 
 Copy current node:
 
 ```xml
-obs:copy="."
+sel:copy="."
 ```
 
 Copy containing section:
 
 ```xml
-obs:copy="ancestor::c:Section[1]"
+sel:copy="ancestor::c:Section[1]"
 ```
 
 Copy table row:
 
 ```xml
-obs:copy="ancestor::c:Row[1]"
+sel:copy="ancestor::c:Row[1]"
 ```
 
 ---
 
-## obs:context
+## sel:context
 
 XPath expression selecting contextual information.
 
 Example:
 
 ```xml
-obs:context="ancestor::c:Section[1]/c:Title"
+sel:context="ancestor::c:Section[1]/c:Title"
 ```
 
 Allows:
@@ -246,11 +246,11 @@ to be emitted together.
 
     <sch:report
         test="normalize-space(.)"
-        obs:emit="true"
-        obs:type="paragraph"
-        obs:group="knowledge"
-        obs:copy="."
-        obs:context="ancestor::c:Section[1]/c:Title">
+        sel:emit="true"
+        sel:type="paragraph"
+        sel:group="knowledge"
+        sel:copy="."
+        sel:context="ancestor::c:Section[1]/c:Title">
 
         Knowledge paragraph
 
@@ -261,41 +261,41 @@ to be emitted together.
 
 ---
 
-# Example Observation
+# Example SEL
 
 ```xml
-<obs:Observation
+<sel:SEL
     type="paragraph">
 
-    <obs:Evidence>
+    <sel:Evidence>
 
         <c:Paragraph>
             SAP sends customer data to Vortex.
         </c:Paragraph>
 
-    </obs:Evidence>
+    </sel:Evidence>
 
-    <obs:Context>
+    <sel:Context>
 
         <c:Title>
             Interfaces
         </c:Title>
 
-    </obs:Context>
+    </sel:Context>
 
-</obs:Observation>
+</sel:SEL>
 ```
 
 ---
 
-# Observation Output Groups
+# SEL Output Groups
 
 Rules target logical groups.
 
 Example:
 
 ```xml
-obs:group="knowledge"
+sel:group="knowledge"
 ```
 
 Compiler/configuration resolves:
@@ -310,20 +310,20 @@ Example mapping:
 
 ```text
 knowledge
-    → observations/knowledge.xml
+    → sels/knowledge.xml
 
 terminology
-    → observations/terminology.xml
+    → sels/terminology.xml
 
 architecture
-    → observations/architecture.xml
+    → sels/architecture.xml
 ```
 
 Rule authors never reference physical filenames.
 
 ---
 
-# Observation Profiles
+# SEL Profiles
 
 Use Schematron phases.
 
@@ -344,7 +344,7 @@ Glossary Entries
 Output:
 
 ```text
-terminology observations
+terminology sels
 ```
 
 ---
@@ -363,7 +363,7 @@ References
 Output:
 
 ```text
-knowledge observations
+knowledge sels
 ```
 
 ---
@@ -382,7 +382,7 @@ Architecture Tables
 Output:
 
 ```text
-architecture observations
+architecture sels
 ```
 
 ---
@@ -402,10 +402,10 @@ Many enterprise relationships are expressed visually before they are expressed t
 
     <sch:report
         test="@source and @target"
-        obs:emit="true"
-        obs:type="relationship-candidate"
-        obs:group="architecture"
-        obs:copy=".">
+        sel:emit="true"
+        sel:type="relationship-candidate"
+        sel:group="architecture"
+        sel:copy=".">
 
         Connector candidate
 
@@ -416,21 +416,21 @@ Many enterprise relationships are expressed visually before they are expressed t
 
 ---
 
-## Example Diagram Observation
+## Example Diagram SEL
 
 ```xml
-<obs:Observation
+<sel:SEL
     type="relationship-candidate">
 
-    <obs:Evidence>
+    <sel:Evidence>
 
         <c:Connector
             source="sap"
             target="vortex"/>
 
-    </obs:Evidence>
+    </sel:Evidence>
 
-</obs:Observation>
+</sel:SEL>
 ```
 
 ---
@@ -458,11 +458,11 @@ SchXslt2
     ↓
 Validation Stylesheet
     ↓
-Observation Meta Transform
+SEL Meta Transform
     ↓
-Observation Stylesheet
+SEL Stylesheet
     ↓
-Observation XML
+SEL XML
 ```
 
 Result:
@@ -476,21 +476,21 @@ Validation
 
 and
 
-Observation Extraction
+SEL Extraction
 ```
 
 ---
 
 # Output Strategy
 
-Observation extraction should support:
+SEL extraction should support:
 
 ```text
 SVRL generation
 
-Observation generation
+SEL generation
 
-Grouped observation output
+Grouped sel output
 
 Multiple output documents
 ```
@@ -501,7 +501,7 @@ using:
 xsl:result-document
 ```
 
-generated by the observation compiler rather than authored directly in rules.
+generated by the sel compiler rather than authored directly in rules.
 
 ---
 
@@ -555,13 +555,13 @@ inside Schematron rules.
 
 Rules should remain declarative.
 
-Output construction belongs to the generated observation stylesheet.
+Output construction belongs to the generated sel stylesheet.
 
 ---
 
 # Automatic Rule Generation
 
-Initial observation profiles can be generated automatically from the canonical vocabulary.
+Initial sel profiles can be generated automatically from the canonical vocabulary.
 
 Example canonical elements:
 
@@ -593,22 +593,22 @@ Human effort focuses only on high-value refinement.
 
 ---
 
-# Observation Model
+# SEL Model
 
-Keep observation XML intentionally small.
+Keep SEL XML intentionally small.
 
 ```xml
-<obs:Observation>
+<sel:SEL>
 
-    <obs:Type/>
+    <sel:Type/>
 
-    <obs:Evidence/>
+    <sel:Evidence/>
 
-    <obs:Context/>
+    <sel:Context/>
 
-    <obs:Source/>
+    <sel:Source/>
 
-</obs:Observation>
+</sel:SEL>
 ```
 
 Everything else belongs in:
@@ -623,18 +623,18 @@ or
 Knowledge XML
 ```
 
-not Observation XML.
+not SEL XML.
 
 ---
 
 # Provenance
 
-Every observation should preserve provenance.
+Every sel should preserve provenance.
 
 Example:
 
 ```xml
-<obs:Source
+<sel:Source
     document="FD-123.docx"
     version="4.2"
     path="/1/3/7"/>
@@ -646,7 +646,7 @@ The source document must always remain traceable.
 
 # Future Processing
 
-Observation XML becomes input for:
+SEL XML becomes input for:
 
 ```text
 Terminology Mining
@@ -667,7 +667,7 @@ Knowledge Graph Creation
 # Key Benefits
 
 ```text
-No Observation DSL
+No SEL DSL
 
 No Fragment DSL
 
@@ -685,7 +685,7 @@ One Rule Base
 
 One Validation Model
 
-One Observation Model
+One SEL Model
 ```
 
 Schematron becomes a declarative evidence-selection language for corpus-to-graph workflows while remaining understandable to anyone already familiar with XPath and Schematron.

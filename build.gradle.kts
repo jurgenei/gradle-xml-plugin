@@ -239,22 +239,22 @@ tasks.register("allSecurityChecks") {
     }
 }
 
-tasks.register<Exec>("verifyXsltSexprSample") {
+tasks.register<Exec>("verifyXsltXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xslt-sexpr-identity sample."
+    description = "Runs smoke verification for s-xslt-xir-identity sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xslt-sexpr-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/s-xslt-xir-identity", "verifySample")
 }
 
-tasks.register<Exec>("verifyXquerySexprSample") {
+tasks.register<Exec>("verifyXqueryXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xquery-sexpr-identity sample."
+    description = "Runs smoke verification for s-xquery-xir-identity sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xquery-sexpr-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/s-xquery-xir-identity", "verifySample")
 }
 
-tasks.register("verifySexprSample") {
+tasks.register("verifyXirSample") {
     group = "verification"
-    description = "Runs S-expression sample smoke tests."
-    dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample")
+    description = "Runs XIR sample smoke tests."
+    dependsOn("verifyXsltXirSample", "verifyXqueryXirSample")
 }

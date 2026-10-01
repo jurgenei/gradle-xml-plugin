@@ -307,20 +307,20 @@ public class SchematronTaskIntegrationTest {
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
-              schema 'src/main/schematron/rules.sexpr'
+              schema 'src/main/schematron/rules.xir'
               transpilerStylesheet 'src/main/schematron/transpile.xsl'
-              source 'src/main/sexpr/invalid.sexpr'
+              source 'src/main/sexpr/invalid.xir'
               outputDir.set(layout.buildDirectory.dir('out/schematron'))
               reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
               failOnError.set(false)
             }
             """);
 
-        write("src/main/schematron/rules.sexpr", """
+        write("src/main/schematron/rules.xir", """
             (schema { xmlns "http://purl.oclc.org/dsdl/schematron" })
             """);
         write("src/main/schematron/transpile.xsl", transpiler());
-        write("src/main/sexpr/invalid.sexpr", """
+        write("src/main/sexpr/invalid.xir", """
             (root
               (value "BAD"))
             """);
@@ -361,8 +361,8 @@ public class SchematronTaskIntegrationTest {
             <schema xmlns='http://purl.oclc.org/dsdl/schematron'/>
             """);
         write("src/main/xml/input.xml", "<root><value>BAD</value></root>");
-        write("src/main/sexpr/lookup.sexpr", "(lookup (allowed \"yes\"))");
-        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/sexpr/lookup.xir", "(lookup (allowed \"yes\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.xir").toURI().toString();
         write("src/main/schematron/transpile.xsl", transpilerWithLookupDoc(lookupUri));
 
         newGradleRunner()

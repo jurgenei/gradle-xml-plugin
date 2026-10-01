@@ -1,11 +1,11 @@
 package name.jurgenei.gradle.xml;
 
 /**
- * Normalized observation rule metadata extracted from Schematron annotations.
+ * Normalized SEL rule metadata extracted from Schematron annotations.
  *
  * @param context rule context XPath.
  * @param test assertion/report test XPath.
- * @param type logical observation type.
+ * @param type logical SEL type.
  * @param group logical output group.
  * @param copy XPath selecting evidence payload.
  * @param contextExpr optional XPath selecting contextual payload.
@@ -21,4 +21,3 @@ record SelRuleDescriptor(
     String sourceElement
 ) {
 }
-

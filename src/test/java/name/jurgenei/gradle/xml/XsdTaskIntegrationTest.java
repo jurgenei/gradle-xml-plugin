@@ -128,8 +128,8 @@ public class XsdTaskIntegrationTest {
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
-              schema 'src/main/xsd/schema.sexpr'
-              source 'src/main/sexpr/invalid.sexpr'
+              schema 'src/main/xsd/schema.xir'
+              source 'src/main/sexpr/invalid.xir'
               outputDir.set(layout.buildDirectory.dir('out/xsd'))
               reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
               failOnError.set(false)
@@ -137,7 +137,7 @@ public class XsdTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xsd/schema.sexpr", """
+        write("src/main/xsd/schema.xir", """
             (xs:schema
               { xmlns:xs "http://www.w3.org/2001/XMLSchema" }
               (xs:element { name "root" }
@@ -145,7 +145,7 @@ public class XsdTaskIntegrationTest {
                   (xs:sequence
                     (xs:element { name "value" type "xs:string" })))))
             """);
-        write("src/main/sexpr/invalid.sexpr", """
+        write("src/main/sexpr/invalid.xir", """
             (root
               (wrong "bad"))
             """);

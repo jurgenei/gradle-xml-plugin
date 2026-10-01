@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Compiles annotation-bearing Schematron rules into an executable phase-2 observation stylesheet.
+ * Compiles annotation-bearing Schematron rules into an executable phase-2 SEL stylesheet.
  */
 @DisableCachingByDefault(because = "Compiler output depends on schema content and extraction annotation metadata")
 public abstract class SchematronSelCompileTask extends DefaultTask {
 
     /**
-     * Input Schematron schema containing observation annotations.
+     * Input Schematron schema containing SEL annotations.
      *
      * @return schema file property
      */
@@ -83,7 +83,7 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
     }
 
     /**
-     * Maps logical observation group to output document path used by generated stylesheet.
+     * Maps logical SEL group to output document path used by generated stylesheet.
      *
      * @param group logical group key.
      * @param outputPath output path expression.
@@ -93,7 +93,7 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
     }
 
     /**
-     * Compiles observation extraction stylesheet from Schematron source.
+     * Compiles SEL extraction stylesheet from Schematron source.
      */
     @TaskAction
     public void compile() {
@@ -109,9 +109,9 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
                 Files.createDirectories(parent.toPath());
             }
             Files.writeString(outputFile.toPath(), stylesheet, StandardCharsets.UTF_8);
-            getLogger().lifecycle("Compiled observation extraction stylesheet with {} rule(s): {}", rules.size(), outputFile);
+            getLogger().lifecycle("Compiled SEL extraction stylesheet with {} rule(s): {}", rules.size(), outputFile);
         } catch (Exception e) {
-            throw new GradleException("Failed to compile Schematron observation stylesheet", e);
+            throw new GradleException("Failed to compile Schematron SEL stylesheet", e);
         }
     }
 
@@ -124,4 +124,3 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
         }
     }
 }
-

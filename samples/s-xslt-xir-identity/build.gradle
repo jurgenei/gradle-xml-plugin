@@ -3,24 +3,23 @@ plugins {
 }
 
 tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
-    style 'src/main/xslt/identity.sexpr'
-    source 'src/main/sexpr/input.sexpr'
+    style 'src/main/xslt/identity.xir'
+    source 'src/main/sexpr/input.xir'
     outputDir.set(layout.buildDirectory.dir('out/xslt'))
-    outputExtension.set('.sexpr')
+    outputExtension.set('.xir')
     sexprFormat.set('beautified')
 }
 
 tasks.register('verifySample') {
     dependsOn 'runXslt'
     doLast {
-        File output = file('build/out/xslt/input.sexpr')
+        File output = file('build/out/xslt/input.xir')
         if (!output.exists()) {
             throw new GradleException("Expected output file does not exist: ${output}")
         }
         String text = output.getText('UTF-8')
         if (!text.contains('{id "b1"}') || !text.contains('(title "XML")')) {
-            throw new GradleException("Unexpected S-expression output: ${output}")
+            throw new GradleException("Unexpected XIR output: ${output}")
         }
     }
 }
-

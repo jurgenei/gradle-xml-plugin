@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Renders an executable phase-2 extraction stylesheet from normalized observation rules.
+ * Renders an executable phase-2 extraction stylesheet from normalized SEL rules.
  */
 final class SelStylesheetCompiler {
     private SelStylesheetCompiler() {
@@ -15,10 +15,10 @@ final class SelStylesheetCompiler {
         Map<String, String> groups = new LinkedHashMap<>();
         groups.putAll(configuredGroupOutputs);
         for (SelRuleDescriptor rule : rules) {
-            groups.putIfAbsent(rule.group(), "observations/" + rule.group() + ".xml");
+            groups.putIfAbsent(rule.group(), "sel/" + rule.group() + ".xml");
         }
         if (groups.isEmpty()) {
-            groups.put("default", "observations/default.xml");
+            groups.put("default", "sel/default.xml");
         }
 
         StringBuilder xml = new StringBuilder();
@@ -26,7 +26,7 @@ final class SelStylesheetCompiler {
         xml.append("<xsl:stylesheet version=\"3.0\"\n");
         xml.append("    xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\n");
         xml.append("    xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\n");
-        xml.append("    xmlns:obs=\"http://jurgenei.name/observation\"\n");
+        xml.append("    xmlns:sel=\"http://jurgenei.name/sel\"\n");
         xml.append("    xmlns:c=\"http://jurgenei.name/canonical\"\n");
         xml.append("    exclude-result-prefixes=\"xs c\">\n\n");
 
@@ -53,12 +53,12 @@ final class SelStylesheetCompiler {
         xml.append("\n");
 
         xml.append("  <xsl:template match=\"/\">\n");
-        xml.append("    <!-- Emit grouped observation payloads into independent output files. -->\n");
+        xml.append("    <!-- Emit grouped SEL payloads into independent output files. -->\n");
         for (String group : groups.keySet()) {
             xml.append("    <xsl:result-document href=\"{$output-")
                 .append(escape(group))
                 .append("}\">\n");
-            xml.append("      <obs:Observations group=\"")
+            xml.append("      <sel:Observations group=\"")
                 .append(escape(group))
                 .append("\">\n");
             for (int i = 0; i < rules.size(); i++) {
@@ -70,7 +70,7 @@ final class SelStylesheetCompiler {
                     .append(i)
                     .append("\"/>\n");
             }
-            xml.append("      </obs:Observations>\n");
+            xml.append("      </sel:Observations>\n");
             xml.append("    </xsl:result-document>\n");
         }
         xml.append("  </xsl:template>\n");
@@ -89,7 +89,7 @@ final class SelStylesheetCompiler {
             xml.append("    <xsl:if test=\"")
                 .append(escape(condition))
                 .append("\">\n");
-            xml.append("      <obs:Observation type=\"")
+            xml.append("      <sel:Observation type=\"")
                 .append(escape(rule.type()))
                 .append("\" group=\"")
                 .append(escape(rule.group()))
@@ -98,20 +98,20 @@ final class SelStylesheetCompiler {
                 .append("\" ruleContext=\"")
                 .append(escape(rule.context()))
                 .append("\">\n");
-            xml.append("        <obs:Evidence>\n");
+            xml.append("        <sel:Evidence>\n");
             xml.append("          <xsl:copy-of select=\"")
                 .append(escape(rule.copy()))
                 .append("\"/>\n");
-            xml.append("        </obs:Evidence>\n");
+            xml.append("        </sel:Evidence>\n");
             if (!rule.contextExpr().isBlank()) {
-                xml.append("        <obs:Context>\n");
+                xml.append("        <sel:Context>\n");
                 xml.append("          <xsl:copy-of select=\"")
                     .append(escape(rule.contextExpr()))
                     .append("\"/>\n");
-                xml.append("        </obs:Context>\n");
+                xml.append("        </sel:Context>\n");
             }
-            xml.append("        <obs:Source document=\"{$source-document}\" path=\"{path(.)}\"/>\n");
-            xml.append("      </obs:Observation>\n");
+            xml.append("        <sel:Source document=\"{$source-document}\" path=\"{path(.)}\"/>\n");
+            xml.append("      </sel:Observation>\n");
             xml.append("    </xsl:if>\n");
             xml.append("  </xsl:template>\n");
         }
@@ -130,4 +130,3 @@ final class SelStylesheetCompiler {
             .replace("'", "&apos;");
     }
 }
-

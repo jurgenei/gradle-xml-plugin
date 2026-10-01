@@ -418,11 +418,11 @@ public class XQueryTaskIntegrationTest {
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
-              source 'src/main/sexpr/input.sexpr'
+              source 'src/main/sexpr/input.xir'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
             }
             """);
-        write("src/main/sexpr/input.sexpr", "(book { id \"b1\" } (title \"XML\"))");
+        write("src/main/sexpr/input.xir", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
         TaskOutcome outcome = newGradleRunner()
@@ -450,8 +450,8 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<root/>");
-        write("src/main/sexpr/lookup.sexpr", "(lookup (value \"from-sexpr\"))");
-        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/sexpr/lookup.xir", "(lookup (value \"from-sexpr\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.xir").toURI().toString();
         write("src/main/xquery/main.xq", """
             <result>{ doc("%s")/lookup/value/text() }</result>
             """.formatted(lookupUri));
@@ -481,10 +481,10 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<root/>");
-        write("src/main/sexpr/a.sexpr", "(item (name \"A\"))");
-        write("src/main/sexpr/b.sexpr", "(item (name \"B\"))");
+        write("src/main/sexpr/a.xir", "(item (name \"A\"))");
+        write("src/main/sexpr/b.xir", "(item (name \"B\"))");
         String collectionUri = new File(testProjectDir.getRoot(), "src/main/sexpr/").toURI().toString()
-            + "?select=*.sexpr;recurse=no";
+            + "?select=*.xir;recurse=no";
         write("src/main/xquery/main.xq", """
             let $docs := collection("%s")/item
             return <result count="{count($docs)}">{ for $d in $docs return <name>{$d/name/text()}</name> }</result>
@@ -514,7 +514,7 @@ public class XQueryTaskIntegrationTest {
               query 'src/main/xquery/main.xq'
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
-              outputExtension.set('.sexpr')
+              outputExtension.set('.xir')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
@@ -529,7 +529,7 @@ public class XQueryTaskIntegrationTest {
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
-        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xir"));
         assertTrue(output.contains("(book"));
         assertTrue(output.contains("{id \"b1\"}"));
         assertTrue(output.contains("(title \"XML\")"));
@@ -544,7 +544,7 @@ public class XQueryTaskIntegrationTest {
               query 'src/main/xquery/main.xq'
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
-              outputExtension.set('.sexpr')
+              outputExtension.set('.xir')
               sexprFormat.set('beautified')
             }
             """);
@@ -560,7 +560,7 @@ public class XQueryTaskIntegrationTest {
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
-        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xir"));
         assertTrue(output.contains("(book"));
         assertTrue(output.contains("{id \"b1\"}"));
         assertTrue(output.contains("(title \"XML\")"));

@@ -17,7 +17,7 @@ import net.sf.saxon.trans.XPathException;
 import org.xml.sax.InputSource;
 
 /**
- * Installs Saxon URI/resource resolvers that route {@code .sexpr} resources
+ * Installs Saxon URI/resource resolvers that route {@code .xir} resources
  * through {@link SExpressionXmlReader}.
  */
 public final class SaxonSexprResolvers {
@@ -50,7 +50,7 @@ public final class SaxonSexprResolvers {
     }
 
     private static void registerSexprCollectionFactory(Configuration configuration) {
-        configuration.registerFileExtension("sexpr", SEXPR_MEDIA_TYPE);
+        configuration.registerFileExtension("xir", SEXPR_MEDIA_TYPE);
         configuration.registerMediaType(SEXPR_MEDIA_TYPE, (context, details) -> {
             try {
                 Processor processor = new Processor(context.getConfiguration());
@@ -116,7 +116,7 @@ public final class SaxonSexprResolvers {
             if (fragmentIdx >= 0) {
                 end = Math.min(end, fragmentIdx);
             }
-            return normalized.substring(0, end).endsWith(".sexpr");
+            return normalized.substring(0, end).endsWith(".xir");
         }
 
         private static boolean notBlank(String value) {

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Bootstraps a Schematron observation schema from an XSD file or URL.
+ * Bootstraps a Schematron SEL schema from an XSD file or URL.
  */
 @DisableCachingByDefault(because = "Bootstrap generation is typically one-time setup and may consume remote URLs")
 public abstract class SchematronBootstrapTask extends DefaultTask {
@@ -165,40 +165,40 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
         String targetNamespace = root.getAttribute("targetNamespace");
         String prefix = getNamespacePrefix().get();
 
-        Map<String, ElementObservation> complexTypes = collectComplexTypes(xsd);
-        List<ElementObservation> globalElements = collectGlobalElements(xsd, complexTypes);
-        globalElements.sort(Comparator.comparing(ElementObservation::context));
+        Map<String, ElementSelProfile> complexTypes = collectComplexTypes(xsd);
+        List<ElementSelProfile> globalElements = collectGlobalElements(xsd, complexTypes);
+        globalElements.sort(Comparator.comparing(ElementSelProfile::context));
 
         StringBuilder sb = new StringBuilder();
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         sb.append("<sch:schema xmlns:sch=\"http://purl.oclc.org/dsdl/schematron\"\n");
         sb.append("            xmlns:").append(prefix).append("=\"").append(escapeXml(targetNamespace)).append("\">\n");
-        sb.append("  <sch:title>Bootstrap observation Schematron</sch:title>\n");
+        sb.append("  <sch:title>Bootstrap SEL Schematron</sch:title>\n");
         sb.append("  <sch:ns prefix=\"").append(prefix).append("\" uri=\"").append(escapeXml(targetNamespace)).append("\"/>\n");
         sb.append("  <sch:p>generated-from: ").append(escapeXml(schemaSource)).append("</sch:p>\n");
         sb.append("  <sch:p>generated-at: ").append(escapeXml(Instant.now().toString())).append("</sch:p>\n");
 
-        for (ElementObservation observation : globalElements) {
-            sb.append("\n  <sch:pattern id=\"").append(escapeXml(observation.patternId())).append("\">\n");
-            sb.append("    <sch:title>").append(escapeXml(observation.context())).append(" observation</sch:title>\n");
-            sb.append("    <sch:rule context=\"").append(escapeXml(observation.context())).append("\">\n");
+        for (ElementSelProfile selProfile : globalElements) {
+            sb.append("\n  <sch:pattern id=\"").append(escapeXml(selProfile.patternId())).append("\">\n");
+            sb.append("    <sch:title>").append(escapeXml(selProfile.context())).append(" SEL</sch:title>\n");
+            sb.append("    <sch:rule context=\"").append(escapeXml(selProfile.context())).append("\">\n");
             sb.append("      <sch:assert test=\"true()\">Bootstrap rule for ")
-                .append(escapeXml(observation.context()))
+                .append(escapeXml(selProfile.context()))
                 .append(" (always passing until customized)</sch:assert>\n");
 
-            if (!observation.requiredChildren().isEmpty()) {
+            if (!selProfile.requiredChildren().isEmpty()) {
                 sb.append("      <sch:p>required-children: ")
-                    .append(escapeXml(String.join(", ", observation.requiredChildren())))
+                    .append(escapeXml(String.join(", ", selProfile.requiredChildren())))
                     .append("</sch:p>\n");
             }
-            if (!observation.optionalChildren().isEmpty()) {
+            if (!selProfile.optionalChildren().isEmpty()) {
                 sb.append("      <sch:p>optional-children: ")
-                    .append(escapeXml(String.join(", ", observation.optionalChildren())))
+                    .append(escapeXml(String.join(", ", selProfile.optionalChildren())))
                     .append("</sch:p>\n");
             }
-            if (!observation.requiredAttributes().isEmpty()) {
+            if (!selProfile.requiredAttributes().isEmpty()) {
                 sb.append("      <sch:p>required-attributes: ")
-                    .append(escapeXml(String.join(", ", observation.requiredAttributes())))
+                    .append(escapeXml(String.join(", ", selProfile.requiredAttributes())))
                     .append("</sch:p>\n");
             }
 
@@ -210,8 +210,8 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
         return sb.toString();
     }
 
-    private Map<String, ElementObservation> collectComplexTypes(Document xsd) {
-        Map<String, ElementObservation> map = new LinkedHashMap<>();
+    private Map<String, ElementSelProfile> collectComplexTypes(Document xsd) {
+        Map<String, ElementSelProfile> map = new LinkedHashMap<>();
         NodeList complexTypeNodes = xsd.getDocumentElement().getElementsByTagNameNS(XS_NS, "complexType");
         for (int i = 0; i < complexTypeNodes.getLength(); i++) {
             Element complexType = (Element) complexTypeNodes.item(i);
@@ -222,13 +222,13 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
             if (name.isEmpty()) {
                 continue;
             }
-            map.put(name, extractObservation(name, complexType));
+            map.put(name, extractSelProfile(name, complexType));
         }
         return map;
     }
 
-    private List<ElementObservation> collectGlobalElements(Document xsd, Map<String, ElementObservation> complexTypes) {
-        List<ElementObservation> observations = new ArrayList<>();
+    private List<ElementSelProfile> collectGlobalElements(Document xsd, Map<String, ElementSelProfile> complexTypes) {
+        List<ElementSelProfile> selProfiles = new ArrayList<>();
         NodeList elementNodes = xsd.getDocumentElement().getElementsByTagNameNS(XS_NS, "element");
         for (int i = 0; i < elementNodes.getLength(); i++) {
             Element element = (Element) elementNodes.item(i);
@@ -240,31 +240,31 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
                 continue;
             }
 
-            ElementObservation observation = fromElementType(name, element, complexTypes);
-            observations.add(observation);
+            ElementSelProfile selProfile = fromElementType(name, element, complexTypes);
+            selProfiles.add(selProfile);
         }
-        return observations;
+        return selProfiles;
     }
 
-    private ElementObservation fromElementType(String elementName, Element element, Map<String, ElementObservation> complexTypes) {
+    private ElementSelProfile fromElementType(String elementName, Element element, Map<String, ElementSelProfile> complexTypes) {
         String declaredType = element.getAttribute("type");
         if (!declaredType.isEmpty()) {
             String localType = declaredType.contains(":") ? declaredType.substring(declaredType.indexOf(':') + 1) : declaredType;
-            ElementObservation fromType = complexTypes.get(localType);
+            ElementSelProfile fromType = complexTypes.get(localType);
             if (fromType != null) {
-                return new ElementObservation(elementName, fromType.requiredChildren(), fromType.optionalChildren(), fromType.requiredAttributes());
+                return new ElementSelProfile(elementName, fromType.requiredChildren(), fromType.optionalChildren(), fromType.requiredAttributes());
             }
         }
 
         Element inlineComplexType = firstChildByName(element, "complexType");
         if (inlineComplexType != null) {
-            return extractObservation(elementName, inlineComplexType);
+            return extractSelProfile(elementName, inlineComplexType);
         }
 
-        return new ElementObservation(elementName, List.of(), List.of(), List.of());
+        return new ElementSelProfile(elementName, List.of(), List.of(), List.of());
     }
 
-    private ElementObservation extractObservation(String context, Element complexType) {
+    private ElementSelProfile extractSelProfile(String context, Element complexType) {
         List<String> requiredChildren = new ArrayList<>();
         List<String> optionalChildren = new ArrayList<>();
         List<String> requiredAttributes = new ArrayList<>();
@@ -275,7 +275,7 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
         requiredChildren.sort(String::compareTo);
         optionalChildren.sort(String::compareTo);
         requiredAttributes.sort(String::compareTo);
-        return new ElementObservation(context, requiredChildren, optionalChildren, requiredAttributes);
+        return new ElementSelProfile(context, requiredChildren, optionalChildren, requiredAttributes);
     }
 
     private void collectChildElements(Element complexType, List<String> requiredChildren, List<String> optionalChildren) {
@@ -370,13 +370,12 @@ public abstract class SchematronBootstrapTask extends DefaultTask {
     private record LoadedSchema(Document document, String schemaSource) {
     }
 
-    private record ElementObservation(String context,
+    private record ElementSelProfile(String context,
                                       List<String> requiredChildren,
                                       List<String> optionalChildren,
                                       List<String> requiredAttributes) {
         String patternId() {
-            return "obs-" + context;
+            return "sel-" + context;
         }
     }
 }
-

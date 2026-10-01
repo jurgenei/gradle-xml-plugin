@@ -103,7 +103,7 @@ public class SExpressionXmlReaderTest {
         fromBytes.parse(new InputSource(new ByteArrayInputStream(sexpr.getBytes(StandardCharsets.UTF_8))));
         Assert.assertTrue(bytesHandler.sawStartBook);
 
-        File temp = File.createTempFile("sexpr-reader", ".sexpr");
+        File temp = File.createTempFile("sexpr-reader", ".xir");
         Files.writeString(temp.toPath(), sexpr, StandardCharsets.UTF_8);
         temp.deleteOnExit();
 

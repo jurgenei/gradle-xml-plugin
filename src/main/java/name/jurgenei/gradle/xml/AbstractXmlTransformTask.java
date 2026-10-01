@@ -116,7 +116,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getOutputMethod();
 
     /**
-     * Optional S-expression output format used when writing {@code .sexpr} files.
+     * Optional XIR output format used when writing {@code .xir} files.
      *
      * <p>Supported values are {@code compact} (default) and {@code beautified}.</p>
      *
@@ -419,7 +419,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     /**
      * Resolves S-expression serializer format from explicit task setting.
      *
-     * @return serializer format to use for {@code .sexpr} and canonical {@code .json} output
+     * @return serializer format to use for {@code .xir} and canonical {@code .json} output
      */
     protected SExpressionSerializer.OutputFormat resolveSexprOutputFormat() {
         String configured = getSexprFormat().getOrElse("compact");
@@ -459,10 +459,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      * Checks whether file extension matches S-expression input/output.
      *
      * @param file candidate file
-     * @return true when file extension is {@code .sexpr}
+     * @return true when file extension is {@code .xir}
      */
     protected boolean isSexprFile(File file) {
-        return file.getName().toLowerCase(Locale.ROOT).endsWith(".sexpr");
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".xir");
     }
 
     /**
@@ -584,5 +584,4 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     protected abstract void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception;
 }
-
 

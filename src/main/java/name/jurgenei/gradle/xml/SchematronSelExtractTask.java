@@ -1,6 +1,8 @@
 package name.jurgenei.gradle.xml;
 
+import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
 import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
+import name.jurgenei.xml.sexpr.SExpressionXmlReader;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.Serializer;
@@ -28,6 +30,8 @@ import org.w3c.dom.Document;
 
 import javax.inject.Inject;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import java.io.File;
 import java.io.StringWriter;
@@ -38,28 +42,40 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.xml.sax.InputSource;
 
 /**
- * Phase-3 runtime task that executes Schematron-based observation extraction.
+ * Phase-3 runtime task that executes Schematron SEL extraction.
  *
  * <p>The task can consume a precompiled extraction stylesheet or compile one on the fly
  * from annotation-bearing Schematron rules.</p>
  */
 @DisableCachingByDefault(because = "Extraction output fan-out depends on source trees and dynamic grouped mappings")
-public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
+public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTask {
+
+    /**
+     * JSON routing mode for .json SEL input files.
+     */
+    public enum JsonMode {
+        AUTO,
+        NATIVE,
+        CANONICAL
+    }
 
     /**
      * Creates extraction task with fail-fast behavior enabled by default.
      */
     @Inject
-    public SchematronExtractTask() {
+    public SchematronSelExtractTask() {
         getFailOnError().convention(true);
+        getJsonMode().convention("auto");
     }
 
     /**
-     * Schematron schema containing observation rule metadata.
+     * Schematron schema containing SEL rule metadata.
      *
      * @return schema file property
      */
@@ -78,7 +94,7 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
     public abstract RegularFileProperty getStyle();
 
     /**
-     * Canonical XML sources used for extraction.
+     * Canonical sources used for extraction.
      *
      * @return source file collection
      */
@@ -95,7 +111,7 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
     public abstract DirectoryProperty getOutputDir();
 
     /**
-     * Group-to-relative-path mapping for emitted observation documents.
+     * Group-to-relative-path mapping for emitted SEL documents.
      *
      * @return group output mapping
      */
@@ -109,6 +125,15 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
      */
     @Input
     public abstract Property<Boolean> getFailOnError();
+
+    /**
+     * Optional JSON mode controlling how .json input is parsed.
+     *
+     * @return JSON mode property: auto, native, canonical
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getJsonMode();
 
     /**
      * Sets Schematron schema file.
@@ -156,7 +181,7 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
     /**
      * Configures output path mapping for a logical group.
      *
-     * @param group observation group key.
+     * @param group SEL group key.
      * @param relativePath output path under each input-stem root.
      */
     public void groupOutput(String group, String relativePath) {
@@ -164,13 +189,22 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
     }
 
     /**
-     * Runs observation extraction for all configured source files.
+     * Sets JSON routing mode (Gradle DSL friendly).
+     *
+     * @param mode one of auto, native, canonical
+     */
+    public void jsonMode(String mode) {
+        getJsonMode().set(mode);
+    }
+
+    /**
+     * Runs SEL extraction for all configured source files.
      */
     @TaskAction
     public void extract() {
         Set<File> rawInputs = new LinkedHashSet<>(getSourceFiles().getFiles());
         if (rawInputs.isEmpty()) {
-            throw new GradleException("No input files configured. Use source(...) to provide canonical XML files.");
+            throw new GradleException("No input files configured. Use source(...) to provide canonical XML/XIR/JSON files.");
         }
 
         List<File> inputs = new ArrayList<>(rawInputs);
@@ -184,9 +218,9 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
             }
         } catch (Exception e) {
             if (getFailOnError().get()) {
-                throw new GradleException("Observation extraction failed", e);
+                throw new GradleException("SEL extraction failed", e);
             }
-            getLogger().error("Observation extraction failed but failOnError=false", e);
+            getLogger().error("SEL extraction failed but failOnError=false", e);
         }
     }
 
@@ -200,7 +234,7 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         }
 
         String stylesheetXml = SelStylesheetCompiler.render(rules, getGroupOutputs().getOrElse(Map.of()));
-        Path temp = Files.createTempFile("observation-compiled-", ".xsl");
+        Path temp = Files.createTempFile("sel-compiled-", ".xsl");
         Files.writeString(temp, stylesheetXml, StandardCharsets.UTF_8);
         temp.toFile().deleteOnExit();
         return new RuntimeStylesheet(temp, groups);
@@ -214,14 +248,14 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         SaxonSexprResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
         SaxonSexprResolvers.configure(compiler);
-        XsltExecutable executable = compiler.compile(new StreamSource(runtimeStylesheet.stylesheet().toFile()));
+        XsltExecutable executable = compiler.compile(stylesheetSource(runtimeStylesheet.stylesheet().toFile()));
         XsltTransformer transformer = executable.load();
-        transformer.setSource(new StreamSource(inputFile));
+        transformer.setSource(sourceForInput(inputFile));
         transformer.setParameter(new QName("source-document"), new XdmAtomicValue(inputFile.getName()));
         transformer.setBaseOutputURI(base.toUri().toString());
 
         for (String group : runtimeStylesheet.groups()) {
-            String configured = getGroupOutputs().getOrElse(Map.of()).getOrDefault(group, "observations/" + group + ".xml");
+            String configured = getGroupOutputs().getOrElse(Map.of()).getOrDefault(group, "sel/" + group + ".xml");
             Path target = base.resolve(configured).normalize();
             Path parent = target.getParent();
             if (parent != null) {
@@ -248,6 +282,51 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
         return new ArrayList<>(groups);
     }
 
+    private Source sourceForInput(File inputFile) {
+        if (isXirFile(inputFile)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
+        if (useCanonicalJsonInput(inputFile)) {
+            return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
+        }
+        return new StreamSource(inputFile);
+    }
+
+    private Source stylesheetSource(File stylesheetFile) {
+        if (isXirFile(stylesheetFile)) {
+            return new SAXSource(new SExpressionXmlReader(), new InputSource(stylesheetFile.toURI().toString()));
+        }
+        return new StreamSource(stylesheetFile);
+    }
+
+    private boolean isXirFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".xir");
+    }
+
+    private boolean isJsonFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".json");
+    }
+
+    private boolean useCanonicalJsonInput(File inputFile) {
+        if (!isJsonFile(inputFile)) {
+            return false;
+        }
+        JsonMode mode = resolveJsonMode();
+        return mode == JsonMode.AUTO || mode == JsonMode.CANONICAL;
+    }
+
+    private JsonMode resolveJsonMode() {
+        String configured = getJsonMode().getOrElse("auto");
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "native" -> JsonMode.NATIVE;
+            case "canonical" -> JsonMode.CANONICAL;
+            case "auto" -> JsonMode.AUTO;
+            default -> throw new GradleException(
+                "Unsupported jsonMode '" + configured + "'. Supported values: auto, native, canonical");
+        };
+    }
+
     private Document parseSchema(File schemaFile) throws Exception {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setNamespaceAware(true);
@@ -263,4 +342,3 @@ public abstract class SchematronExtractTask extends org.gradle.api.DefaultTask {
     private record RuntimeStylesheet(Path stylesheet, List<String> groups) {
     }
 }
-

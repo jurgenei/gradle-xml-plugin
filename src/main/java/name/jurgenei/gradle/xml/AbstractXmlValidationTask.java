@@ -283,7 +283,7 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      * Resolves a transform source for XML-like validation inputs.
      *
      * @param file data or schema file
-     * @return stream source for XML files, SAX source for .sexpr files
+     * @return stream source for XML files, SAX source for .xir files
      */
     protected Source sourceForValidation(File file) {
         if (isSexprFile(file)) {
@@ -296,10 +296,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      * Determines whether validation input uses S-expression format.
      *
      * @param file candidate file
-     * @return true when extension is .sexpr
+     * @return true when extension is .xir
      */
     protected boolean isSexprFile(File file) {
-        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".sexpr");
+        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".xir");
     }
 }
-

@@ -35,8 +35,8 @@ The plugin contributes four task types:
 - `name.jurgenei.gradle.xml.SchematronTask` — Schematron to SVRL validation
 - `name.jurgenei.gradle.xml.XsdTask` — XSD validation normalized to SVRL
 - `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
-- `name.jurgenei.gradle.xml.SchematronObservationCompileTask` — compile `obs:*` annotated Schematron into grouped observation stylesheet skeleton
-- `name.jurgenei.gradle.xml.SchematronExtractTask` — execute runtime observation extraction and emit grouped observation XML
+- `name.jurgenei.gradle.xml.SchematronSelCompileTask` — compile `sel:*` annotated Schematron into grouped SEL stylesheet skeleton
+- `name.jurgenei.gradle.xml.SchematronSelExtractTask` — execute runtime SEL extraction and emit grouped SEL XML
 
 Both share a near-orthogonal API for unified Gradle-style configuration.
 
@@ -53,30 +53,30 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
 - **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
 - **Security automation** — CodeQL, OWASP Dependency-Check, SpotBugs + FindSecBugs, Dependabot
-- **S-expression I/O** — `.sexpr` input and output routing for XSLT/XQuery tasks
+- **XIR I/O** — `.xir` input and output routing for XSLT/XQuery tasks
 - **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
 
-## S-expression Support
+## XIR Support
 
-S-expression support provides a compact, human- and AI-friendly representation of XML and XDM-based technologies. Rather than introducing new semantics, it offers an alternative serialization syntax for established standards such as XML, XDM, XPath, XSLT, and XML Schema.
+XIR support provides a compact, human- and AI-friendly representation of XML and XDM-based technologies. Rather than introducing new semantics, it offers an alternative serialization syntax for established standards such as XML, XDM, XPath, XSLT, and XML Schema.
 
-By reducing serialization overhead while preserving structure, typing, and validation capabilities, S-expressions make it easier to work with existing XML assets in modern development and AI workflows. All processing continues to rely on the same mature standards and implementations that have evolved within the XML ecosystem for more than two decades.
+By reducing serialization overhead while preserving structure, typing, and validation capabilities, XIR makes it easier to work with existing XML assets in modern development and AI workflows. All processing continues to rely on the same mature standards and implementations that have evolved within the XML ecosystem for more than two decades.
 
-`XsltTask` and `XQueryTask` support `.sexpr` files in file-tree mode and explicit mode.
+`XsltTask` and `XQueryTask` support `.xir` files in file-tree mode and explicit mode.
 
 S-expression runtime ships inside `gradle-xml-plugin` artifact.
 
-- Internal package: `name.jurgenei.gradle.xml.sexpr`
+- Internal package: `name.jurgenei.gradle.xml.xir`
 - No separate `name.jurgenei.xml:xml-sexpr` dependency required
 - S-expression parser/serializer runtime is Saxon-agnostic (`java.xml` SAX/JAXP APIs)
 
-- Input `.sexpr` is parsed as SAX source.
-- XSLT stylesheet may also be `.sexpr` (for `XsltTask.style(...)`).
-- Output `.sexpr` is serialized from XML result events through SAX/JAXP pipeline.
-- Saxon URI dereferencing routes `.sexpr` resources through the same SAX parser path for `doc()` and `collection()` calls.
+- Input `.xir` is parsed as SAX source.
+- XSLT stylesheet may also be `.xir` (for `XsltTask.style(...)`).
+- Output `.xir` is serialized from XML result events through SAX/JAXP pipeline.
+- Saxon URI dereferencing routes `.xir` resources through the same SAX parser path for `doc()` and `collection()` calls.
 - `sexprFormat` controls output style: `compact` (default) or `beautified`.
 
-S-expression format details:
+XIR format details:
 
 - `()` = nodes
 - `{}` = associative structures
@@ -128,16 +128,16 @@ Format conventions:
 ### XSLT Example
 
 ```groovy
-tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
   style 'src/main/xslt/identity.xsl'
   source 'src/main/xml/input.xml'
   outputDir.set(layout.buildDirectory.dir('out/xslt'))
-  outputExtension.set('.sexpr')
+  outputExtension.set('.xir')
 }
 
-tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
+tasks.register('xirToXml', name.jurgenei.gradle.xml.XsltTask) {
   style 'src/main/xslt/identity.xsl'
-  input 'build/out/xslt/input.sexpr'
+  input 'build/out/xslt/input.xir'
   output 'build/out/xml/result.xml'
 }
 ```
@@ -181,11 +181,11 @@ tasks.register('jsonCanonicalToXml', name.jurgenei.gradle.xml.XsltTask) {
 Kotlin DSL:
 
 ```kotlin
-tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToSexpr") {
+tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToXir") {
     style("src/main/xslt/identity.xsl")
     source("src/main/xml/input.xml")
     outputDir.set(layout.buildDirectory.dir("out/xslt"))
-    outputExtension.set(".sexpr")
+    outputExtension.set(".xir")
     sexprFormat.set("beautified")
 }
 ```
@@ -193,11 +193,11 @@ tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToSexpr") {
 Groovy DSL:
 
 ```groovy
-tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
   style 'src/main/xslt/identity.xsl'
   source 'src/main/xml/input.xml'
   outputDir.set(layout.buildDirectory.dir('out/xslt'))
-  outputExtension.set('.sexpr')
+  outputExtension.set('.xir')
   sexprFormat.set('beautified')
 }
 ```
@@ -399,8 +399,8 @@ Schematron-specific options:
 
 ## Schematron Bootstrap From XSD
 
-Use `SchematronBootstrapTask` to create an initial observation Schematron from an XSD.
-The generated file is comprehensive (captures required children/attributes as observations)
+Use `SchematronBootstrapTask` to create an initial SEL Schematron from an XSD.
+The generated file is comprehensive (captures required children/attributes as SEL profiles)
 but intentionally passing (bootstrap-safe) until you tighten rules manually.
 
 Safety behavior:
@@ -419,7 +419,7 @@ plugins {
 tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
   def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
   schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
-  output 'src/main/schematron/canonical-observation.sch'
+  output 'src/main/schematron/canonical-sel.sch'
 }
 
 tasks.register('copyCanonicalXsd') {
@@ -441,45 +441,46 @@ tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBoots
 
 tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
   dependsOn tasks.named('bootstrapCanonicalSchematron')
-  schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
+  schema.set(layout.projectDirectory.file('src/main/schematron/canonical-sel.sch'))
   source 'src/main/xml/canonical.xml'
   outputDir.set(layout.buildDirectory.dir('reports/schematron'))
 }
 ```
 
-## Observation Compiler Skeleton (Phase 2)
+## SEL Compiler Skeleton (Phase 2)
 
-`SchematronSelCompileTask` compiles `obs:*` rule metadata into an extraction stylesheet skeleton
+`SchematronSelCompileTask` compiles `sel:*` rule metadata into an extraction stylesheet skeleton
 with grouped `xsl:result-document` outputs.
 
 ```groovy
-tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
-  schema 'src/main/schematron/observations.sch'
-  output 'build/generated/observation/observations.xsl'
-  groupOutput 'knowledge', 'observations/knowledge.xml'
-  groupOutput 'terminology', 'observations/terminology.xml'
-  groupOutput 'architecture', 'observations/architecture.xml'
+tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+  schema 'src/main/schematron/sel.sch'
+  output 'build/generated/sel/sel.xsl'
+  groupOutput 'knowledge', 'sel/knowledge.xml'
+  groupOutput 'terminology', 'sel/terminology.xml'
+  groupOutput 'architecture', 'sel/architecture.xml'
 }
 ```
 
-## Observation Runtime Extraction (Phase 3)
+## SEL Runtime Extraction (Phase 3)
 
-`SchematronExtractTask` executes observation extraction against canonical XML and emits grouped outputs.
+`SchematronSelExtractTask` executes SEL extraction against canonical XML, XIR (`.xir`), or canonical JSON (`.json`) inputs and emits grouped outputs.
 It can either:
 
 - compile extraction style on the fly from `schema`, or
 - consume a precompiled style via `style`.
 
 ```groovy
-tasks.register('extractObservations', name.jurgenei.gradle.xml.SchematronExtractTask) {
-  schema 'src/main/schematron/observations.sch'
+tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+  schema 'src/main/schematron/sel.sch'
   // Optional if precompiled by SchematronSelCompileTask:
-  // style 'build/generated/observation/observations.xsl'
+  // style 'build/generated/sel/sel.xsl'
   source(fileTree('src/main/xml') { include '**/*.xml' })
-  outputDir.set(layout.buildDirectory.dir('reports/observations'))
-  groupOutput 'knowledge', 'observations/knowledge.xml'
-  groupOutput 'terminology', 'observations/terminology.xml'
-  groupOutput 'architecture', 'observations/architecture.xml'
+  outputDir.set(layout.buildDirectory.dir('reports/sel'))
+  groupOutput 'knowledge', 'sel/knowledge.xml'
+  groupOutput 'terminology', 'sel/terminology.xml'
+  groupOutput 'architecture', 'sel/architecture.xml'
+  jsonMode.set('auto')
   failOnError.set(true)
 }
 ```
@@ -574,9 +575,10 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 Runnable minimal examples are available under `samples/`:
 
 - `samples/xslt-basic`
-- `samples/s-xslt-sexpr-identity`
+- `samples/s-xslt-xir-identity`
 - `samples/xquery-basic`
-- `samples/s-xquery-sexpr-identity`
+- `samples/s-xquery-xir-identity`
+- `samples/sel-multi-canonical`
 - `samples/s-xsd`
 - `samples/s-schematron`
 - `samples/validation-basic`
@@ -594,7 +596,7 @@ JUnit 4 with Gradle TestKit for functional integration testing:
 ./gradlew test --tests '*XsdTaskIntegrationTest'
 ./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelCompileTaskIntegrationTest'
-./gradlew test --tests '*SchematronExtractTaskIntegrationTest'
+./gradlew test --tests '*SchematronSelExtractTaskIntegrationTest'
 ```
 
 ### Code Style

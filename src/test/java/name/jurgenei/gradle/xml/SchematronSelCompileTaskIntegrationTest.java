@@ -21,33 +21,33 @@ public class SchematronSelCompileTaskIntegrationTest {
     public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     @Test
-    public void compilesObservationStylesheetSkeletonFromAnnotatedRules() throws Exception {
-        write("settings.gradle", "rootProject.name = 'schematron-obs-compile'\n");
+    public void compilesSelStylesheetSkeletonFromAnnotatedRules() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-compile'\n");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
 
-            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
-              schema 'src/main/schematron/observations.sch'
-              output 'build/generated/observation/observations.xsl'
-              groupOutput 'knowledge', 'observations/knowledge.xml'
-              groupOutput 'architecture', 'observations/architecture.xml'
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
+              groupOutput 'knowledge', 'sel/knowledge.xml'
+              groupOutput 'architecture', 'sel/architecture.xml'
             }
             """);
 
-        write("src/main/schematron/observations.sch", """
+        write("src/main/schematron/sel.sch", """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
-                        xmlns:obs='http://jurgenei.name/observation'>
+                        xmlns:sel='http://jurgenei.name/sel'>
               <sch:pattern id='knowledge'>
                 <sch:rule context='c:Paragraph'>
-                  <sch:report test='normalize-space(.)' obs:emit='true' obs:type='paragraph' obs:group='knowledge' obs:copy='.' obs:context='ancestor::c:Section[1]/c:Title'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.' sel:context='ancestor::c:Section[1]/c:Title'>
                     Paragraph evidence
                   </sch:report>
                 </sch:rule>
               </sch:pattern>
               <sch:pattern id='architecture'>
                 <sch:rule context='c:Connector'>
-                  <sch:report test='@source and @target' obs:emit='true' obs:type='relationship-candidate' obs:group='architecture' obs:copy='.'>
+                  <sch:report test='@source and @target' sel:emit='true' sel:type='relationship-candidate' sel:group='architecture' sel:copy='.'>
                     Connector evidence
                   </sch:report>
                 </sch:rule>
@@ -57,35 +57,35 @@ public class SchematronSelCompileTaskIntegrationTest {
 
         newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileObservation")
+            .withArguments("compileSel")
             .withPluginClasspath()
             .build();
 
-        File output = new File(testProjectDir.getRoot(), "build/generated/observation/observations.xsl");
+        File output = new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl");
         String stylesheet = read(output);
 
         assertTrue(output.exists());
-        assertTrue(stylesheet.contains("obs:Observations group=\"knowledge\""));
-        assertTrue(stylesheet.contains("obs:Observations group=\"architecture\""));
-        assertTrue(stylesheet.contains("<obs:Observation type=\"paragraph\""));
-        assertTrue(stylesheet.contains("<obs:Observation type=\"relationship-candidate\""));
+        assertTrue(stylesheet.contains("sel:Observations group=\"knowledge\""));
+        assertTrue(stylesheet.contains("sel:Observations group=\"architecture\""));
+        assertTrue(stylesheet.contains("<sel:Observation type=\"paragraph\""));
+        assertTrue(stylesheet.contains("<sel:Observation type=\"relationship-candidate\""));
         assertTrue(stylesheet.contains("<xsl:copy-of select=\".\"/>"));
         assertTrue(stylesheet.contains("<xsl:copy-of select=\"ancestor::c:Section[1]/c:Title\"/>"));
     }
 
     @Test
-    public void compilesDefaultGroupWhenNoObsEmitRulesExist() throws Exception {
-        write("settings.gradle", "rootProject.name = 'schematron-obs-default'\n");
+    public void compilesDefaultGroupWhenNoSelEmitRulesExist() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-default'\n");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
 
-            tasks.register('compileObservation', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
-              schema 'src/main/schematron/observations.sch'
-              output 'build/generated/observation/observations.xsl'
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
             }
             """);
 
-        write("src/main/schematron/observations.sch", """
+        write("src/main/schematron/sel.sch", """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'>
               <sch:pattern id='noop'>
                 <sch:rule context='*'>
@@ -97,16 +97,16 @@ public class SchematronSelCompileTaskIntegrationTest {
 
         newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileObservation")
+            .withArguments("compileSel")
             .withPluginClasspath()
             .build();
 
-        File output = new File(testProjectDir.getRoot(), "build/generated/observation/observations.xsl");
+        File output = new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl");
         String stylesheet = read(output);
 
         assertTrue(output.exists());
         assertTrue(stylesheet.contains("output-default"));
-        assertTrue(stylesheet.contains("obs:Observations group=\"default\""));
+        assertTrue(stylesheet.contains("sel:Observations group=\"default\""));
     }
 
     private void write(String relativePath, String content) throws IOException {
