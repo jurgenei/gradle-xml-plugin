@@ -9,9 +9,9 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
-import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
-import name.jurgenei.xml.sexpr.SExpressionSerializer;
-import name.jurgenei.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.gradle.xml.saxon.SaxonXirResolvers;
+import name.jurgenei.xir.XirSerializer;
+import name.jurgenei.xir.XirReader;
 import net.sf.saxon.s9api.Destination;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
@@ -58,18 +58,18 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
     @Override
     protected void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception {
         Processor processor = new Processor(false);
-        SaxonSexprResolvers.configure(processor);
+        SaxonXirResolvers.configure(processor);
         XQueryCompiler compiler = processor.newXQueryCompiler();
 
         XQueryExecutable executable = compiler.compile(getQueryFile().get().getAsFile());
 
-        if (isSexprFile(outputFile)) {
+        if (isXirFile(outputFile)) {
             if (outputFile.getParentFile() != null) {
                 Files.createDirectories(outputFile.getParentFile().toPath());
             }
             try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
                 XQueryEvaluator evaluator = createEvaluator(executable, processor, inputFile, params);
-                Destination destination = new SAXDestination(new SExpressionSerializer(writer, resolveSexprOutputFormat()));
+                Destination destination = new SAXDestination(new XirSerializer(writer, resolveXirOutputFormat()));
                 evaluator.run(destination);
             }
             return;
@@ -82,7 +82,7 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
             }
             try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
                 XQueryEvaluator evaluator = createEvaluator(executable, processor, inputFile, params);
-                Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveSexprOutputFormat()));
+                Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveXirOutputFormat()));
                 evaluator.run(destination);
                 return;
             } catch (Exception e) {
@@ -110,8 +110,8 @@ public abstract class XQueryTask extends AbstractXmlTransformTask {
     }
 
     private Source sourceFor(File inputFile) {
-        if (isSexprFile(inputFile)) {
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
+        if (isXirFile(inputFile)) {
+            return new SAXSource(new XirReader(), new InputSource(inputFile.toURI().toString()));
         }
         if (useCanonicalJsonInput(inputFile)) {
             return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));

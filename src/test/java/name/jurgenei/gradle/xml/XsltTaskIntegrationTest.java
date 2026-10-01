@@ -612,17 +612,17 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
-    public void transformsSexprInputToXml() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-input-test'");
+    public void transformsXirInputToXml() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-input-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
               style 'src/main/xslt/identity.xsl'
-              source 'src/main/sexpr/input.xir'
+              source 'src/main/xir/input.xir'
               outputDir.set(layout.buildDirectory.dir('out/xslt'))
             }
             """);
-        write("src/main/sexpr/input.xir", "(book { id \"b1\" } (title \"XML\"))");
+        write("src/main/xir/input.xir", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xslt/identity.xsl", """
             <?xml version='1.0'?>
             <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
@@ -645,8 +645,8 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
-    public void resolvesSexprViaDocFunction() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-doc-sexpr-test'");
+    public void resolvesXirViaDocFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-doc-xir-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
@@ -656,8 +656,8 @@ public class XsltTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<root/>");
-        write("src/main/sexpr/lookup.xir", "(lookup (value \"from-sexpr\"))");
-        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.xir").toURI().toString();
+        write("src/main/xir/lookup.xir", "(lookup (value \"from-xir\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/xir/lookup.xir").toURI().toString();
         write("src/main/xslt/main.xsl", """
             <?xml version='1.0'?>
             <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
@@ -677,12 +677,12 @@ public class XsltTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xml"));
-        assertTrue(output.contains("<result>from-sexpr</result>"));
+        assertTrue(output.contains("<result>from-xir</result>"));
     }
 
     @Test
-    public void resolvesSexprViaCollectionFunction() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-collection-sexpr-test'");
+    public void resolvesXirViaCollectionFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-collection-xir-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
@@ -692,9 +692,9 @@ public class XsltTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<root/>");
-        write("src/main/sexpr/a.xir", "(item (name \"A\"))");
-        write("src/main/sexpr/b.xir", "(item (name \"B\"))");
-        String collectionUri = new File(testProjectDir.getRoot(), "src/main/sexpr/").toURI().toString()
+        write("src/main/xir/a.xir", "(item (name \"A\"))");
+        write("src/main/xir/b.xir", "(item (name \"B\"))");
+        String collectionUri = new File(testProjectDir.getRoot(), "src/main/xir/").toURI().toString()
             + "?select=*.xir;recurse=no";
         write("src/main/xslt/main.xsl", """
             <?xml version='1.0'?>
@@ -726,8 +726,8 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
-    public void transformsXmlToSexprOutput() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-output-test'");
+    public void transformsXmlToXirOutput() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-output-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
@@ -761,8 +761,8 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
-    public void transformsXmlToBeautifiedSexprOutput() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-output-beautified-test'");
+    public void transformsXmlToBeautifiedXirOutput() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-output-beautified-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
@@ -770,7 +770,7 @@ public class XsltTaskIntegrationTest {
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xslt'))
               outputExtension.set('.xir')
-              sexprFormat.set('beautified')
+              xirFormat.set('beautified')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
@@ -797,8 +797,8 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
-    public void failsOnUnsupportedSexprFormat() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-format-invalid-test'");
+    public void failsOnUnsupportedXirFormat() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-format-invalid-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
@@ -806,7 +806,7 @@ public class XsltTaskIntegrationTest {
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xslt'))
               outputExtension.set('.xir')
-              sexprFormat.set('invalid-mode')
+              xirFormat.set('invalid-mode')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
@@ -823,24 +823,24 @@ public class XsltTaskIntegrationTest {
             .withArguments("runXslt")
             .buildAndFail();
 
-        assertTrue(result.getOutput().contains("Unsupported sexprFormat 'invalid-mode'. Supported values: compact, beautified"));
+        assertTrue(result.getOutput().contains("Unsupported xirFormat 'invalid-mode'. Supported values: compact, beautified"));
     }
 
     @Test
-    public void roundtripsXmlThroughSexpr() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-roundtrip-test'");
+    public void roundtripsXmlThroughXir() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-roundtrip-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
-            tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+            tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
               style 'src/main/xslt/identity.xsl'
               source 'src/main/xml/input.xml'
-              outputDir.set(layout.buildDirectory.dir('out/sexpr'))
+              outputDir.set(layout.buildDirectory.dir('out/xir'))
               outputExtension.set('.xir')
             }
-            tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
-              dependsOn 'xmlToSexpr'
+            tasks.register('xirToXml', name.jurgenei.gradle.xml.XsltTask) {
+              dependsOn 'xmlToXir'
               style 'src/main/xslt/identity.xsl'
-              input 'build/out/sexpr/input.xir'
+              input 'build/out/xir/input.xir'
               output 'build/out/xml/result.xml'
             }
             """);
@@ -855,9 +855,9 @@ public class XsltTaskIntegrationTest {
         TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
-            .withArguments("sexprToXml")
+            .withArguments("xirToXml")
             .build()
-            .task(":sexprToXml")
+            .task(":xirToXml")
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
@@ -867,21 +867,21 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
-    public void roundtripsDefaultNamespaceThroughSexpr() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-default-ns-roundtrip-test'");
+    public void roundtripsDefaultNamespaceThroughXir() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-default-ns-roundtrip-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
-            tasks.register('xmlToSexpr', name.jurgenei.gradle.xml.XsltTask) {
+            tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
               style 'src/main/xslt/identity.xsl'
               source 'src/main/xml/input.xml'
-              outputDir.set(layout.buildDirectory.dir('out/sexpr'))
+              outputDir.set(layout.buildDirectory.dir('out/xir'))
               outputExtension.set('.xir')
-              sexprFormat.set('beautified')
+              xirFormat.set('beautified')
             }
-            tasks.register('sexprToXml', name.jurgenei.gradle.xml.XsltTask) {
-              dependsOn 'xmlToSexpr'
+            tasks.register('xirToXml', name.jurgenei.gradle.xml.XsltTask) {
+              dependsOn 'xmlToXir'
               style 'src/main/xslt/identity.xsl'
-              input 'build/out/sexpr/input.xir'
+              input 'build/out/xir/input.xir'
               output 'build/out/xml/result.xml'
             }
             """);
@@ -900,33 +900,33 @@ public class XsltTaskIntegrationTest {
         TaskOutcome outcome = newGradleRunner()
             .withProjectDir(testProjectDir.getRoot())
             .withPluginClasspath()
-            .withArguments("sexprToXml")
+            .withArguments("xirToXml")
             .build()
-            .task(":sexprToXml")
+            .task(":xirToXml")
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
-        String sexpr = read(new File(testProjectDir.getRoot(), "build/out/sexpr/input.xir"));
-        assertTrue(sexpr.contains("{xmlns \"http://www.w3.org/1998/Math/MathML\"}"));
+        String xir = read(new File(testProjectDir.getRoot(), "build/out/xir/input.xir"));
+        assertTrue(xir.contains("{xmlns \"http://www.w3.org/1998/Math/MathML\"}"));
         String xml = read(new File(testProjectDir.getRoot(), "build/out/xml/result.xml"));
         assertTrue(xml.contains("<math xmlns=\"http://www.w3.org/1998/Math/MathML\">"));
         assertTrue(xml.contains("<mfrac>"));
     }
 
     @Test
-    public void transformsWithSexprStylesheetAndSexprInputOutput() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xslt-sexpr-style-roundtrip-test'");
+    public void transformsWithXirStylesheetAndXirInputOutput() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-style-roundtrip-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
               style 'src/main/xslt/identity.xir'
-              source 'src/main/sexpr/input.xir'
+              source 'src/main/xir/input.xir'
               outputDir.set(layout.buildDirectory.dir('out/xslt'))
               outputExtension.set('.xir')
-              sexprFormat.set('beautified')
+              xirFormat.set('beautified')
             }
             """);
-        write("src/main/sexpr/input.xir", "(book { id \"b1\" } (title \"XML\"))");
+        write("src/main/xir/input.xir", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xslt/identity.xir", """
             (xsl:stylesheet
               { version "3.0" xmlns:xsl "http://www.w3.org/1999/XSL/Transform" }
@@ -1009,7 +1009,7 @@ public class XsltTaskIntegrationTest {
               outputDir.set(layout.buildDirectory.dir('out/xslt'))
               outputExtension.set('.json')
               jsonMode.set('canonical')
-              sexprFormat.set('beautified')
+              xirFormat.set('beautified')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");

@@ -67,14 +67,14 @@ By reducing serialization overhead while preserving structure, typing, and valid
 S-expression runtime ships inside `gradle-xml-plugin` artifact.
 
 - Internal package: `name.jurgenei.gradle.xml.xir`
-- No separate `name.jurgenei.xml:xml-sexpr` dependency required
+- No separate `name.jurgenei.xml:xml-xir` dependency required
 - S-expression parser/serializer runtime is Saxon-agnostic (`java.xml` SAX/JAXP APIs)
 
 - Input `.xir` is parsed as SAX source.
 - XSLT stylesheet may also be `.xir` (for `XsltTask.style(...)`).
 - Output `.xir` is serialized from XML result events through SAX/JAXP pipeline.
 - Saxon URI dereferencing routes `.xir` resources through the same SAX parser path for `doc()` and `collection()` calls.
-- `sexprFormat` controls output style: `compact` (default) or `beautified`.
+- `xirFormat` controls output style: `compact` (default) or `beautified`.
 
 XIR format details:
 
@@ -111,7 +111,7 @@ Internal bridge note:
 - SAX cannot represent XDM map/array/typed-atomic/xml-declaration directly.
 - Runtime uses internal `xdm:*` helper elements in URI `urn:name.jurgenei.gradle.xml:xdm` as lossless bridge between parser and serializer.
 
-`sexprFormat` is also reused for canonical JSON output formatting.
+`xirFormat` is also reused for canonical JSON output formatting.
 
 Format conventions:
 
@@ -148,7 +148,7 @@ tasks.register('xirToXml', name.jurgenei.gradle.xml.XsltTask) {
 
 - Canonical JSON maps XML element trees to JSON objects with `type`, `name`, `attributes`, `children`.
 - Canonical JSON mode is reversible for XML -> JSON -> XML roundtrips.
-- `sexprFormat` controls canonical JSON output style too: `compact` or `beautified`.
+- `xirFormat` controls canonical JSON output style too: `compact` or `beautified`.
 
 Set JSON routing mode with `jsonMode`:
 
@@ -165,7 +165,7 @@ tasks.register('xmlToJsonCanonical', name.jurgenei.gradle.xml.XsltTask) {
   outputDir.set(layout.buildDirectory.dir('out/json'))
   outputExtension.set('.json')
   jsonMode.set('canonical')
-  sexprFormat.set('beautified')
+  xirFormat.set('beautified')
 }
 
 tasks.register('jsonCanonicalToXml', name.jurgenei.gradle.xml.XsltTask) {
@@ -186,7 +186,7 @@ tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToXir") {
     source("src/main/xml/input.xml")
     outputDir.set(layout.buildDirectory.dir("out/xslt"))
     outputExtension.set(".xir")
-    sexprFormat.set("beautified")
+    xirFormat.set("beautified")
 }
 ```
 
@@ -198,7 +198,7 @@ tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
   source 'src/main/xml/input.xml'
   outputDir.set(layout.buildDirectory.dir('out/xslt'))
   outputExtension.set('.xir')
-  sexprFormat.set('beautified')
+  xirFormat.set('beautified')
 }
 ```
 

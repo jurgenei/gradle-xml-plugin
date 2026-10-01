@@ -121,15 +121,15 @@ public class XsdTaskIntegrationTest {
      * Verifies XSD validation accepts S-expression schema and data files.
      */
     @Test
-    public void validatesSexprSchemaAndData() throws IOException {
+    public void validatesXirSchemaAndData() throws IOException {
         write("settings.gradle", """
-            rootProject.name = 'xsd-sexpr-test'
+            rootProject.name = 'xsd-xir-test'
             """);
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
               schema 'src/main/xsd/schema.xir'
-              source 'src/main/sexpr/invalid.xir'
+              source 'src/main/xir/invalid.xir'
               outputDir.set(layout.buildDirectory.dir('out/xsd'))
               reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
               failOnError.set(false)
@@ -145,7 +145,7 @@ public class XsdTaskIntegrationTest {
                   (xs:sequence
                     (xs:element { name "value" type "xs:string" })))))
             """);
-        write("src/main/sexpr/invalid.xir", """
+        write("src/main/xir/invalid.xir", """
             (root
               (wrong "bad"))
             """);

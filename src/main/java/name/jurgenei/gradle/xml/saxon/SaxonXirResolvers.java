@@ -6,7 +6,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.URIResolver;
 import javax.xml.transform.sax.SAXSource;
-import name.jurgenei.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.xir.XirReader;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.lib.ResourceRequest;
 import net.sf.saxon.lib.ResourceResolver;
@@ -18,13 +18,13 @@ import org.xml.sax.InputSource;
 
 /**
  * Installs Saxon URI/resource resolvers that route {@code .xir} resources
- * through {@link SExpressionXmlReader}.
+ * through {@link XirReader}.
  */
-public final class SaxonSexprResolvers {
+public final class SaxonXirResolvers {
 
-    private static final String SEXPR_MEDIA_TYPE = "application/x-sexpr+xml";
+    private static final String SEXPR_MEDIA_TYPE = "application/x-xir+xml";
 
-    private SaxonSexprResolvers() {
+    private SaxonXirResolvers() {
     }
 
     /**
@@ -33,8 +33,8 @@ public final class SaxonSexprResolvers {
      * @param processor processor to configure
      */
     public static void configure(Processor processor) {
-        registerSexprCollectionFactory(processor.getUnderlyingConfiguration());
-        DualSexprResolver resolver = new DualSexprResolver();
+        registerXirCollectionFactory(processor.getUnderlyingConfiguration());
+        DualXirResolver resolver = new DualXirResolver();
         processor.getUnderlyingConfiguration().setResourceResolver(resolver);
     }
 
@@ -44,18 +44,18 @@ public final class SaxonSexprResolvers {
      * @param compiler compiler to configure
      */
     public static void configure(net.sf.saxon.s9api.XsltCompiler compiler) {
-        DualSexprResolver resolver = new DualSexprResolver();
+        DualXirResolver resolver = new DualXirResolver();
         compiler.setResourceResolver(resolver);
         compiler.setURIResolver(resolver);
     }
 
-    private static void registerSexprCollectionFactory(Configuration configuration) {
+    private static void registerXirCollectionFactory(Configuration configuration) {
         configuration.registerFileExtension("xir", SEXPR_MEDIA_TYPE);
         configuration.registerMediaType(SEXPR_MEDIA_TYPE, (context, details) -> {
             try {
                 Processor processor = new Processor(context.getConfiguration());
                 net.sf.saxon.om.NodeInfo node = processor.newDocumentBuilder()
-                    .build(new SAXSource(new SExpressionXmlReader(), new InputSource(details.resourceUri)))
+                    .build(new SAXSource(new XirReader(), new InputSource(details.resourceUri)))
                     .getUnderlyingNode();
                 return new SuppliedItemResource(() -> node, details.resourceUri);
             } catch (SaxonApiException ex) {
@@ -64,15 +64,15 @@ public final class SaxonSexprResolvers {
         });
     }
 
-    private static final class DualSexprResolver implements ResourceResolver, URIResolver {
+    private static final class DualXirResolver implements ResourceResolver, URIResolver {
 
         @Override
         public Source resolve(ResourceRequest request) throws XPathException {
             String candidate = chooseCandidateUri(request.uri, request.relativeUri, request.baseUri);
-            if (!isSexprReference(candidate)) {
+            if (!isXirReference(candidate)) {
                 return null;
             }
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(candidate));
+            return new SAXSource(new XirReader(), new InputSource(candidate));
         }
 
         @Override
@@ -83,10 +83,10 @@ public final class SaxonSexprResolvers {
             } catch (IllegalArgumentException ex) {
                 throw new TransformerException("Invalid URI while resolving '" + href + "' against base '" + base + "'", ex);
             }
-            if (!isSexprReference(candidate)) {
+            if (!isXirReference(candidate)) {
                 return null;
             }
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(candidate));
+            return new SAXSource(new XirReader(), new InputSource(candidate));
         }
 
         private static String chooseCandidateUri(String absoluteUri, String relativeUri, String baseUri) {
@@ -102,7 +102,7 @@ public final class SaxonSexprResolvers {
             return null;
         }
 
-        private static boolean isSexprReference(String uri) {
+        private static boolean isXirReference(String uri) {
             if (!notBlank(uri)) {
                 return false;
             }

@@ -4,10 +4,10 @@ plugins {
 
 tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
     style 'src/main/xslt/identity.xir'
-    source 'src/main/sexpr/input.xir'
+    source 'src/main/xir/input.xir'
     outputDir.set(layout.buildDirectory.dir('out/xslt'))
     outputExtension.set('.xir')
-    sexprFormat.set('beautified')
+    xirFormat.set('beautified')
 }
 
 tasks.register('verifySample') {

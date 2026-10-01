@@ -1,8 +1,8 @@
 package name.jurgenei.gradle.xml;
 
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
-import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
-import name.jurgenei.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.gradle.xml.saxon.SaxonXirResolvers;
+import name.jurgenei.xir.XirReader;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.Serializer;
@@ -245,9 +245,9 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         Files.createDirectories(base);
 
         Processor processor = new Processor(false);
-        SaxonSexprResolvers.configure(processor);
+        SaxonXirResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
-        SaxonSexprResolvers.configure(compiler);
+        SaxonXirResolvers.configure(compiler);
         XsltExecutable executable = compiler.compile(stylesheetSource(runtimeStylesheet.stylesheet().toFile()));
         XsltTransformer transformer = executable.load();
         transformer.setSource(sourceForInput(inputFile));
@@ -284,7 +284,7 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
 
     private Source sourceForInput(File inputFile) {
         if (isXirFile(inputFile)) {
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
+            return new SAXSource(new XirReader(), new InputSource(inputFile.toURI().toString()));
         }
         if (useCanonicalJsonInput(inputFile)) {
             return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
@@ -294,7 +294,7 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
 
     private Source stylesheetSource(File stylesheetFile) {
         if (isXirFile(stylesheetFile)) {
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(stylesheetFile.toURI().toString()));
+            return new SAXSource(new XirReader(), new InputSource(stylesheetFile.toURI().toString()));
         }
         return new StreamSource(stylesheetFile);
     }

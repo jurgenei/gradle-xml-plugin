@@ -4,7 +4,7 @@ plugins {
 
 tasks.register('runSXsd', name.jurgenei.gradle.xml.XsdTask) {
     schema 'src/main/xsd/schema.xir'
-    source 'src/main/sexpr/invalid.xir'
+    source 'src/main/xir/invalid.xir'
     outputDir.set(layout.buildDirectory.dir('reports/xsd'))
     reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
     engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.JAXP)

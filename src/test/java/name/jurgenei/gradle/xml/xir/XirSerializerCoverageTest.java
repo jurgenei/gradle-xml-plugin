@@ -1,14 +1,14 @@
-package name.jurgenei.gradle.xml.sexpr;
+package name.jurgenei.gradle.xml.xir;
 
-import name.jurgenei.xml.sexpr.SExpressionParser;
-import name.jurgenei.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.xir.XirParser;
+import name.jurgenei.xir.XirSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.StringReader;
 import java.io.StringWriter;
 
-public class SExpressionSerializerCoverageTest {
+public class XirSerializerCoverageTest {
 
     @Test
     public void rendersLegacyModeShapesWhenRequested() throws Exception {
@@ -21,13 +21,13 @@ public class SExpressionSerializerCoverageTest {
             """;
 
         StringWriter writer = new StringWriter();
-        SExpressionSerializer serializer = new SExpressionSerializer(
+        XirSerializer serializer = new XirSerializer(
             writer,
-            SExpressionSerializer.OutputFormat.BEAUTIFIED,
-            SExpressionSerializer.SyntaxMode.LEGACY
+            XirSerializer.OutputFormat.BEAUTIFIED,
+            XirSerializer.SyntaxMode.LEGACY
         );
 
-        new SExpressionParser().parse(new StringReader(input), serializer, serializer);
+        new XirParser().parse(new StringReader(input), serializer, serializer);
         String output = writer.toString();
 
         Assert.assertTrue(output.contains("[id \"b1\"]"));
@@ -39,10 +39,10 @@ public class SExpressionSerializerCoverageTest {
     @Test
     public void rendersEmptyCanonicalDocumentWhenNoEvents() throws Exception {
         StringWriter writer = new StringWriter();
-        SExpressionSerializer serializer = new SExpressionSerializer(
+        XirSerializer serializer = new XirSerializer(
             writer,
-            SExpressionSerializer.OutputFormat.BEAUTIFIED,
-            SExpressionSerializer.SyntaxMode.CANONICAL
+            XirSerializer.OutputFormat.BEAUTIFIED,
+            XirSerializer.SyntaxMode.CANONICAL
         );
 
         serializer.startDocument();
@@ -54,10 +54,10 @@ public class SExpressionSerializerCoverageTest {
     @Test
     public void keepsRawPiDataWhenNotTokenized() throws Exception {
         StringWriter writer = new StringWriter();
-        SExpressionSerializer serializer = new SExpressionSerializer(
+        XirSerializer serializer = new XirSerializer(
             writer,
-            SExpressionSerializer.OutputFormat.COMPACT,
-            SExpressionSerializer.SyntaxMode.CANONICAL
+            XirSerializer.OutputFormat.COMPACT,
+            XirSerializer.SyntaxMode.CANONICAL
         );
 
         serializer.startDocument();

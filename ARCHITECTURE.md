@@ -72,7 +72,7 @@ click node_transform_base "https://github.com/jurgenei/gradle-xml-plugin/blob/ma
 click node_validation_base "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/AbstractXmlValidationTask.java"
 click node_xslt_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XsltTask.java"
 click node_xquery_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XQueryTask.java"
-click node_xir_resolvers "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/saxon/SaxonSexprResolvers.java"
+click node_xir_resolvers "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/saxon/SaxonXirResolvers.java"
 click node_json_parser "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/json/JsonCanonicalParser.java"
 click node_json_reader "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/json/JsonCanonicalXmlReader.java"
 click node_json_serializer "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/json/JsonCanonicalSerializer.java"

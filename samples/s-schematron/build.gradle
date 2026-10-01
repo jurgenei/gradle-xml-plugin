@@ -5,7 +5,7 @@ plugins {
 tasks.register('runSSchematron', name.jurgenei.gradle.xml.SchematronTask) {
     schema 'src/main/schematron/rules.xir'
     transpilerStylesheet 'src/main/schematron/transpile.xsl'
-    source 'src/main/sexpr/invalid.xir'
+    source 'src/main/xir/invalid.xir'
     outputDir.set(layout.buildDirectory.dir('reports/schematron'))
     reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
     failOnError.set(false)

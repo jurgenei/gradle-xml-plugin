@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import name.jurgenei.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.xir.XirSerializer;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
@@ -124,7 +124,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     @Input
     @Optional
-    public abstract Property<String> getSexprFormat();
+    public abstract Property<String> getXirFormat();
 
     /**
      * Optional JSON mode controlling how {@code .json} input/output is routed.
@@ -166,7 +166,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public AbstractXmlTransformTask() {
         getOutputExtension().convention(".xml");
-        getSexprFormat().convention("compact");
+        getXirFormat().convention("compact");
         getJsonMode().convention("auto");
         getWorkers().convention(1);
         getFailOnError().convention(true);
@@ -232,8 +232,8 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      *
      * @param format one of {@code compact} or {@code beautified}
      */
-    public void sexprFormat(String format) {
-        getSexprFormat().set(format);
+    public void xirFormat(String format) {
+        getXirFormat().set(format);
     }
 
     /**
@@ -421,19 +421,19 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      *
      * @return serializer format to use for {@code .xir} and canonical {@code .json} output
      */
-    protected SExpressionSerializer.OutputFormat resolveSexprOutputFormat() {
-        String configured = getSexprFormat().getOrElse("compact");
+    protected XirSerializer.OutputFormat resolveXirOutputFormat() {
+        String configured = getXirFormat().getOrElse("compact");
         String normalized = configured.trim().toLowerCase(Locale.ROOT);
         if ("pretty".equals(normalized)) {
             normalized = "beautified";
         }
         if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
-            throw new GradleException("Unsupported sexprFormat '" + configured
+            throw new GradleException("Unsupported xirFormat '" + configured
                 + "'. Supported values: compact, beautified");
         }
         return "beautified".equals(normalized)
-            ? SExpressionSerializer.OutputFormat.BEAUTIFIED
-            : SExpressionSerializer.OutputFormat.COMPACT;
+            ? XirSerializer.OutputFormat.BEAUTIFIED
+            : XirSerializer.OutputFormat.COMPACT;
     }
 
     /**
@@ -461,7 +461,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      * @param file candidate file
      * @return true when file extension is {@code .xir}
      */
-    protected boolean isSexprFile(File file) {
+    protected boolean isXirFile(File file) {
         return file.getName().toLowerCase(Locale.ROOT).endsWith(".xir");
     }
 
