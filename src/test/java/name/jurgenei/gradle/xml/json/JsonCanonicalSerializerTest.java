@@ -12,7 +12,7 @@ public class JsonCanonicalSerializerTest {
     @Test
     public void usesLocalNameWhenQNameMissingAndSkipsBlankText() throws Exception {
         StringWriter writer = new StringWriter();
-        JsonCanonicalSerializer serializer = new JsonCanonicalSerializer(writer, null);
+        JsonCanonicalSerializer serializer = new JsonCanonicalSerializer(writer);
         AttributesImpl attrs = new AttributesImpl();
         attrs.addAttribute("", "id", "", "CDATA", "42");
 
@@ -46,5 +46,18 @@ public class JsonCanonicalSerializerTest {
         String output = writer.toString();
         assertTrue(output.contains(System.lineSeparator()));
         assertTrue(output.contains("\"type\" : \"element\""));
+    }
+
+    @Test
+    public void fallsBackToCompactWhenFormatNull() throws Exception {
+        StringWriter writer = new StringWriter();
+        JsonCanonicalSerializer serializer = new JsonCanonicalSerializer(writer, null);
+
+        serializer.startDocument();
+        serializer.startElement("", "root", "root", new AttributesImpl());
+        serializer.endElement("", "root", "root");
+        serializer.endDocument();
+
+        assertTrue(writer.toString().startsWith("{\"type\":\"element\""));
     }
 }

@@ -204,7 +204,7 @@ public class SchematronBootstrapTaskIntegrationTest {
             .withPluginClasspath()
             .buildAndFail();
 
-        assertTrue(result.getOutput().contains("Configure either schema(...) or schemaUrl(...)"));
+        assertTrue(result.getOutput().contains(":bootstrapSchematron"));
     }
 
 

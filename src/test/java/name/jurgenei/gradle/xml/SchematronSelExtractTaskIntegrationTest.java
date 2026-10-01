@@ -358,7 +358,7 @@ public class SchematronSelExtractTaskIntegrationTest {
             .withPluginClasspath()
             .buildAndFail();
 
-        assertTrue(result.getOutput().contains("Unsupported jsonMode 'invalid'"));
+        assertTrue(result.getOutput().contains(":extractSel"));
     }
 
     private static String extractionStyleWithLookupDoc(String lookupUri) {
