@@ -60,8 +60,11 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
      * JSON routing mode for .json SEL input files.
      */
     public enum JsonMode {
+        /** Detect mode from content and extension heuristics. */
         AUTO,
+        /** Read JSON directly as XDM maps/arrays (no canonical XML conversion). */
         NATIVE,
+        /** Convert JSON into canonical XML representation before extraction. */
         CANONICAL
     }
 
