@@ -1,5 +1,6 @@
 package name.jurgenei.gradle.xml;
 
+import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.Rule;
 import org.junit.Test;
@@ -107,6 +108,27 @@ public class SchematronSelCompileTaskIntegrationTest {
         assertTrue(output.exists());
         assertTrue(stylesheet.contains("output-default"));
         assertTrue(stylesheet.contains("sel:Observations group=\"default\""));
+    }
+
+    @Test
+    public void failsWhenSchemaPathDoesNotExist() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-missing-schema'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/missing.sch'
+              output 'build/generated/sel/sel.xsl'
+            }
+            """);
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileSel")
+            .withPluginClasspath()
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains("Schematron schema does not exist"));
     }
 
     private void write(String relativePath, String content) throws IOException {

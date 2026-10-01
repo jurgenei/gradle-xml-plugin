@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import org.gradle.testkit.runner.BuildResult;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -239,6 +240,125 @@ public class SchematronSelExtractTaskIntegrationTest {
         File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
         assertTrue(knowledge.exists());
         assertTrue(read(knowledge).contains("sel:Observation"));
+    }
+
+    @Test
+    public void supportsSourceFilesetOverload() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-extract-fileset'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source('src/main/xml') {
+                include '**/*.xml'
+              }
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+              groupOutput 'knowledge', 'sel/knowledge.xml'
+              failOnError.set(true)
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sch:pattern id='knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        write("src/main/xml/canonical.xml", """
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Body><Paragraph>Hello fileset</Paragraph></Body>
+            </Document>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .build();
+
+        File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
+        assertTrue(knowledge.exists());
+        assertTrue(read(knowledge).contains("Hello fileset"));
+    }
+
+    @Test
+    public void reportsMissingInputFiles() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-extract-missing-input'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+            }
+            """);
+        write("src/main/schematron/sel.sch", "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains("No input files configured"));
+    }
+
+    @Test
+    public void continuesWhenFailOnErrorFalseWithNativeJsonMode() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-extract-native-json'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source 'src/main/json/input.json'
+              jsonMode 'native'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+              failOnError.set(false)
+            }
+            """);
+        write("src/main/schematron/sel.sch", "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
+        write("src/main/json/input.json", "{\"message\":\"native-json\"}");
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .build();
+
+        assertTrue(result.getOutput().contains("SEL extraction failed but failOnError=false"));
+    }
+
+    @Test
+    public void failsOnUnsupportedJsonMode() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-extract-invalid-json-mode'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source 'src/main/json/input.json'
+              jsonMode 'invalid'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+            }
+            """);
+        write("src/main/schematron/sel.sch", "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
+        write("src/main/json/input.json", "{\"message\":\"invalid-json-mode\"}");
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains("Unsupported jsonMode 'invalid'"));
     }
 
     private static String extractionStyleWithLookupDoc(String lookupUri) {

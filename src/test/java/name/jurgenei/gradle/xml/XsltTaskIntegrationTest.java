@@ -797,6 +797,42 @@ public class XsltTaskIntegrationTest {
     }
 
     @Test
+    public void transformsXmlToPrettyAliasXirOutput() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xslt-xir-output-pretty-alias-test'");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+            tasks.register('runXslt', name.jurgenei.gradle.xml.XsltTask) {
+              style 'src/main/xslt/identity.xsl'
+              source 'src/main/xml/input.xml'
+              outputDir.set(layout.buildDirectory.dir('out/xslt'))
+              outputExtension.set('.xir')
+              xirFormat.set('pretty')
+            }
+            """);
+        write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
+        write("src/main/xslt/identity.xsl", """
+            <?xml version='1.0'?>
+            <xsl:stylesheet version='3.0' xmlns:xsl='http://www.w3.org/1999/XSL/Transform'>
+              <xsl:mode on-no-match='shallow-copy'/>
+            </xsl:stylesheet>
+            """);
+
+        TaskOutcome outcome = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withPluginClasspath()
+            .withArguments("runXslt")
+            .build()
+            .task(":runXslt")
+            .getOutcome();
+
+        assertEquals(TaskOutcome.SUCCESS, outcome);
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xslt/input.xir"));
+        assertTrue(output.contains("(book"));
+        assertTrue(output.contains("{id \"b1\"}"));
+        assertTrue(output.contains("(title \"XML\")"));
+    }
+
+    @Test
     public void failsOnUnsupportedXirFormat() throws IOException {
         write("settings.gradle", "rootProject.name = 'xslt-xir-format-invalid-test'");
         write("build.gradle", """
