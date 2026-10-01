@@ -6,7 +6,7 @@ plugins {
 tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
     def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
     schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
-    output 'src/main/schematron/canonical-observation.sch'
+    output 'src/main/schematron/canonical-sel.sch'
 }
 
 tasks.register('copyCanonicalXsd') {
@@ -28,7 +28,7 @@ tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBoots
 
 tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
     dependsOn tasks.named('bootstrapCanonicalSchematron')
-    schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
+    schema.set(layout.projectDirectory.file('src/main/schematron/canonical-sel.sch'))
     source(fileTree('src/main/xml') {
         include '**/*.xml'
     })
@@ -42,9 +42,8 @@ tasks.register('verifySample') {
     dependsOn tasks.named('bootstrapFromLocalXsd')
     dependsOn tasks.named('validateCanonicalSchematron')
     doLast {
-        assert file('src/main/schematron/canonical-observation.sch').exists()
+        assert file('src/main/schematron/canonical-sel.sch').exists()
         assert file('src/main/schematron/canonical-local.sch').exists()
         assert file('build/reports/schematron/canonical.svrl.xml').exists()
     }
 }
-

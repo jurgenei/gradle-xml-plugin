@@ -17,7 +17,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
+import name.jurgenei.gradle.xml.saxon.SaxonXirResolvers;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.Serializer;
@@ -332,9 +332,9 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
         File compiledFile = resolveCompiledStylesheet(transpilerParameters);
 
         Processor processor = new Processor(false);
-        SaxonSexprResolvers.configure(processor);
+        SaxonXirResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
-        SaxonSexprResolvers.configure(compiler);
+        SaxonXirResolvers.configure(compiler);
         XsltExecutable executable = compiler.compile(new StreamSource(compiledFile));
         XsltTransformer validator = executable.load();
         validator.setSource(sourceForValidation(inputFile));
@@ -403,9 +403,9 @@ public abstract class SchematronTask extends AbstractXmlValidationTask {
 
         Source transpiler = loadTranspilerSource();
         Processor processor = new Processor(false);
-        SaxonSexprResolvers.configure(processor);
+        SaxonXirResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
-        SaxonSexprResolvers.configure(compiler);
+        SaxonXirResolvers.configure(compiler);
 
         for (Map.Entry<String, Object> entry : transpilerParameters.entrySet()) {
             String localName = localNameFromClarkName(entry.getKey());

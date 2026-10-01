@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import name.jurgenei.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.xir.XirSerializer;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
@@ -116,7 +116,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getOutputMethod();
 
     /**
-     * Optional S-expression output format used when writing {@code .sexpr} files.
+     * Optional XIR output format used when writing {@code .xir} files.
      *
      * <p>Supported values are {@code compact} (default) and {@code beautified}.</p>
      *
@@ -124,7 +124,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     @Input
     @Optional
-    public abstract Property<String> getSexprFormat();
+    public abstract Property<String> getXirFormat();
 
     /**
      * Optional JSON mode controlling how {@code .json} input/output is routed.
@@ -166,7 +166,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     public AbstractXmlTransformTask() {
         getOutputExtension().convention(".xml");
-        getSexprFormat().convention("compact");
+        getXirFormat().convention("compact");
         getJsonMode().convention("auto");
         getWorkers().convention(1);
         getFailOnError().convention(true);
@@ -232,8 +232,8 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      *
      * @param format one of {@code compact} or {@code beautified}
      */
-    public void sexprFormat(String format) {
-        getSexprFormat().set(format);
+    public void xirFormat(String format) {
+        getXirFormat().set(format);
     }
 
     /**
@@ -419,21 +419,21 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     /**
      * Resolves S-expression serializer format from explicit task setting.
      *
-     * @return serializer format to use for {@code .sexpr} and canonical {@code .json} output
+     * @return serializer format to use for {@code .xir} and canonical {@code .json} output
      */
-    protected SExpressionSerializer.OutputFormat resolveSexprOutputFormat() {
-        String configured = getSexprFormat().getOrElse("compact");
+    protected XirSerializer.OutputFormat resolveXirOutputFormat() {
+        String configured = getXirFormat().getOrElse("compact");
         String normalized = configured.trim().toLowerCase(Locale.ROOT);
         if ("pretty".equals(normalized)) {
             normalized = "beautified";
         }
         if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
-            throw new GradleException("Unsupported sexprFormat '" + configured
+            throw new GradleException("Unsupported xirFormat '" + configured
                 + "'. Supported values: compact, beautified");
         }
         return "beautified".equals(normalized)
-            ? SExpressionSerializer.OutputFormat.BEAUTIFIED
-            : SExpressionSerializer.OutputFormat.COMPACT;
+            ? XirSerializer.OutputFormat.BEAUTIFIED
+            : XirSerializer.OutputFormat.COMPACT;
     }
 
     /**
@@ -459,10 +459,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      * Checks whether file extension matches S-expression input/output.
      *
      * @param file candidate file
-     * @return true when file extension is {@code .sexpr}
+     * @return true when file extension is {@code .xir}
      */
-    protected boolean isSexprFile(File file) {
-        return file.getName().toLowerCase(Locale.ROOT).endsWith(".sexpr");
+    protected boolean isXirFile(File file) {
+        return file.getName().toLowerCase(Locale.ROOT).endsWith(".xir");
     }
 
     /**
@@ -584,5 +584,4 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     protected abstract void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception;
 }
-
 

@@ -1,0 +1,64 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+    schema 'src/main/schematron/sel.sch'
+    output 'build/generated/sel/sel.xsl'
+    groupOutput 'knowledge', 'sel/knowledge.xml'
+    groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+}
+
+tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+    dependsOn tasks.named('compileSel')
+    schema 'src/main/schematron/sel.sch'
+    style 'build/generated/sel/sel.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/sel'))
+    groupOutput 'knowledge', 'sel/knowledge.xml'
+    groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'extractSel'
+    doLast {
+        List<File> expected = [
+            file('build/generated/sel/sel.xsl'),
+            file('build/out/sel/canonical-order/sel/knowledge.xml'),
+            file('build/out/sel/canonical-order/sel/architecture.xml'),
+            file('build/out/sel/canonical-order/sel/terminology.xml'),
+            file('build/out/sel/canonical-integration/sel/knowledge.xml'),
+            file('build/out/sel/canonical-integration/sel/architecture.xml'),
+            file('build/out/sel/canonical-integration/sel/terminology.xml'),
+            file('build/out/sel/canonical-glossary/sel/knowledge.xml'),
+            file('build/out/sel/canonical-glossary/sel/architecture.xml'),
+            file('build/out/sel/canonical-glossary/sel/terminology.xml')
+        ]
+
+        List<File> missing = expected.findAll { !it.exists() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing expected sample outputs:\n - ${missing.join('\n - ')}")
+        }
+
+        String orderKnowledge = file('build/out/sel/canonical-order/sel/knowledge.xml').text
+        String integrationArchitecture = file('build/out/sel/canonical-integration/sel/architecture.xml').text
+        String glossaryTerminology = file('build/out/sel/canonical-glossary/sel/terminology.xml').text
+
+        assert orderKnowledge.contains('sel:Observation')
+        assert orderKnowledge.contains('type="paragraph"')
+        assert orderKnowledge.contains('<Paragraph') || orderKnowledge.contains('<c:Paragraph')
+        assert orderKnowledge.contains('document="canonical-order.xml"')
+
+        assert integrationArchitecture.contains('type="relationship-candidate"')
+        assert integrationArchitecture.contains('<Connector') || integrationArchitecture.contains('<c:Connector')
+        assert integrationArchitecture.contains('source="sap"')
+        assert integrationArchitecture.contains('target="crm"')
+
+        assert glossaryTerminology.contains('type="term"')
+        assert glossaryTerminology.contains('<Term') || glossaryTerminology.contains('<c:Term')
+        assert glossaryTerminology.contains('name="Master Data"')
+    }
+}

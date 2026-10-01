@@ -412,17 +412,17 @@ public class XQueryTaskIntegrationTest {
     }
 
     @Test
-    public void transformsSexprInputWithXQuery() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xquery-sexpr-input-test'");
+    public void transformsXirInputWithXQuery() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-xir-input-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
-              source 'src/main/sexpr/input.sexpr'
+              source 'src/main/xir/input.xir'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
             }
             """);
-        write("src/main/sexpr/input.sexpr", "(book { id \"b1\" } (title \"XML\"))");
+        write("src/main/xir/input.xir", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
         TaskOutcome outcome = newGradleRunner()
@@ -439,8 +439,8 @@ public class XQueryTaskIntegrationTest {
     }
 
     @Test
-    public void resolvesSexprViaDocFunction() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xquery-doc-sexpr-test'");
+    public void resolvesXirViaDocFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-doc-xir-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
@@ -450,8 +450,8 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<root/>");
-        write("src/main/sexpr/lookup.sexpr", "(lookup (value \"from-sexpr\"))");
-        String lookupUri = new File(testProjectDir.getRoot(), "src/main/sexpr/lookup.sexpr").toURI().toString();
+        write("src/main/xir/lookup.xir", "(lookup (value \"from-xir\"))");
+        String lookupUri = new File(testProjectDir.getRoot(), "src/main/xir/lookup.xir").toURI().toString();
         write("src/main/xquery/main.xq", """
             <result>{ doc("%s")/lookup/value/text() }</result>
             """.formatted(lookupUri));
@@ -466,12 +466,12 @@ public class XQueryTaskIntegrationTest {
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xml"));
-        assertTrue(output.contains("<result>from-sexpr</result>"));
+        assertTrue(output.contains("<result>from-xir</result>"));
     }
 
     @Test
-    public void resolvesSexprViaCollectionFunction() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xquery-collection-sexpr-test'");
+    public void resolvesXirViaCollectionFunction() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-collection-xir-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
@@ -481,10 +481,10 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<root/>");
-        write("src/main/sexpr/a.sexpr", "(item (name \"A\"))");
-        write("src/main/sexpr/b.sexpr", "(item (name \"B\"))");
-        String collectionUri = new File(testProjectDir.getRoot(), "src/main/sexpr/").toURI().toString()
-            + "?select=*.sexpr;recurse=no";
+        write("src/main/xir/a.xir", "(item (name \"A\"))");
+        write("src/main/xir/b.xir", "(item (name \"B\"))");
+        String collectionUri = new File(testProjectDir.getRoot(), "src/main/xir/").toURI().toString()
+            + "?select=*.xir;recurse=no";
         write("src/main/xquery/main.xq", """
             let $docs := collection("%s")/item
             return <result count="{count($docs)}">{ for $d in $docs return <name>{$d/name/text()}</name> }</result>
@@ -506,15 +506,15 @@ public class XQueryTaskIntegrationTest {
     }
 
     @Test
-    public void writesSexprOutputWithXQuery() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xquery-sexpr-output-test'");
+    public void writesXirOutputWithXQuery() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-xir-output-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
-              outputExtension.set('.sexpr')
+              outputExtension.set('.xir')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
@@ -529,23 +529,23 @@ public class XQueryTaskIntegrationTest {
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
-        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xir"));
         assertTrue(output.contains("(book"));
         assertTrue(output.contains("{id \"b1\"}"));
         assertTrue(output.contains("(title \"XML\")"));
     }
 
     @Test
-    public void writesBeautifiedSexprOutputWithXQuery() throws IOException {
-        write("settings.gradle", "rootProject.name = 'xquery-sexpr-output-beautified-test'");
+    public void writesBeautifiedXirOutputWithXQuery() throws IOException {
+        write("settings.gradle", "rootProject.name = 'xquery-xir-output-beautified-test'");
         write("build.gradle", """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
-              outputExtension.set('.sexpr')
-              sexprFormat.set('beautified')
+              outputExtension.set('.xir')
+              xirFormat.set('beautified')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
@@ -560,7 +560,7 @@ public class XQueryTaskIntegrationTest {
             .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
-        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.sexpr"));
+        String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xir"));
         assertTrue(output.contains("(book"));
         assertTrue(output.contains("{id \"b1\"}"));
         assertTrue(output.contains("(title \"XML\")"));
@@ -621,7 +621,7 @@ public class XQueryTaskIntegrationTest {
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
               outputExtension.set('.json')
               jsonMode.set('canonical')
-              sexprFormat.set('beautified')
+              xirFormat.set('beautified')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");

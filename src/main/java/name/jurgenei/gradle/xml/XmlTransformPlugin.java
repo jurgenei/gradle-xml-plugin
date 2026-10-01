@@ -8,8 +8,8 @@ import org.gradle.api.Project;
  *
  * <p>The plugin does not add tasks automatically; consumers register task types explicitly,
  * including {@link XsltTask}, {@link XQueryTask}, {@link SchematronTask}, {@link XsdTask},
- * {@link SchematronBootstrapTask}, {@link SchematronObservationCompileTask}, and
- * {@link SchematronExtractTask}.</p>
+ * {@link SchematronBootstrapTask}, {@link SchematronSelCompileTask}, and
+ * {@link SchematronSelExtractTask}.</p>
  */
 public class XmlTransformPlugin implements Plugin<Project> {
     /**
@@ -28,4 +28,3 @@ public class XmlTransformPlugin implements Plugin<Project> {
         // Task types are available by class once the plugin is applied.
     }
 }
-

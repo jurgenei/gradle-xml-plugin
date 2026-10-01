@@ -12,7 +12,7 @@ import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import name.jurgenei.xml.sexpr.SExpressionSerializer;
+import name.jurgenei.xir.XirSerializer;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
@@ -26,7 +26,7 @@ public final class JsonCanonicalSerializer implements ContentHandler {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final Writer writer;
-    private final SExpressionSerializer.OutputFormat format;
+    private final XirSerializer.OutputFormat format;
     private final Deque<ElementFrame> stack = new ArrayDeque<>();
 
     /**
@@ -35,7 +35,7 @@ public final class JsonCanonicalSerializer implements ContentHandler {
      * @param writer destination writer
      */
     public JsonCanonicalSerializer(Writer writer) {
-        this(writer, SExpressionSerializer.OutputFormat.COMPACT);
+        this(writer, XirSerializer.OutputFormat.COMPACT);
     }
 
     /**
@@ -44,9 +44,9 @@ public final class JsonCanonicalSerializer implements ContentHandler {
      * @param writer destination writer
      * @param format compact or beautified output
      */
-    public JsonCanonicalSerializer(Writer writer, SExpressionSerializer.OutputFormat format) {
+    public JsonCanonicalSerializer(Writer writer, XirSerializer.OutputFormat format) {
         this.writer = writer;
-        this.format = format == null ? SExpressionSerializer.OutputFormat.COMPACT : format;
+        this.format = format == null ? XirSerializer.OutputFormat.COMPACT : format;
     }
 
     @Override
@@ -125,7 +125,7 @@ public final class JsonCanonicalSerializer implements ContentHandler {
     private void writeRoot(ElementFrame frame) throws SAXException {
         try {
             ObjectNode root = toElementNode(frame);
-            if (format == SExpressionSerializer.OutputFormat.BEAUTIFIED) {
+            if (format == XirSerializer.OutputFormat.BEAUTIFIED) {
                 writer.write(MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root));
             } else {
                 writer.write(MAPPER.writeValueAsString(root));

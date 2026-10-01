@@ -6,7 +6,7 @@
         <Bug pattern="EI_EXPOSE_REP"/>
     </Match>
     <Match>
-        <Class name="name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader"/>
+        <Class name="name.jurgenei.gradle.xml.xir.XirReader"/>
         <Bug pattern="EI_EXPOSE_REP"/>
     </Match>
     <Match>
@@ -14,7 +14,7 @@
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
     <Match>
-        <Class name="name.jurgenei.gradle.xml.sexpr.SExpressionSerializer"/>
+        <Class name="name.jurgenei.gradle.xml.xir.XirSerializer"/>
         <Bug pattern="EI_EXPOSE_REP2"/>
     </Match>
 
@@ -52,14 +52,14 @@
         <Bug pattern="URLCONNECTION_SSRF_FD"/>
     </Match>
     <Match>
-        <Class name="name.jurgenei.gradle.xml.sexpr.SExpressionXmlReader"/>
+        <Class name="name.jurgenei.gradle.xml.xir.XirReader"/>
         <Method name="openReader"/>
         <Bug pattern="URLCONNECTION_SSRF_FD"/>
     </Match>
 
     <!-- XML fragments escaped before append; FindSecBugs cannot infer sanitizer flow here. -->
     <Match>
-        <Class name="name.jurgenei.gradle.xml.ObservationStylesheetCompiler"/>
+        <Class name="name.jurgenei.gradle.xml.SelStylesheetCompiler"/>
         <Method name="render"/>
         <Bug pattern="POTENTIAL_XML_INJECTION"/>
     </Match>

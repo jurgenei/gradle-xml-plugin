@@ -20,7 +20,7 @@ plugins {
 }
 
 group = "name.jurgenei.gradle"
-version = "0.1.12"
+version = "0.1.13"
 
 repositories {
     mavenCentral()
@@ -158,12 +158,12 @@ extensions.getByName("sonar").withGroovyBuilder {
 dependencies {
     constraints {
         add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.4")
-        add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.4.4")
-        add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
+        add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.5-beta3")
+        add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.5-beta3")
     }
 
     add("implementation", "net.sf.saxon:Saxon-HE:13.0")
-    add("implementation", "name.jurgenei:xml-sax-sexpr:0.1.0")
+    add("implementation", "name.jurgenei:xir-sax:0.1.2")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.3")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
     add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
@@ -239,22 +239,22 @@ tasks.register("allSecurityChecks") {
     }
 }
 
-tasks.register<Exec>("verifyXsltSexprSample") {
+tasks.register<Exec>("verifyXsltXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xslt-sexpr-identity sample."
+    description = "Runs smoke verification for s-xslt-xir-identity sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xslt-sexpr-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/s-xslt-xir-identity", "verifySample")
 }
 
-tasks.register<Exec>("verifyXquerySexprSample") {
+tasks.register<Exec>("verifyXqueryXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xquery-sexpr-identity sample."
+    description = "Runs smoke verification for s-xquery-xir-identity sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xquery-sexpr-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/s-xquery-xir-identity", "verifySample")
 }
 
-tasks.register("verifySexprSample") {
+tasks.register("verifyXirSample") {
     group = "verification"
-    description = "Runs S-expression sample smoke tests."
-    dependsOn("verifyXsltSexprSample", "verifyXquerySexprSample")
+    description = "Runs XIR sample smoke tests."
+    dependsOn("verifyXsltXirSample", "verifyXqueryXirSample")
 }

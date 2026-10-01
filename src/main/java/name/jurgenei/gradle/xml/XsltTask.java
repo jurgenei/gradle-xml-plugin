@@ -9,9 +9,9 @@ import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import name.jurgenei.gradle.xml.json.JsonCanonicalSerializer;
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
-import name.jurgenei.gradle.xml.saxon.SaxonSexprResolvers;
-import name.jurgenei.xml.sexpr.SExpressionSerializer;
-import name.jurgenei.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.gradle.xml.saxon.SaxonXirResolvers;
+import name.jurgenei.xir.XirSerializer;
+import name.jurgenei.xir.XirReader;
 import net.sf.saxon.s9api.Destination;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
@@ -58,20 +58,20 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
     @Override
     protected void transform(File inputFile, File outputFile, Map<String, String> params) throws SaxonApiException {
         Processor processor = new Processor(false);
-        SaxonSexprResolvers.configure(processor);
+        SaxonXirResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
-        SaxonSexprResolvers.configure(compiler);
+        SaxonXirResolvers.configure(compiler);
 
         XsltExecutable executable = compiler.compile(stylesheetSource());
 
-        if (isSexprFile(outputFile)) {
+        if (isXirFile(outputFile)) {
             try {
                 if (outputFile.getParentFile() != null) {
                     Files.createDirectories(outputFile.getParentFile().toPath());
                 }
                 try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
                     XsltTransformer transformer = createTransformer(executable, inputFile, params);
-                    Destination destination = new SAXDestination(new SExpressionSerializer(writer, resolveSexprOutputFormat()));
+                    Destination destination = new SAXDestination(new XirSerializer(writer, resolveXirOutputFormat()));
                     transformer.setDestination(destination);
                     transformer.transform();
                 }
@@ -89,7 +89,7 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
                 }
                 try (java.io.Writer writer = Files.newBufferedWriter(outputFile.toPath(), StandardCharsets.UTF_8)) {
                     XsltTransformer transformer = createTransformer(executable, inputFile, params);
-                    Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveSexprOutputFormat()));
+                    Destination destination = new SAXDestination(new JsonCanonicalSerializer(writer, resolveXirOutputFormat()));
                     transformer.setDestination(destination);
                     transformer.transform();
                 }
@@ -118,8 +118,8 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
     }
 
     private Source sourceFor(File inputFile) {
-        if (isSexprFile(inputFile)) {
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(inputFile.toURI().toString()));
+        if (isXirFile(inputFile)) {
+            return new SAXSource(new XirReader(), new InputSource(inputFile.toURI().toString()));
         }
         if (useCanonicalJsonInput(inputFile)) {
             return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
@@ -129,8 +129,8 @@ public abstract class XsltTask extends AbstractXmlTransformTask {
 
     private Source stylesheetSource() {
         File stylesheetFile = getStylesheet().get().getAsFile();
-        if (isSexprFile(stylesheetFile)) {
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(stylesheetFile.toURI().toString()));
+        if (isXirFile(stylesheetFile)) {
+            return new SAXSource(new XirReader(), new InputSource(stylesheetFile.toURI().toString()));
         }
         return new StreamSource(stylesheetFile);
     }

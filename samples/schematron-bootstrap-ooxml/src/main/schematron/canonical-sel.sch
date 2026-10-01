@@ -3,8 +3,8 @@
             xmlns:c="http://jurgenei.name/canonical">
   <sch:title>Bootstrap SEL Schematron</sch:title>
   <sch:ns prefix="c" uri="http://jurgenei.name/canonical"/>
-  <sch:p>generated-from: file:/Users/cs79en/Developer/GitHub/gradle/gradle-xml-plugin/samples/schematron-bootstrap-ooxml/src/main/xsd/canonical.local.xsd</sch:p>
-  <sch:p>generated-at: 2026-08-09T07:06:48.816643Z</sch:p>
+  <sch:p>generated-from: jar:file:/Users/cs79en/.gradle/caches/9.5.1/transforms/88de0ea317e9da9d918d0b28dae3cd41/transformed/original/gradle-ooxml-plugin-0.1.0-SNAPSHOT.jar!/schema/canonical.xsd</sch:p>
+  <sch:p>generated-at: 2026-08-09T07:06:48.747575Z</sch:p>
 
   <sch:pattern id="sel-Document">
     <sch:title>Document SEL</sch:title>

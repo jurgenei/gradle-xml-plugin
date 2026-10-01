@@ -32,7 +32,7 @@ public class SchematronBootstrapTaskIntegrationTest {
 
             tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
               schemaUrl(file('src/main/xsd/canonical.xsd').toURI().toString())
-              output 'src/main/schematron/canonical-observation.sch'
+              output 'src/main/schematron/canonical-sel.sch'
             }
 
             tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
@@ -42,7 +42,7 @@ public class SchematronBootstrapTaskIntegrationTest {
 
             tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
               dependsOn tasks.named('bootstrapCanonicalSchematron')
-              schema.set(layout.projectDirectory.file('src/main/schematron/canonical-observation.sch'))
+              schema.set(layout.projectDirectory.file('src/main/schematron/canonical-sel.sch'))
               source 'src/main/xml/canonical.xml'
               outputDir.set(layout.buildDirectory.dir('out/schematron'))
               reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
@@ -86,14 +86,14 @@ public class SchematronBootstrapTaskIntegrationTest {
             .withPluginClasspath()
             .build();
 
-        File generatedSch = new File(testProjectDir.getRoot(), "src/main/schematron/canonical-observation.sch");
+        File generatedSch = new File(testProjectDir.getRoot(), "src/main/schematron/canonical-sel.sch");
         File localSch = new File(testProjectDir.getRoot(), "src/main/schematron/canonical-local.sch");
         File svrl = new File(testProjectDir.getRoot(), "build/out/schematron/canonical.svrl.xml");
 
         assertTrue(generatedSch.exists());
         assertTrue(localSch.exists());
         assertTrue(svrl.exists());
-        assertTrue(read(generatedSch).contains("Bootstrap observation Schematron"));
+        assertTrue(read(generatedSch).contains("Bootstrap SEL Schematron"));
         assertTrue(!read(svrl).contains("failed-assert"));
     }
 
@@ -126,6 +126,85 @@ public class SchematronBootstrapTaskIntegrationTest {
         File output = new File(testProjectDir.getRoot(), "src/main/schematron/rules.sch");
         assertTrue(read(output).contains("<sentinel/>"));
         assertTrue(result.getOutput().contains("Schematron bootstrap skipped"));
+    }
+
+    @Test
+    public void emitsSelProfilesForNamedAndInlineComplexTypes() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-bootstrap-sel-profiles'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('bootstrapSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
+              schema 'src/main/xsd/schema.xsd'
+              output 'build/generated/schematron/generated.sch'
+            }
+            """);
+
+        write("src/main/xsd/schema.xsd", """
+            <?xml version='1.0' encoding='UTF-8'?>
+            <xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'
+                       xmlns:tns='http://example.com/sample'
+                       targetNamespace='http://example.com/sample'
+                       elementFormDefault='qualified'>
+              <xs:attribute name='requiredRef'/>
+              <xs:element name='Item' type='xs:string'/>
+
+              <xs:complexType name='OrderType'>
+                <xs:sequence>
+                  <xs:element ref='tns:Item' minOccurs='oops'/>
+                  <xs:element name='Note' minOccurs='0'/>
+                </xs:sequence>
+                <xs:attribute name='requiredName' use='required'/>
+                <xs:attribute ref='tns:requiredRef' use='required'/>
+              </xs:complexType>
+
+              <xs:element name='Order' type='tns:OrderType'/>
+              <xs:element name='Inline'>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name='Child' minOccurs='0'/>
+                  </xs:sequence>
+                  <xs:attribute name='inlineRequired' use='required'/>
+                </xs:complexType>
+              </xs:element>
+            </xs:schema>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("bootstrapSchematron")
+            .withPluginClasspath()
+            .build();
+
+        String generated = read(new File(testProjectDir.getRoot(), "build/generated/schematron/generated.sch"));
+        assertTrue(generated.contains("id=\"sel-Order\""));
+        assertTrue(generated.contains("id=\"sel-Inline\""));
+        assertTrue(generated.contains("<sch:title>Order SEL</sch:title>"));
+        assertTrue(generated.contains("required-children: Item"));
+        assertTrue(generated.contains("optional-children: Note"));
+        assertTrue(generated.contains("optional-children: Child"));
+        assertTrue(generated.contains("required-attributes: requiredName, requiredRef"));
+        assertTrue(generated.contains("required-attributes: inlineRequired"));
+    }
+
+    @Test
+    public void failsWhenNeitherSchemaFileNorSchemaUrlConfigured() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-bootstrap-missing-source'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('bootstrapSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
+              output 'build/generated/schematron/generated.sch'
+            }
+            """);
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("bootstrapSchematron")
+            .withPluginClasspath()
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains(":bootstrapSchematron"));
     }
 
 

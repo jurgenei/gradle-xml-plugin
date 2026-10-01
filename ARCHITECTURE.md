@@ -23,7 +23,7 @@ subgraph group_validation["Validation Runtime"]
 end
 
 subgraph group_formats["Formats Reporting"]
-  node_sexpr_resolvers["S-expression Bridge"]
+  node_xir_resolvers["XIR Bridge"]
   node_json_parser["Canonical JSON Parser"]
   node_json_reader["Canonical JSON Reader"]
   node_json_serializer["Canonical JSON Serializer"]
@@ -31,8 +31,8 @@ end
 
 subgraph group_schematron["Schematron Tools"]
   node_bootstrap_task["Schematron Bootstrap"]
-  node_observation_compile["Observation Compiler"]
-  node_observation_extract["Observation Extractor"]
+  node_sel_compile["SEL Compiler"]
+  node_sel_extract["SEL Extractor"]
 end
 
 node_gradle_build(("Gradle Build"))
@@ -42,14 +42,14 @@ node_gradle_build -->|"applies"| node_xml_plugin
 node_xml_plugin -->|"configures"| node_transform_base
 node_xml_plugin -->|"configures"| node_validation_base
 node_xml_plugin -->|"registers"| node_bootstrap_task
-node_xml_plugin -->|"registers"| node_observation_compile
-node_xml_plugin -->|"registers"| node_observation_extract
+node_xml_plugin -->|"registers"| node_sel_compile
+node_xml_plugin -->|"registers"| node_sel_extract
 node_transform_base -->|"dispatches"| node_xslt_task
 node_transform_base -->|"dispatches"| node_xquery_task
 node_xslt_task -->|"executes with"| node_saxon_runtime
 node_xquery_task -->|"executes with"| node_saxon_runtime
-node_xslt_task -->|"resolves"| node_sexpr_resolvers
-node_xquery_task -->|"resolves"| node_sexpr_resolvers
+node_xslt_task -->|"resolves"| node_xir_resolvers
+node_xquery_task -->|"resolves"| node_xir_resolvers
 node_xslt_task -->|"reads JSON"| node_json_reader
 node_xquery_task -->|"reads JSON"| node_json_reader
 node_json_reader -->|"parses"| node_json_parser
@@ -64,15 +64,15 @@ node_schematron_task -->|"normalizes findings"| node_svrl_support
 node_xsd_task -->|"normalizes findings"| node_svrl_support
 node_svrl_support -->|"writes reports"| node_generated_outputs
 node_bootstrap_task -->|"writes schema"| node_generated_outputs
-node_observation_compile -->|"writes skeleton"| node_generated_outputs
-node_observation_extract -->|"writes observations"| node_generated_outputs
+node_sel_compile -->|"writes skeleton"| node_generated_outputs
+node_sel_extract -->|"writes SEL"| node_generated_outputs
 
 click node_xml_plugin "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XmlTransformPlugin.java"
 click node_transform_base "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/AbstractXmlTransformTask.java"
 click node_validation_base "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/AbstractXmlValidationTask.java"
 click node_xslt_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XsltTask.java"
 click node_xquery_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XQueryTask.java"
-click node_sexpr_resolvers "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/saxon/SaxonSexprResolvers.java"
+click node_xir_resolvers "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/saxon/SaxonXirResolvers.java"
 click node_json_parser "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/json/JsonCanonicalParser.java"
 click node_json_reader "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/json/JsonCanonicalXmlReader.java"
 click node_json_serializer "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/json/JsonCanonicalSerializer.java"
@@ -81,8 +81,8 @@ click node_svrl_support "https://github.com/jurgenei/gradle-xml-plugin/blob/main
 click node_schematron_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronTask.java"
 click node_xsd_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/XsdTask.java"
 click node_bootstrap_task "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronBootstrapTask.java"
-click node_observation_compile "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronObservationCompileTask.java"
-click node_observation_extract "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronExtractTask.java"
+click node_sel_compile "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronSelCompileTask.java"
+click node_sel_extract "https://github.com/jurgenei/gradle-xml-plugin/blob/main/src/main/java/name/jurgenei/gradle/xml/SchematronSelExtractTask.java"
 
 classDef toneNeutral fill:#f8fafc,stroke:#334155,stroke-width:1.5px,color:#0f172a
 classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
@@ -94,6 +94,6 @@ classDef toneTeal fill:#ccfbf1,stroke:#0f766e,stroke-width:1.5px,color:#134e4a
 class node_xml_plugin,node_transform_base,node_validation_base toneBlue
 class node_xslt_task,node_xquery_task,node_saxon_runtime toneAmber
 class node_xsd_engine,node_svrl_support,node_schematron_task,node_xsd_task toneMint
-class node_sexpr_resolvers,node_json_parser,node_json_reader,node_json_serializer toneRose
-class node_bootstrap_task,node_observation_compile,node_observation_extract,node_gradle_build,node_generated_outputs toneIndigo
+class node_xir_resolvers,node_json_parser,node_json_reader,node_json_serializer toneRose
+class node_bootstrap_task,node_sel_compile,node_sel_extract,node_gradle_build,node_generated_outputs toneIndigo
 ```

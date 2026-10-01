@@ -19,7 +19,7 @@ import name.jurgenei.gradle.xml.validation.ReportFormat;
 import name.jurgenei.gradle.xml.validation.SvrlSupport;
 import name.jurgenei.gradle.xml.validation.ValidationResult;
 import name.jurgenei.gradle.xml.validation.ValidationTaskSpec;
-import name.jurgenei.xml.sexpr.SExpressionXmlReader;
+import name.jurgenei.xir.XirReader;
 import org.gradle.api.Action;
 import org.gradle.api.GradleException;
 import org.gradle.api.file.ConfigurableFileTree;
@@ -283,11 +283,11 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      * Resolves a transform source for XML-like validation inputs.
      *
      * @param file data or schema file
-     * @return stream source for XML files, SAX source for .sexpr files
+     * @return stream source for XML files, SAX source for .xir files
      */
     protected Source sourceForValidation(File file) {
-        if (isSexprFile(file)) {
-            return new SAXSource(new SExpressionXmlReader(), new InputSource(file.toURI().toString()));
+        if (isXirFile(file)) {
+            return new SAXSource(new XirReader(), new InputSource(file.toURI().toString()));
         }
         return new StreamSource(file);
     }
@@ -296,10 +296,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      * Determines whether validation input uses S-expression format.
      *
      * @param file candidate file
-     * @return true when extension is .sexpr
+     * @return true when extension is .xir
      */
-    protected boolean isSexprFile(File file) {
-        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".sexpr");
+    protected boolean isXirFile(File file) {
+        return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".xir");
     }
 }
-
