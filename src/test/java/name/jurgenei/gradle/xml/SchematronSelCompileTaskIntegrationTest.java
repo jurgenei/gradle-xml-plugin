@@ -131,6 +131,142 @@ public class SchematronSelCompileTaskIntegrationTest {
         assertTrue(result.getOutput().contains("Schematron schema does not exist"));
     }
 
+    @Test
+    public void compilesOnlyPatternsActivatedByExplicitPhase() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-compile-phase-explicit'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
+              phase 'knowledge-phase'
+              groupOutput 'knowledge', 'sel/knowledge.xml'
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sch:phase id='knowledge-phase'>
+                <sch:active pattern='p-knowledge'/>
+              </sch:phase>
+              <sch:phase id='architecture-phase'>
+                <sch:active pattern='p-architecture'/>
+              </sch:phase>
+
+              <sch:pattern id='p-knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+
+              <sch:pattern id='p-architecture'>
+                <sch:rule context='c:Connector'>
+                  <sch:report test='@source and @target' sel:emit='true' sel:type='relationship-candidate' sel:group='architecture' sel:copy='.'>Connector evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileSel")
+            .withPluginClasspath()
+            .build();
+
+        String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
+        assertTrue(stylesheet.contains("type=\"paragraph\""));
+        assertTrue(!stylesheet.contains("type=\"relationship-candidate\""));
+    }
+
+    @Test
+    public void defaultsToSchemaDefaultPhaseWhenNoPhaseConfigured() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-compile-phase-default'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'
+                        defaultPhase='architecture-phase'>
+              <sch:phase id='knowledge-phase'>
+                <sch:active pattern='p-knowledge'/>
+              </sch:phase>
+              <sch:phase id='architecture-phase'>
+                <sch:active pattern='p-architecture'/>
+              </sch:phase>
+
+              <sch:pattern id='p-knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+
+              <sch:pattern id='p-architecture'>
+                <sch:rule context='c:Connector'>
+                  <sch:report test='@source and @target' sel:emit='true' sel:type='relationship-candidate' sel:group='architecture' sel:copy='.'>Connector evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileSel")
+            .withPluginClasspath()
+            .build();
+
+        String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
+        assertTrue(stylesheet.contains("type=\"relationship-candidate\""));
+        assertTrue(!stylesheet.contains("type=\"paragraph\""));
+    }
+
+    @Test
+    public void failsForUnknownPhase() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-compile-phase-unknown'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
+              phase 'missing-phase'
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sch:phase id='present-phase'>
+                <sch:active pattern='p-knowledge'/>
+              </sch:phase>
+              <sch:pattern id='p-knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileSel")
+            .withPluginClasspath()
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains(":compileSel"));
+    }
+
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
         File parent = file.getParentFile();

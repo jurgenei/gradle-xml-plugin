@@ -457,6 +457,7 @@ with grouped `xsl:result-document` outputs.
 tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
   schema 'src/main/schematron/sel.sch'
   output 'build/generated/sel/sel.xsl'
+  phase '#DEFAULT' // '#DEFAULT' | '#ALL' | explicit phase id
   groupOutput 'knowledge', 'sel/knowledge.xml'
   groupOutput 'terminology', 'sel/terminology.xml'
   groupOutput 'architecture', 'sel/architecture.xml'
@@ -476,6 +477,7 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
   schema 'src/main/schematron/sel.sch'
   // Optional if precompiled by SchematronSelCompileTask:
   // style 'build/generated/sel/sel.xsl'
+  phase 'knowledge-phase' // used when style is compiled on-the-fly from schema
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/sel'))
   groupOutput 'knowledge', 'sel/knowledge.xml'
@@ -485,6 +487,12 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
   failOnError.set(true)
 }
 ```
+
+Phase behavior for SEL compile/extract tasks:
+
+- `#DEFAULT` (default): uses `sch:schema/@defaultPhase`; if absent, all patterns are active.
+- `#ALL`: all `sel:emit="true"` rules are compiled.
+- explicit phase id: only rules whose owning pattern is activated via `<sch:phase><sch:active pattern='...'/></sch:phase>`.
 
 ## Run tests
 

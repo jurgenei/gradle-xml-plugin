@@ -14,9 +14,9 @@ pluginManagement {
 
 ## Available samples
 
-- `xslt-basic` - transform one XML with XSLT
+- `xslt-basic` - transform one XML with XSLT, plus XIR input/output variant (`runXsltXir`)
 - `s-xslt-xir-identity` - identity transform with XIR input, XIR stylesheet, and XIR output
-- `xquery-basic` - transform one XML with XQuery
+- `xquery-basic` - transform one XML with XQuery, plus XIR input/output variant (`runXQueryXir`)
 - `s-xquery-xir-identity` - identity transform with XIR input and output, preserving namespace/comment/PI nodes
 - `s-xsd` - validate XIR data against XIR XSD schema
 - `s-schematron` - validate XIR data against XIR Schematron schema
@@ -30,8 +30,10 @@ From repository root:
 
 ```bash
 ./gradlew -p samples/xslt-basic runXslt
+./gradlew -p samples/xslt-basic runXsltXir
 ./gradlew -p samples/s-xslt-xir-identity runXslt
 ./gradlew -p samples/xquery-basic runXQuery
+./gradlew -p samples/xquery-basic runXQueryXir
 ./gradlew -p samples/s-xquery-xir-identity runXQuery
 ./gradlew -p samples/s-xsd runSXsd
 ./gradlew -p samples/s-schematron runSSchematron

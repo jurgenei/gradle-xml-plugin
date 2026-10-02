@@ -4,6 +4,7 @@ plugins {
 
 tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
     schema 'src/main/schematron/sel.sch'
+    phase '#ALL'
     output 'build/generated/sel/sel.xsl'
     groupOutput 'knowledge', 'sel/knowledge.xml'
     groupOutput 'architecture', 'sel/architecture.xml'
@@ -18,6 +19,15 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
     outputDir.set(layout.buildDirectory.dir('out/sel'))
     groupOutput 'knowledge', 'sel/knowledge.xml'
     groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+    failOnError.set(true)
+}
+
+tasks.register('extractTerminologySel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+    schema 'src/main/schematron/sel.sch'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/sel-terminology'))
+    phase 'terminology-phase'
     groupOutput 'terminology', 'sel/terminology.xml'
     failOnError.set(true)
 }

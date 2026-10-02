@@ -21,6 +21,12 @@ Comprehensive Schematron SEL sample using multiple canonical input files.
 ./gradlew -p samples/sel-multi-canonical verifySample
 ```
 
+Phase-specific extraction example (terminology profile only):
+
+```bash
+./gradlew -p samples/sel-multi-canonical extractTerminologySel
+```
+
 ## Output layout
 
 `build/out/sel/<input-stem>/sel/*.xml`

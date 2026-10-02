@@ -10,6 +10,7 @@ package name.jurgenei.gradle.xml;
  * @param copy XPath selecting evidence payload.
  * @param contextExpr optional XPath selecting contextual payload.
  * @param sourceElement Schematron element type (`report` or `assert`).
+ * @param patternId owning Schematron pattern id (may be empty when pattern has no id).
  */
 record SelRuleDescriptor(
     String context,
@@ -18,6 +19,7 @@ record SelRuleDescriptor(
     String group,
     String copy,
     String contextExpr,
-    String sourceElement
+    String sourceElement,
+    String patternId
 ) {
 }

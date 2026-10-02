@@ -1,6 +1,17 @@
 <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
             xmlns:c='http://jurgenei.name/canonical'
-            xmlns:sel='http://jurgenei.name/sel'>
+            xmlns:sel='http://jurgenei.name/sel'
+            defaultPhase='knowledge-phase'>
+  <sch:phase id='knowledge-phase'>
+    <sch:active pattern='knowledge'/>
+  </sch:phase>
+  <sch:phase id='architecture-phase'>
+    <sch:active pattern='architecture'/>
+  </sch:phase>
+  <sch:phase id='terminology-phase'>
+    <sch:active pattern='terminology'/>
+  </sch:phase>
+
   <sch:pattern id='knowledge'>
     <sch:rule context='c:Paragraph'>
       <sch:report

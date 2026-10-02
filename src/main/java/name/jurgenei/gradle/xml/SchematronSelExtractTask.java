@@ -75,6 +75,7 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     public SchematronSelExtractTask() {
         getFailOnError().convention(true);
         getJsonMode().convention("auto");
+        getPhase().convention("#DEFAULT");
     }
 
     /**
@@ -139,6 +140,25 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     public abstract Property<String> getJsonMode();
 
     /**
+     * Active Schematron phase used for on-the-fly SEL compilation.
+     *
+     * <p>Supported values:</p>
+     * <ul>
+     *     <li>{@code #DEFAULT} (default) — uses {@code sch:schema/@defaultPhase}, else all rules.</li>
+     *     <li>{@code #ALL} — includes all SEL-annotated rules.</li>
+     *     <li>explicit phase id — includes patterns activated by that phase.</li>
+     * </ul>
+     *
+     * <p>When {@link #getStyle()} is configured, phase filtering is expected to be applied at compile time
+     * of that precompiled stylesheet and this property is ignored by extraction runtime.</p>
+     *
+     * @return optional phase selector
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getPhase();
+
+    /**
      * Sets Schematron schema file.
      *
      * @param path file notation accepted by {@code Project.file}.
@@ -201,6 +221,15 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     }
 
     /**
+     * Sets Schematron phase used by on-the-fly SEL compilation.
+     *
+     * @param value phase id, {@code #DEFAULT}, or {@code #ALL}
+     */
+    public void phase(String value) {
+        getPhase().set(value);
+    }
+
+    /**
      * Runs SEL extraction for all configured source files.
      */
     @TaskAction
@@ -229,18 +258,24 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
 
     private RuntimeStylesheet resolveRuntimeStylesheet() throws Exception {
         Document schemaDoc = parseSchema(getSchema().get().getAsFile());
-        List<SelRuleDescriptor> rules = SelRuleCollector.collect(schemaDoc);
-        List<String> groups = collectGroups(rules);
+        SelRuleSet collected = SelRuleCollector.collect(schemaDoc);
+        List<SelRuleDescriptor> allRules = collected.rules();
+        List<String> groups = collectGroups(allRules);
 
         if (getStyle().isPresent()) {
+            String phase = normalizedPhase();
+            if (!"#DEFAULT".equals(phase)) {
+                getLogger().warn("Phase '{}' ignored because precompiled style is configured via style(...)", phase);
+            }
             return new RuntimeStylesheet(getStyle().get().getAsFile().toPath(), groups);
         }
 
-        String stylesheetXml = SelStylesheetCompiler.render(rules, getGroupOutputs().getOrElse(Map.of()));
+        List<SelRuleDescriptor> activeRules = collected.rulesForPhase(normalizedPhase());
+        String stylesheetXml = SelStylesheetCompiler.render(activeRules, getGroupOutputs().getOrElse(Map.of()));
         Path temp = Files.createTempFile("sel-compiled-", ".xsl");
         Files.writeString(temp, stylesheetXml, StandardCharsets.UTF_8);
         temp.toFile().deleteOnExit();
-        return new RuntimeStylesheet(temp, groups);
+        return new RuntimeStylesheet(temp, collectGroups(activeRules));
     }
 
     private void runExtraction(RuntimeStylesheet runtimeStylesheet, File inputFile) throws Exception {
@@ -328,6 +363,11 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
             default -> throw new GradleException(
                 "Unsupported jsonMode '" + configured + "'. Supported values: auto, native, canonical");
         };
+    }
+
+    private String normalizedPhase() {
+        String configured = getPhase().getOrElse("#DEFAULT");
+        return configured.trim().isEmpty() ? "#DEFAULT" : configured.trim();
     }
 
     private Document parseSchema(File schemaFile) throws Exception {

@@ -361,6 +361,113 @@ public class SchematronSelExtractTaskIntegrationTest {
         assertTrue(result.getOutput().contains(":extractSel"));
     }
 
+    @Test
+    public void extractsOnlyRulesFromSelectedPhaseInOnTheFlyMode() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-extract-phase-explicit'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source 'src/main/xml/canonical.xml'
+              phase 'architecture-phase'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+              groupOutput 'architecture', 'sel/architecture.xml'
+              failOnError.set(true)
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sch:phase id='knowledge-phase'>
+                <sch:active pattern='p-knowledge'/>
+              </sch:phase>
+              <sch:phase id='architecture-phase'>
+                <sch:active pattern='p-architecture'/>
+              </sch:phase>
+
+              <sch:pattern id='p-knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+
+              <sch:pattern id='p-architecture'>
+                <sch:rule context='c:Connector'>
+                  <sch:report test='@source and @target' sel:emit='true' sel:type='relationship-candidate' sel:group='architecture' sel:copy='.'>Connector evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        write("src/main/xml/canonical.xml", """
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Body>
+                <Paragraph>Hello</Paragraph>
+                <Connector source='a' target='b'/>
+              </Body>
+            </Document>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .build();
+
+        File architecture = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/architecture.xml");
+        assertTrue(architecture.exists());
+        String content = read(architecture);
+        assertTrue(content.contains("type=\"relationship-candidate\""));
+        assertTrue(!content.contains("type=\"paragraph\""));
+    }
+
+    @Test
+    public void failsWhenExplicitPhaseIsUnknown() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-extract-phase-unknown'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source 'src/main/xml/canonical.xml'
+              phase 'missing-phase'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+              failOnError.set(true)
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sch:phase id='known-phase'>
+                <sch:active pattern='p-knowledge'/>
+              </sch:phase>
+              <sch:pattern id='p-knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:emit='true' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+        write("src/main/xml/canonical.xml", """
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Body><Paragraph>Hello</Paragraph></Body>
+            </Document>
+            """);
+
+        BuildResult result = newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .buildAndFail();
+
+        assertTrue(result.getOutput().contains(":extractSel"));
+    }
+
     private static String extractionStyleWithLookupDoc(String lookupUri) {
         return """
             <xsl:stylesheet version='3.0'
