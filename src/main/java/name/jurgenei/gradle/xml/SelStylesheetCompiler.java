@@ -33,6 +33,10 @@ final class SelStylesheetCompiler {
         xml.append("  <xsl:output method=\"xml\" indent=\"yes\"/>\n");
         xml.append("  <xsl:mode on-no-match=\"shallow-skip\"/>\n");
         xml.append("  <xsl:param name=\"source-document\" as=\"xs:string\" select=\"''\"/>\n\n");
+        xml.append("  <xsl:function name=\"sel:canonical-path\" as=\"xs:string\">\n");
+        xml.append("    <xsl:param name=\"n\" as=\"node()\"/>\n");
+        xml.append("    <xsl:sequence select=\"replace(path($n), 'Q\\{http://jurgenei.name/canonical\\}', 'c:')\"/>\n");
+        xml.append("  </xsl:function>\n\n");
 
         for (int i = 0; i < rules.size(); i++) {
             xml.append("  <xsl:mode name=\"m-rule-")
@@ -60,7 +64,7 @@ final class SelStylesheetCompiler {
                 .append("}\">\n");
             xml.append("      <sel:Observations group=\"")
                 .append(escape(group))
-                .append("\">\n");
+                .append("\" xmlns:c=\"http://jurgenei.name/canonical\">\n");
             for (int i = 0; i < rules.size(); i++) {
                 SelRuleDescriptor rule = rules.get(i);
                 if (!group.equals(rule.group())) {
@@ -101,16 +105,16 @@ final class SelStylesheetCompiler {
             xml.append("        <sel:Evidence>\n");
             xml.append("          <xsl:copy-of select=\"")
                 .append(escape(rule.copy()))
-                .append("\"/>\n");
+                .append("\" copy-namespaces=\"no\"/>\n");
             xml.append("        </sel:Evidence>\n");
             if (!rule.contextExpr().isBlank()) {
                 xml.append("        <sel:Context>\n");
                 xml.append("          <xsl:copy-of select=\"")
                     .append(escape(rule.contextExpr()))
-                    .append("\"/>\n");
+                    .append("\" copy-namespaces=\"no\"/>\n");
                 xml.append("        </sel:Context>\n");
             }
-            xml.append("        <sel:Source document=\"{$source-document}\" path=\"{path(.)}\"/>\n");
+            xml.append("        <sel:Source document=\"{$source-document}\" path=\"{sel:canonical-path(.)}\"/>\n");
             xml.append("      </sel:Observation>\n");
             xml.append("    </xsl:if>\n");
             xml.append("  </xsl:template>\n");

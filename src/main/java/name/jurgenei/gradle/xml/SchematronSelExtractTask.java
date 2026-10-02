@@ -3,6 +3,7 @@ package name.jurgenei.gradle.xml;
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
 import name.jurgenei.gradle.xml.saxon.SaxonXirResolvers;
 import name.jurgenei.xir.XirReader;
+import name.jurgenei.xir.XirSerializer;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
 import net.sf.saxon.s9api.Serializer;
@@ -27,23 +28,35 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.util.PatternFilterable;
 import org.gradle.work.DisableCachingByDefault;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
 
 import javax.inject.Inject;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.Source;
+import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamSource;
 import java.io.File;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Collections;
 import java.util.Set;
 import org.xml.sax.InputSource;
 
@@ -55,6 +68,8 @@ import org.xml.sax.InputSource;
  */
 @DisableCachingByDefault(because = "Extraction output fan-out depends on source trees and dynamic grouped mappings")
 public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTask {
+    private static final Set<String> SUPPORTED_SEXPR_FORMATS = Set.of("compact", "beautified");
+    private static final String XMLNS_URI = "http://www.w3.org/2000/xmlns/";
 
     /**
      * JSON routing mode for .json SEL input files.
@@ -75,6 +90,7 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     public SchematronSelExtractTask() {
         getFailOnError().convention(true);
         getJsonMode().convention("auto");
+        getXirFormat().convention("compact");
         getPhase().convention("#DEFAULT");
     }
 
@@ -138,6 +154,17 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     @Input
     @Optional
     public abstract Property<String> getJsonMode();
+
+    /**
+     * Optional XIR output format used when emitting {@code .xir} group outputs.
+     *
+     * <p>Supported values are {@code compact} (default) and {@code beautified}.</p>
+     *
+     * @return XIR serializer output format property
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getXirFormat();
 
     /**
      * Active Schematron phase used for on-the-fly SEL compilation.
@@ -221,6 +248,15 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     }
 
     /**
+     * Sets S-expression output format for {@code .xir} group outputs (Gradle DSL friendly).
+     *
+     * @param format one of compact, beautified
+     */
+    public void xirFormat(String format) {
+        getXirFormat().set(format);
+    }
+
+    /**
      * Sets Schematron phase used by on-the-fly SEL compilation.
      *
      * @param value phase id, {@code #DEFAULT}, or {@code #ALL}
@@ -292,9 +328,11 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         transformer.setParameter(new QName("source-document"), new XdmAtomicValue(inputFile.getName()));
         transformer.setBaseOutputURI(base.toUri().toString());
 
+        Map<String, Path> groupTargets = new LinkedHashMap<>();
         for (String group : runtimeStylesheet.groups()) {
             String configured = getGroupOutputs().getOrElse(Map.of()).getOrDefault(group, "sel/" + group + ".xml");
             Path target = base.resolve(configured).normalize();
+            groupTargets.put(group, target);
             Path parent = target.getParent();
             if (parent != null) {
                 Files.createDirectories(parent);
@@ -307,6 +345,12 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         serializer.setOutputProperty(Serializer.Property.METHOD, "xml");
         transformer.setDestination(serializer);
         transformer.transform();
+
+        for (Path target : groupTargets.values()) {
+            if (isXirPath(target)) {
+                convertXmlFileToXir(target);
+            }
+        }
     }
 
     private List<String> collectGroups(List<SelRuleDescriptor> rules) {
@@ -365,9 +409,178 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         };
     }
 
+    private XirSerializer.OutputFormat resolveXirOutputFormat() {
+        String configured = getXirFormat().getOrElse("compact");
+        String normalized = configured.trim().toLowerCase(Locale.ROOT);
+        if ("pretty".equals(normalized)) {
+            normalized = "beautified";
+        }
+        if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
+            throw new GradleException("Unsupported xirFormat '" + configured + "'. Supported values: compact, beautified");
+        }
+        return "beautified".equals(normalized)
+            ? XirSerializer.OutputFormat.BEAUTIFIED
+            : XirSerializer.OutputFormat.COMPACT;
+    }
+
+    private boolean isXirPath(Path path) {
+        return path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".xir");
+    }
+
+    private void convertXmlFileToXir(Path targetFile) throws Exception {
+        Path tempFile = Files.createTempFile(targetFile.getParent(), targetFile.getFileName().toString(), ".tmp");
+        try {
+            try (Writer writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
+                Document document = parseXmlDocument(targetFile.toFile());
+                normalizeNamespacesForXir(document);
+                Transformer transformer = TransformerFactory.newDefaultInstance().newTransformer();
+                SAXResult destination = new SAXResult(new XirSerializer(writer, resolveXirOutputFormat()));
+                transformer.transform(new DOMSource(document), destination);
+            }
+            moveReplacing(targetFile, tempFile);
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
+    }
+
+    private void moveReplacing(Path targetFile, Path sourceFile) throws Exception {
+        try {
+            Files.move(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException ignored) {
+            Files.move(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
     private String normalizedPhase() {
         String configured = getPhase().getOrElse("#DEFAULT");
         return configured.trim().isEmpty() ? "#DEFAULT" : configured.trim();
+    }
+
+    private Document parseXmlDocument(File sourceFile) throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        return factory.newDocumentBuilder().parse(sourceFile);
+    }
+
+    private void normalizeNamespacesForXir(Document document) {
+        Element root = document.getDocumentElement();
+        if (root == null) {
+            return;
+        }
+
+        Map<String, String> usedMappings = new LinkedHashMap<>();
+        collectUsedNamespaceMappings(root, usedMappings);
+        hoistNamespacesToRoot(root, usedMappings);
+
+        Map<String, String> rootScope = namespaceDeclarations(root);
+        Node child = root.getFirstChild();
+        while (child != null) {
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+                pruneRedundantNamespaceDeclarations((Element) child, rootScope);
+            }
+            child = child.getNextSibling();
+        }
+    }
+
+    private void collectUsedNamespaceMappings(Element element, Map<String, String> mappings) {
+        registerNodeNamespace(element, mappings);
+        NamedNodeMap attributes = element.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Node attribute = attributes.item(i);
+            if (XMLNS_URI.equals(attribute.getNamespaceURI())) {
+                continue;
+            }
+            registerNodeNamespace(attribute, mappings);
+        }
+
+        Node child = element.getFirstChild();
+        while (child != null) {
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+                collectUsedNamespaceMappings((Element) child, mappings);
+            }
+            child = child.getNextSibling();
+        }
+    }
+
+    private void registerNodeNamespace(Node node, Map<String, String> mappings) {
+        String prefix = node.getPrefix();
+        String namespaceUri = node.getNamespaceURI();
+        if (prefix == null || prefix.isBlank() || namespaceUri == null || namespaceUri.isBlank()) {
+            return;
+        }
+        mappings.putIfAbsent(prefix, namespaceUri);
+    }
+
+    private void hoistNamespacesToRoot(Element root, Map<String, String> usedMappings) {
+        List<String> prefixes = new ArrayList<>(usedMappings.keySet());
+        Collections.sort(prefixes);
+        if (prefixes.remove("sel")) {
+            prefixes.add(0, "sel");
+        }
+        if (prefixes.remove("c")) {
+            int index = prefixes.isEmpty() ? 0 : 1;
+            prefixes.add(index, "c");
+        }
+        for (String prefix : prefixes) {
+            String uri = usedMappings.get(prefix);
+            if (uri == null || uri.isBlank()) {
+                continue;
+            }
+            String existing = root.lookupNamespaceURI(prefix);
+            if (!uri.equals(existing)) {
+                root.setAttributeNS(XMLNS_URI, "xmlns:" + prefix, uri);
+            }
+        }
+    }
+
+    private Map<String, String> namespaceDeclarations(Element element) {
+        Map<String, String> declarations = new LinkedHashMap<>();
+        NamedNodeMap attributes = element.getAttributes();
+        for (int i = 0; i < attributes.getLength(); i++) {
+            Node attribute = attributes.item(i);
+            if (!XMLNS_URI.equals(attribute.getNamespaceURI())) {
+                continue;
+            }
+            String localName = attribute.getLocalName();
+            String prefix = "xmlns".equals(localName) ? "" : localName;
+            declarations.put(prefix, attribute.getNodeValue());
+        }
+        return declarations;
+    }
+
+    private void pruneRedundantNamespaceDeclarations(Element element, Map<String, String> inheritedScope) {
+        Map<String, String> localDeclarations = namespaceDeclarations(element);
+        List<Node> toRemove = new ArrayList<>();
+        for (Map.Entry<String, String> declaration : localDeclarations.entrySet()) {
+            String prefix = declaration.getKey();
+            String uri = declaration.getValue();
+            String inherited = inheritedScope.get(prefix);
+            if (inherited != null && inherited.equals(uri)) {
+                String attributeName = prefix.isEmpty() ? "xmlns" : "xmlns:" + prefix;
+                Node attribute = element.getAttributeNode(attributeName);
+                if (attribute != null) {
+                    toRemove.add(attribute);
+                }
+            }
+        }
+        for (Node attribute : toRemove) {
+            element.removeAttributeNode((org.w3c.dom.Attr) attribute);
+            String localName = attribute.getLocalName();
+            String prefix = "xmlns".equals(localName) ? "" : localName;
+            localDeclarations.remove(prefix);
+        }
+
+        Map<String, String> scope = new LinkedHashMap<>(inheritedScope);
+        scope.putAll(localDeclarations);
+
+        Node child = element.getFirstChild();
+        while (child != null) {
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+                pruneRedundantNamespaceDeclarations((Element) child, scope);
+            }
+            child = child.getNextSibling();
+        }
     }
 
     private Document parseSchema(File schemaFile) throws Exception {

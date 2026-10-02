@@ -1,0 +1,47 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runSSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    schema 'src/main/schematron/rules.xir'
+    transpilerStylesheet 'src/main/schematron/transpile.xsl'
+    source 'src/main/xir/invalid.xir'
+    outputDir.set(layout.buildDirectory.dir('reports/schematron-xir'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    failOnError.set(false)
+}
+
+tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    schema 'src/main/schematron/rules.sch'
+    style 'build/generated/schematron/rules.compiled.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('reports/schematron-xml'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    phase.set('#ALL')
+    severityThreshold.set('warning')
+    failOnError.set(false)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSSchematron', 'runSchematron'
+    doLast {
+        List<File> expected = [
+            file('build/reports/schematron-xir/invalid.svrl.xml'),
+            file('build/reports/schematron-xml/valid.svrl.xml'),
+            file('build/reports/schematron-xml/invalid.svrl.xml'),
+            file('build/generated/schematron/rules.compiled.xsl'),
+            file('build/reports/xml-validation/junit/valid.junit.xml'),
+            file('build/reports/xml-validation/junit/invalid.junit.xml')
+        ]
+
+        List<File> missing = expected.findAll { !it.exists() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing expected outputs:\n - ${missing.join('\n - ')}")
+        }
+
+        String xirText = file('build/reports/schematron-xir/invalid.svrl.xml').getText('UTF-8')
+        if (!xirText.contains('failed-assert')) {
+            throw new GradleException("Expected failed-assert in XIR SVRL output")
+        }
+    }
+}

@@ -453,6 +453,25 @@ tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.Schematro
 `SchematronSelCompileTask` compiles `sel:*` rule metadata into an extraction stylesheet skeleton
 with grouped `xsl:result-document` outputs.
 
+Reusable SEL metadata can be defined once and referenced from many rules (SQF-style):
+
+```xml
+<sel:presets xmlns:sel="http://jurgenei.name/sel">
+  <sel:preset id="id-required"
+              type="missing-id"
+              group="quality"
+              copy="."/>
+</sel:presets>
+
+<sch:rule context="person">
+  <sch:assert test="@id" sel:preset="id-required">
+    Person must have id.
+  </sch:assert>
+</sch:rule>
+```
+
+Preset merge order is deterministic: defaults -> referenced preset(s) in declared order -> inline `sel:*` attributes on the assert/report node (inline wins).
+
 ```groovy
 tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
   schema 'src/main/schematron/sel.sch'
@@ -483,6 +502,9 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
   groupOutput 'knowledge', 'sel/knowledge.xml'
   groupOutput 'terminology', 'sel/terminology.xml'
   groupOutput 'architecture', 'sel/architecture.xml'
+  // XIR targets are supported by using .xir output paths:
+  // groupOutput 'knowledge', 'sel/knowledge.xir'
+  // xirFormat.set('beautified')
   jsonMode.set('auto')
   failOnError.set(true)
 }
@@ -491,7 +513,7 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
 Phase behavior for SEL compile/extract tasks:
 
 - `#DEFAULT` (default): uses `sch:schema/@defaultPhase`; if absent, all patterns are active.
-- `#ALL`: all `sel:emit="true"` rules are compiled.
+- `#ALL`: all SEL-annotated rules are compiled.
 - explicit phase id: only rules whose owning pattern is activated via `<sch:phase><sch:active pattern='...'/></sch:phase>`.
 
 ## Run tests
@@ -583,14 +605,12 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 
 Runnable minimal examples are available under `samples/`:
 
-- `samples/xslt-basic`
-- `samples/s-xslt-xir-identity`
-- `samples/xquery-basic`
-- `samples/s-xquery-xir-identity`
-- `samples/sel-multi-canonical`
-- `samples/s-xsd`
-- `samples/s-schematron`
-- `samples/validation-basic`
+- `samples/transformation/xslt`
+- `samples/transformation/xquery`
+- `samples/transformation/sel`
+- `samples/validation/xsd`
+- `samples/validation/schematron`
+- `samples/schematron-bootstrap-ooxml`
 
 See `samples/README.md` for run commands.
 

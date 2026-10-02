@@ -139,16 +139,6 @@ Used as extension attributes in Schematron.
 
 # SEL Annotations
 
-## sel:emit
-
-Enable sel generation.
-
-```xml
-sel:emit="true"
-```
-
----
-
 ## sel:type
 
 Logical sel type.
@@ -239,6 +229,46 @@ to be emitted together.
 
 ---
 
+## sel:presets + sel:preset (reusable metadata)
+
+Define reusable SEL metadata once at schema level:
+
+```xml
+<sel:presets xmlns:sel="http://jurgenei.name/sel">
+  <sel:preset id="id-required"
+              type="missing-id"
+              group="quality"
+              copy="."
+              context="ancestor::Section[1]/Title"/>
+</sel:presets>
+```
+
+Reference from any `sch:assert` / `sch:report`:
+
+```xml
+<sch:assert test="@id" sel:preset="id-required">
+  Missing id
+</sch:assert>
+```
+
+Multiple presets are supported with space-separated ids:
+
+```xml
+sel:preset="base id-required"
+```
+
+Merge order:
+
+```text
+defaults -> referenced preset(s) in declared order -> inline sel:* attributes
+```
+
+So inline values always override preset values.
+
+Unknown preset ids and duplicate preset definitions fail fast.
+
+---
+
 # Example Rule
 
 ```xml
@@ -246,7 +276,6 @@ to be emitted together.
 
     <sch:report
         test="normalize-space(.)"
-        sel:emit="true"
         sel:type="paragraph"
         sel:group="knowledge"
         sel:copy="."
@@ -402,7 +431,6 @@ Many enterprise relationships are expressed visually before they are expressed t
 
     <sch:report
         test="@source and @target"
-        sel:emit="true"
         sel:type="relationship-candidate"
         sel:group="architecture"
         sel:copy=".">

@@ -18,7 +18,7 @@ Candidate core constructs:
 - sel:uses
 - sel:derive
 - sel:link
-- sel:emit
+- sel:preset
 - sel:call
 - sel:when
 
