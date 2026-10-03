@@ -579,6 +579,113 @@ public class SchematronSelExtractTaskIntegrationTest {
         assertTrue(content.contains("<employee"));
     }
 
+    @Test
+    public void supportsDefaultNamespaceOutputWhenPrefixOverrideIsEmpty() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-default-namespace-output'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source 'src/main/xml/canonical.xml'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+              outputNamespaceUri 'urn:sel:default'
+              outputNamespacePrefix ''
+              groupOutput 'knowledge', 'sel/knowledge.xml'
+              failOnError.set(true)
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sch:pattern id='knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        write("src/main/xml/canonical.xml", """
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Body><Paragraph>Hello default namespace</Paragraph></Body>
+            </Document>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .build();
+
+        String content = read(new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml"));
+        assertTrue(content.contains("<Observations xmlns=\"urn:sel:default\""));
+        assertTrue(content.contains("<Observation"));
+        assertTrue(!content.contains("sel:Observation"));
+    }
+
+    @Test
+    public void evaluatesPresetTemplateContentInMatchedRuleContext() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-preset-template-context'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+              schema 'src/main/schematron/sel.sch'
+              source 'src/main/xml/canonical.xml'
+              outputDir.set(layout.buildDirectory.dir('out/sel'))
+              groupOutput 'knowledge', 'sel/knowledge.xml'
+              failOnError.set(true)
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'>
+              <sel:presets>
+                <sel:preset id='paragraph-template' type='paragraph' group='knowledge' copy='.'>
+                  <sel:template>
+                    <sel:Meta code="{@code}">
+                      <sel:Summary>{concat(local-name(), ':', normalize-space(.))}</sel:Summary>
+                      <sel:Section>{ancestor::c:Section[1]/c:Title}</sel:Section>
+                    </sel:Meta>
+                  </sel:template>
+                </sel:preset>
+              </sel:presets>
+              <sch:pattern id='knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:preset='paragraph-template'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        write("src/main/xml/canonical.xml", """
+            <Document xmlns='http://jurgenei.name/canonical'>
+              <Body>
+                <Section>
+                  <Title>Interfaces</Title>
+                  <Paragraph code='p-1'>Source payload</Paragraph>
+                </Section>
+              </Body>
+            </Document>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("extractSel")
+            .withPluginClasspath()
+            .build();
+
+        String content = read(new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml"));
+        assertTrue(content.contains("<sel:Meta code=\"p-1\">"));
+        assertTrue(content.contains("<sel:Summary>Paragraph:Source payload</sel:Summary>"));
+        assertTrue(content.contains("<sel:Section>Interfaces</sel:Section>"));
+    }
+
     private static String extractionStyleWithLookupDoc(String lookupUri) {
         return """
             <xsl:stylesheet version='3.0'

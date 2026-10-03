@@ -470,6 +470,23 @@ Reusable SEL metadata can be defined once and referenced from many rules (SQF-st
 </sch:rule>
 ```
 
+Presets can also provide reusable output template fragments. Template text/attributes support value templates
+evaluated in the current matched rule context:
+
+```xml
+<sel:presets xmlns:sel="http://jurgenei.name/sel"
+             xmlns:c="http://jurgenei.name/canonical">
+  <sel:preset id="paragraph-template" type="paragraph" group="knowledge" copy=".">
+    <sel:template>
+      <sel:Meta code="{@code}">
+        <sel:Summary>{concat(local-name(), ':', normalize-space(.))}</sel:Summary>
+        <sel:Section>{ancestor::c:Section[1]/c:Title}</sel:Section>
+      </sel:Meta>
+    </sel:template>
+  </sel:preset>
+</sel:presets>
+```
+
 Preset merge order is deterministic: defaults -> referenced preset(s) in declared order -> inline `sel:*` attributes on the assert/report node (inline wins).
 
 ```groovy
@@ -477,10 +494,21 @@ tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) 
   schema 'src/main/schematron/sel.sch'
   output 'build/generated/sel/sel.xsl'
   phase '#DEFAULT' // '#DEFAULT' | '#ALL' | explicit phase id
+  outputNamespaceUri 'http://jurgenei.name/sel'   // optional task-level override
+  outputNamespacePrefix 'sel'                     // optional; '' => default namespace output
   groupOutput 'knowledge', 'sel/knowledge.xml'
   groupOutput 'terminology', 'sel/terminology.xml'
   groupOutput 'architecture', 'sel/architecture.xml'
 }
+```
+
+Schema-level defaults can be declared once and are used unless task-level override is set:
+
+```xml
+<sch:schema xmlns:sch="http://purl.oclc.org/dsdl/schematron"
+            xmlns:sel="http://jurgenei.name/sel"
+            sel:outputNamespaceUri="http://jurgenei.name/sel"
+            sel:outputNamespacePrefix="sel">
 ```
 
 ## SEL Runtime Extraction (Phase 3)
@@ -497,6 +525,8 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
   // Optional if precompiled by SchematronSelCompileTask:
   // style 'build/generated/sel/sel.xsl'
   phase 'knowledge-phase' // used when style is compiled on-the-fly from schema
+  outputNamespaceUri 'http://jurgenei.name/sel'  // optional task-level override
+  outputNamespacePrefix 'sel'                    // optional; '' => default namespace output
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/sel'))
   groupOutput 'knowledge', 'sel/knowledge.xml'

@@ -6,11 +6,17 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import java.io.StringWriter;
 
 /**
  * Extracts `sel:*` annotated rule metadata from a Schematron document.
@@ -25,12 +31,13 @@ final class SelRuleCollector {
 
     static SelRuleSet collect(Document schematron) {
         Map<String, SelPreset> presets = collectPresets(schematron);
+        SelOutputConfig schemaOutputConfig = collectOutputConfig(schematron);
         List<SelRuleDescriptor> descriptors = new ArrayList<>();
         descriptors.addAll(collectFromElements(schematron, "report", presets));
         descriptors.addAll(collectFromElements(schematron, "assert", presets));
         String defaultPhase = schematron.getDocumentElement().getAttribute("defaultPhase").trim();
         Map<String, List<String>> phasePatterns = collectPhasePatterns(schematron);
-        return new SelRuleSet(List.copyOf(descriptors), defaultPhase, phasePatterns);
+        return new SelRuleSet(List.copyOf(descriptors), defaultPhase, phasePatterns, schemaOutputConfig);
     }
 
     private static List<SelRuleDescriptor> collectFromElements(
@@ -58,6 +65,7 @@ final class SelRuleCollector {
                 metadata.group(),
                 metadata.copy(),
                 metadata.context(),
+                metadata.templateFragment(),
                 localName,
                 patternId
             ));
@@ -133,6 +141,7 @@ final class SelRuleCollector {
         String group = "default";
         String copy = ".";
         String contextExpr = "";
+        String templateFragment = "";
 
         String referenced = selAttribute(node, "preset");
         if (!referenced.isBlank()) {
@@ -148,6 +157,7 @@ final class SelRuleCollector {
                 group = nonBlank(preset.group(), group);
                 copy = nonBlank(preset.copy(), copy);
                 contextExpr = nonBlank(preset.context(), contextExpr);
+                templateFragment = appendTemplateFragment(templateFragment, preset.templateFragment());
             }
         }
 
@@ -155,7 +165,8 @@ final class SelRuleCollector {
         group = nonBlank(selAttribute(node, "group"), group);
         copy = nonBlank(selAttribute(node, "copy"), copy);
         contextExpr = nonBlank(selAttribute(node, "context"), contextExpr);
-        return new EffectiveSelMetadata(type, group, copy, contextExpr);
+        templateFragment = appendTemplateFragment(templateFragment, extractTemplateFragment(node));
+        return new EffectiveSelMetadata(type, group, copy, contextExpr, templateFragment);
     }
 
     private static List<String> splitReferences(String references) {
@@ -185,10 +196,116 @@ final class SelRuleCollector {
                 plainOrSelAttribute(presetNode, "type"),
                 plainOrSelAttribute(presetNode, "group"),
                 plainOrSelAttribute(presetNode, "copy"),
-                plainOrSelAttribute(presetNode, "context")
+                plainOrSelAttribute(presetNode, "context"),
+                extractTemplateFragment(presetNode)
             ));
         }
         return Map.copyOf(presets);
+    }
+
+    private static SelOutputConfig collectOutputConfig(Document schematron) {
+        Element schemaRoot = schematron.getDocumentElement();
+        SelOutputConfig defaults = SelOutputConfig.defaults();
+
+        String namespaceUri = null;
+        String prefix = null;
+
+        NodeList outputNodes = schematron.getElementsByTagNameNS(SEL_NS, "output");
+        if (outputNodes.getLength() > 0) {
+            Element output = (Element) outputNodes.item(0);
+            namespaceUri = firstNonBlank(
+                output.getAttribute("namespace-uri"),
+                output.getAttribute("namespace"),
+                selAttribute(output, "namespace-uri"),
+                selAttribute(output, "namespace")
+            );
+            prefix = firstNonBlank(
+                output.getAttribute("prefix"),
+                selAttribute(output, "prefix")
+            );
+        }
+
+        namespaceUri = firstNonBlank(
+            namespaceUri,
+            selAttribute(schemaRoot, "outputNamespaceUri"),
+            selAttribute(schemaRoot, "output-namespace-uri"),
+            schemaRoot.getAttribute("outputNamespaceUri"),
+            schemaRoot.getAttribute("output-namespace-uri")
+        );
+        prefix = firstNonBlank(
+            prefix,
+            selAttribute(schemaRoot, "outputNamespacePrefix"),
+            selAttribute(schemaRoot, "output-prefix"),
+            schemaRoot.getAttribute("outputNamespacePrefix"),
+            schemaRoot.getAttribute("output-prefix")
+        );
+
+        return SelOutputConfig.resolve(defaults, namespaceUri, prefix);
+    }
+
+    private static String appendTemplateFragment(String base, String fragment) {
+        if (fragment == null || fragment.isBlank()) {
+            return base == null ? "" : base;
+        }
+        if (base == null || base.isBlank()) {
+            return fragment;
+        }
+        return base + "\n" + fragment;
+    }
+
+    private static String extractTemplateFragment(Element node) {
+        List<Node> templateNodes = new ArrayList<>();
+        NodeList children = node.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node child = children.item(i);
+            if (child.getNodeType() == Node.ELEMENT_NODE
+                && SEL_NS.equals(child.getNamespaceURI())
+                && "template".equals(child.getLocalName())) {
+                NodeList templateChildren = child.getChildNodes();
+                for (int j = 0; j < templateChildren.getLength(); j++) {
+                    Node templateChild = templateChildren.item(j);
+                    if (isIgnorableWhitespace(templateChild)) {
+                        continue;
+                    }
+                    templateNodes.add(templateChild);
+                }
+            }
+        }
+
+        if (templateNodes.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder xml = new StringBuilder();
+        for (Node templateNode : templateNodes) {
+            xml.append(serializeNode(templateNode)).append("\n");
+        }
+        return xml.toString().trim();
+    }
+
+    private static boolean isIgnorableWhitespace(Node node) {
+        return node.getNodeType() == Node.TEXT_NODE && node.getTextContent().isBlank();
+    }
+
+    private static String serializeNode(Node node) {
+        try {
+            Transformer transformer = TransformerFactory.newDefaultInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(node), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to serialize SEL template fragment", e);
+        }
+    }
+
+    private static String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return null;
     }
 
     private static String plainOrSelAttribute(Element node, String localName) {
@@ -219,7 +336,8 @@ final class SelRuleCollector {
         String type,
         String group,
         String copy,
-        String context
+        String context,
+        String templateFragment
     ) {
     }
 
@@ -227,7 +345,8 @@ final class SelRuleCollector {
         String type,
         String group,
         String copy,
-        String context
+        String context,
+        String templateFragment
     ) {
     }
 }

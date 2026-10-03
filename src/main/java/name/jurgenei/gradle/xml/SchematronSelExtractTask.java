@@ -139,6 +139,28 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     public abstract MapProperty<String, String> getGroupOutputs();
 
     /**
+     * Optional SEL output namespace URI override for generated extraction output.
+     *
+     * <p>When set, overrides schema-level SEL output namespace defaults.</p>
+     *
+     * @return optional namespace URI
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getOutputNamespaceUri();
+
+    /**
+     * Optional SEL output namespace prefix override for generated extraction output.
+     *
+     * <p>Use empty string to emit SEL elements in default namespace.</p>
+     *
+     * @return optional namespace prefix
+     */
+    @Input
+    @Optional
+    public abstract Property<String> getOutputNamespacePrefix();
+
+    /**
      * Controls build failure behavior when extraction errors occur.
      *
      * @return fail-on-error property
@@ -239,6 +261,24 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     }
 
     /**
+     * Sets SEL output namespace URI override.
+     *
+     * @param value namespace URI
+     */
+    public void outputNamespaceUri(String value) {
+        getOutputNamespaceUri().set(value);
+    }
+
+    /**
+     * Sets SEL output namespace prefix override.
+     *
+     * @param value prefix (empty string for default namespace output)
+     */
+    public void outputNamespacePrefix(String value) {
+        getOutputNamespacePrefix().set(value);
+    }
+
+    /**
      * Sets JSON routing mode (Gradle DSL friendly).
      *
      * @param mode one of auto, native, canonical
@@ -307,7 +347,16 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         }
 
         List<SelRuleDescriptor> activeRules = collected.rulesForPhase(normalizedPhase());
-        String stylesheetXml = SelStylesheetCompiler.render(activeRules, getGroupOutputs().getOrElse(Map.of()));
+        SelOutputConfig outputConfig = SelOutputConfig.resolve(
+            collected.outputConfig(),
+            getOutputNamespaceUri().isPresent() ? getOutputNamespaceUri().get() : null,
+            getOutputNamespacePrefix().isPresent() ? getOutputNamespacePrefix().get() : null
+        );
+        String stylesheetXml = SelStylesheetCompiler.render(
+            activeRules,
+            getGroupOutputs().getOrElse(Map.of()),
+            outputConfig
+        );
         Path temp = Files.createTempFile("sel-compiled-", ".xsl");
         Files.writeString(temp, stylesheetXml, StandardCharsets.UTF_8);
         temp.toFile().deleteOnExit();

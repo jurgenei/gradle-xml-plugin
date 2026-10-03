@@ -344,6 +344,85 @@ public class SchematronSelCompileTaskIntegrationTest {
         assertTrue(result.getOutput().contains("Unknown SEL preset 'missing'"));
     }
 
+    @Test
+    public void supportsSchemaDefaultOutputNamespaceAndPrefix() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-output-schema-defaults'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'
+                        sel:outputNamespaceUri='urn:custom:sel'
+                        sel:outputNamespacePrefix='obs'>
+              <sch:pattern id='knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileSel")
+            .withPluginClasspath()
+            .build();
+
+        String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
+        assertTrue(stylesheet.contains("xmlns:obs=\"urn:custom:sel\""));
+        assertTrue(stylesheet.contains("<obs:Observations"));
+        assertTrue(stylesheet.contains("<obs:Observation"));
+    }
+
+    @Test
+    public void taskOverrideWinsOverSchemaOutputNamespaceAndPrefix() throws Exception {
+        write("settings.gradle", "rootProject.name = 'schematron-sel-output-task-override'\n");
+        write("build.gradle", """
+            plugins { id 'name.jurgenei.gradle.xml' }
+
+            tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+              schema 'src/main/schematron/sel.sch'
+              output 'build/generated/sel/sel.xsl'
+              outputNamespaceUri 'urn:override:sel'
+              outputNamespacePrefix 'out'
+            }
+            """);
+
+        write("src/main/schematron/sel.sch", """
+            <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
+                        xmlns:c='http://jurgenei.name/canonical'
+                        xmlns:sel='http://jurgenei.name/sel'
+                        sel:outputNamespaceUri='urn:schema:sel'
+                        sel:outputNamespacePrefix='schema'>
+              <sch:pattern id='knowledge'>
+                <sch:rule context='c:Paragraph'>
+                  <sch:report test='normalize-space(.)' sel:type='paragraph' sel:group='knowledge' sel:copy='.'>Paragraph evidence</sch:report>
+                </sch:rule>
+              </sch:pattern>
+            </sch:schema>
+            """);
+
+        newGradleRunner()
+            .withProjectDir(testProjectDir.getRoot())
+            .withArguments("compileSel")
+            .withPluginClasspath()
+            .build();
+
+        String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
+        assertTrue(stylesheet.contains("xmlns:out=\"urn:override:sel\""));
+        assertTrue(stylesheet.contains("<out:Observations"));
+        assertTrue(stylesheet.contains("<out:Observation"));
+        assertTrue(!stylesheet.contains("xmlns:schema=\"urn:schema:sel\""));
+    }
+
     private void write(String relativePath, String content) throws IOException {
         File file = new File(testProjectDir.getRoot(), relativePath);
         File parent = file.getParentFile();

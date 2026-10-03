@@ -11,11 +11,13 @@ import java.util.Set;
  * @param rules all collected SEL rules in deterministic order.
  * @param defaultPhase schema default phase id; empty when not defined.
  * @param phasePatterns phase id -> active pattern ids mapping.
+ * @param outputConfig schema-level SEL output namespace/prefix defaults.
  */
 record SelRuleSet(
     List<SelRuleDescriptor> rules,
     String defaultPhase,
-    Map<String, List<String>> phasePatterns
+    Map<String, List<String>> phasePatterns,
+    SelOutputConfig outputConfig
 ) {
     List<SelRuleDescriptor> rulesForPhase(String phase) {
         if ("#ALL".equals(phase)) {
