@@ -163,7 +163,7 @@ dependencies {
     }
 
     add("implementation", "net.sf.saxon:Saxon-HE:13.0")
-    add("implementation", "name.jurgenei:xir-sax:0.1.2")
+    add("implementation", "name.jurgenei:xir-sax:0.1.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.3")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
     add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")

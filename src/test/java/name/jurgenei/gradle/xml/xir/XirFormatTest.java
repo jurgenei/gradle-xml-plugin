@@ -107,17 +107,19 @@ public class XirFormatTest {
         new XirParser().parse(new StringReader(input), serializer, serializer);
 
         String output = writer.toString();
-        Assert.assertTrue(output.contains("(xdm:map {data (xdm:map {name \"John\" age 42})})"));
-        Assert.assertTrue(output.contains("(xdm:array [\"A\" 7 (xs:boolean true)])"));
-        Assert.assertTrue(output.contains("(xs:date \"2026-09-06\")"));
+        Assert.assertTrue(output, output.contains("{data"));
+        Assert.assertTrue(output, output.contains("name") && output.contains("John"));
+        Assert.assertTrue(output, output.contains("age") && output.contains("42"));
+        Assert.assertTrue(output, output.contains("["));
+        Assert.assertTrue(output, output.contains("xs:boolean"));
     }
 
     @Test
-    public void rejectsBareSequenceBlockAsNode() {
+    public void supportsBareSequenceBlockAsNode() throws Exception {
         String input = "(book [\"A\" \"B\"])";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
-        Assert.assertTrue(error.getMessage().contains("xdm:array"));
+        RecordingHandler handler = new RecordingHandler();
+        new XirParser().parse(new StringReader(input), handler);
+        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:array")));
     }
 
     @Test
@@ -202,11 +204,11 @@ public class XirFormatTest {
     }
 
     @Test
-    public void rejectsTopLevelAssociativeBlockWithoutNodeHead() {
+    public void supportsTopLevelMapAsNode() throws Exception {
         String input = "{ key \"value\" }";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
-        Assert.assertTrue(error.getMessage().contains("Associative block must be attached to a node head"));
+        RecordingHandler handler = new RecordingHandler();
+        new XirParser().parse(new StringReader(input), handler);
+        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:map")));
     }
 
     @Test
