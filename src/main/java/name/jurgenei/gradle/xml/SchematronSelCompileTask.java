@@ -7,6 +7,7 @@ import org.gradle.api.provider.MapProperty;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.TaskAction;
@@ -54,10 +55,49 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
     public abstract MapProperty<String, String> getGroupOutputs();
 
     /**
+     * Optional SEL output namespace URI override.
+     *
+     * <p>When set, overrides schema-level SEL output namespace defaults.</p>
+     *
+     * @return optional namespace URI
+     */
+    @Input
+    @Optional
+    public abstract org.gradle.api.provider.Property<String> getOutputNamespaceUri();
+
+    /**
+     * Optional SEL output namespace prefix override.
+     *
+     * <p>Use empty string to emit SEL elements in default namespace.</p>
+     *
+     * @return optional prefix
+     */
+    @Input
+    @Optional
+    public abstract org.gradle.api.provider.Property<String> getOutputNamespacePrefix();
+
+    /**
+     * Active Schematron phase used for rule selection.
+     *
+     * <p>Supported values:</p>
+     * <ul>
+     *     <li>{@code #DEFAULT} (default) — uses {@code sch:schema/@defaultPhase}, else all rules.</li>
+     *     <li>{@code #ALL} — includes all SEL-annotated rules.</li>
+     *     <li>explicit phase id — includes patterns activated by that phase.</li>
+     * </ul>
+     *
+     * @return optional phase selector
+     */
+    @Input
+    @Optional
+    public abstract org.gradle.api.provider.Property<String> getPhase();
+
+    /**
      * Creates compile task.
      */
     @Inject
     public SchematronSelCompileTask() {
+        getPhase().convention("#DEFAULT");
     }
 
     /**
@@ -93,15 +133,48 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
     }
 
     /**
+     * Sets SEL output namespace URI override.
+     *
+     * @param value namespace URI
+     */
+    public void outputNamespaceUri(String value) {
+        getOutputNamespaceUri().set(value);
+    }
+
+    /**
+     * Sets SEL output namespace prefix override.
+     *
+     * @param value prefix (empty string for default namespace output)
+     */
+    public void outputNamespacePrefix(String value) {
+        getOutputNamespacePrefix().set(value);
+    }
+
+    /**
+     * Sets Schematron phase used by SEL compilation.
+     *
+     * @param value phase id, {@code #DEFAULT}, or {@code #ALL}
+     */
+    public void phase(String value) {
+        getPhase().set(value);
+    }
+
+    /**
      * Compiles SEL extraction stylesheet from Schematron source.
      */
     @TaskAction
     public void compile() {
         try {
             Document document = parseSchema(getSchema().get().getAsFile());
-            List<SelRuleDescriptor> rules = SelRuleCollector.collect(document);
+            SelRuleSet collected = SelRuleCollector.collect(document);
+            List<SelRuleDescriptor> rules = collected.rulesForPhase(normalizedPhase());
             Map<String, String> groupOutputs = getGroupOutputs().getOrElse(Map.of());
-            String stylesheet = SelStylesheetCompiler.render(rules, groupOutputs);
+            SelOutputConfig outputConfig = SelOutputConfig.resolve(
+                collected.outputConfig(),
+                getOutputNamespaceUri().isPresent() ? getOutputNamespaceUri().get() : null,
+                getOutputNamespacePrefix().isPresent() ? getOutputNamespacePrefix().get() : null
+            );
+            String stylesheet = SelStylesheetCompiler.render(rules, groupOutputs, outputConfig);
 
             File outputFile = getOutputStylesheet().get().getAsFile();
             File parent = outputFile.getParentFile();
@@ -113,6 +186,11 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
         } catch (Exception e) {
             throw new GradleException("Failed to compile Schematron SEL stylesheet", e);
         }
+    }
+
+    private String normalizedPhase() {
+        String configured = getPhase().getOrElse("#DEFAULT");
+        return configured.trim().isEmpty() ? "#DEFAULT" : configured.trim();
     }
 
     private Document parseSchema(File schemaFile) throws Exception {

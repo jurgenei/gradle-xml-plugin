@@ -241,16 +241,16 @@ tasks.register("allSecurityChecks") {
 
 tasks.register<Exec>("verifyXsltXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xslt-xir-identity sample."
+    description = "Runs XSLT XIR identity scenario for consolidated transformation/xslt sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xslt-xir-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/transformation/xslt", "runXsltIdentityXir")
 }
 
 tasks.register<Exec>("verifyXqueryXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xquery-xir-identity sample."
+    description = "Runs XQuery XIR identity scenario for consolidated transformation/xquery sample."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xquery-xir-identity", "verifySample")
+    commandLine("./gradlew", "-p", "samples/transformation/xquery", "runXQueryIdentity")
 }
 
 tasks.register("verifyXirSample") {

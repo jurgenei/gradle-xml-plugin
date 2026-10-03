@@ -1,0 +1,43 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runSXsd', name.jurgenei.gradle.xml.XsdTask) {
+    schema 'src/main/xsd/schema.xir'
+    source 'src/main/xir/invalid.xir'
+    outputDir.set(layout.buildDirectory.dir('reports/xsd-xir'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.JAXP)
+    failOnError.set(false)
+}
+
+tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
+    schema 'src/main/xsd/schema.xsd'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('reports/xsd-xml'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+    failOnError.set(false)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSXsd', 'runXsd'
+    doLast {
+        List<File> expected = [
+            file('build/reports/xsd-xir/invalid.svrl.xml'),
+            file('build/reports/xsd-xml/valid.svrl.xml'),
+            file('build/reports/xsd-xml/invalid.svrl.xml'),
+            file('build/reports/xml-validation/junit/valid.junit.xml'),
+            file('build/reports/xml-validation/junit/invalid.junit.xml')
+        ]
+        List<File> missing = expected.findAll { !it.exists() }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing expected outputs:\n - ${missing.join('\n - ')}")
+        }
+        String xirText = file('build/reports/xsd-xir/invalid.svrl.xml').getText('UTF-8')
+        String xmlText = file('build/reports/xsd-xml/invalid.svrl.xml').getText('UTF-8')
+        if (!xirText.contains('failed-assert') || !xmlText.contains('failed-assert')) {
+            throw new GradleException("Expected failed-assert in invalid SVRL outputs")
+        }
+    }
+}
