@@ -348,6 +348,20 @@ tasks.register<Exec>("verifySelSample") {
     )
 }
 
+tasks.register<Exec>("verifyShaclSelSample") {
+    group = "verification"
+    description = "Runs SHACL-SEL sample self-tests."
+    workingDir = projectDir
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/shacl-sel",
+        "runSelfTest"
+    )
+}
+
 tasks.register<Exec>("verifyBootstrapSample") {
     group = "verification"
     description = "Runs Schematron bootstrap sample self-tests."
@@ -379,6 +393,10 @@ tasks.named("verifySelSample") {
 }
 
 tasks.named("verifyBootstrapSample") {
+    mustRunAfter("verifyShaclSelSample")
+}
+
+tasks.named("verifyShaclSelSample") {
     mustRunAfter("verifySelSample")
 }
 
@@ -391,6 +409,7 @@ tasks.register("verifyXirSample") {
         "verifySchematronSample",
         "verifyXsdSample",
         "verifySelSample",
+        "verifyShaclSelSample",
         "verifyBootstrapSample"
     )
 }

@@ -1,0 +1,24 @@
+<Case>
+  <ApplicationComponent id="app-risk-engine">
+    <hasDataSet>
+      <DataSet id="ds-exposure">
+        <hasDomain>
+          <DataDomain id="domain-credit-risk"/>
+        </hasDomain>
+        <ownedBy>
+          <DataOwner id="owner-risk-data"/>
+        </ownedBy>
+        <hasTable>
+          <DatabaseTable id="table-exposure">
+            <hasColumn>
+              <DatabaseColumn id="col-counterparty-id"/>
+            </hasColumn>
+            <hasColumn>
+              <DatabaseColumn id="col-ead"/>
+            </hasColumn>
+          </DatabaseTable>
+        </hasTable>
+      </DataSet>
+    </hasDataSet>
+  </ApplicationComponent>
+</Case>

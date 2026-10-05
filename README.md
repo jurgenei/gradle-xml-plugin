@@ -38,6 +38,8 @@ The plugin contributes task types:
 - `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
 - `name.jurgenei.gradle.xml.SchematronSelCompileTask` — compile `sel:*` annotated Schematron into grouped SEL stylesheet skeleton
 - `name.jurgenei.gradle.xml.SchematronSelExtractTask` — execute runtime SEL extraction and emit grouped SEL XML
+- `name.jurgenei.gradle.xml.ShaclSelCompileTask` — compile SHACL relation shapes into grouped SEL stylesheet skeleton (+ generated Schematron bridge)
+- `name.jurgenei.gradle.xml.ShaclSelExtractTask` — execute runtime SEL extraction from SHACL-compiled stylesheet
 - `name.jurgenei.gradle.xml.XSpecCompileTask` — compile XSLT XSpec (`.xspec`) into executable runner stylesheet
 - `name.jurgenei.gradle.xml.XSpecTask` — run XSpec (from `.xspec` or precompiled runner) and emit XML + JUnit reports
 
@@ -549,6 +551,36 @@ Phase behavior for SEL compile/extract tasks:
 - `#ALL`: all SEL-annotated rules are compiled.
 - explicit phase id: only rules whose owning pattern is activated via `<sch:phase><sch:active pattern='...'/></sch:phase>`.
 
+## SHACL-Sel Compile + Extract
+
+`ShaclSelCompileTask` and `ShaclSelExtractTask` follow same compile/extract shape as Schematron SEL tasks.
+
+Current SHACL compile input is RDF/XML and targets relation-oriented SEL extraction.
+
+```groovy
+tasks.register('compileShaclSel', name.jurgenei.gradle.xml.ShaclSelCompileTask) {
+  schema 'src/main/shacl/collibra-model.shacl.xml'
+  output 'build/generated/sel/shacl-sel.xsl'
+  outputSchematron 'build/generated/sel/shacl-sel.sch'
+  groupOutput 'relations', 'sel/relations.xml'
+}
+
+tasks.register('extractShaclSel', name.jurgenei.gradle.xml.ShaclSelExtractTask) {
+  dependsOn tasks.named('compileShaclSel')
+  schema 'build/generated/sel/shacl-sel.sch'
+  style 'build/generated/sel/shacl-sel.xsl'
+  source(fileTree('src/main/xml') { include '*.xml' })
+  outputDir.set(layout.buildDirectory.dir('reports/shacl-sel'))
+  groupOutput 'relations', 'sel/relations.xml'
+  failOnError.set(true)
+}
+```
+
+Sample `samples/transformation/shacl-sel` also commits snapshot artifacts for discoverability:
+
+- `expected/shacl-sel.sch`
+- `expected/shacl-sel.xsl`
+
 ## XSpec Compile (Phase 2)
 
 `XSpecCompileTask` transpiles XSLT XSpec files (`.xspec`) into executable runner stylesheets.
@@ -684,6 +716,7 @@ Runnable minimal examples are available under `samples/`:
 - `samples/transformation/xslt`
 - `samples/transformation/xquery`
 - `samples/transformation/sel`
+- `samples/transformation/shacl-sel`
 - `samples/validation/xsd`
 - `samples/validation/schematron`
 - `samples/schematron-bootstrap-ooxml`
@@ -702,6 +735,8 @@ JUnit 4 with Gradle TestKit for functional integration testing:
 ./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelCompileTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelExtractTaskIntegrationTest'
+./gradlew test --tests '*ShaclSelCompileTaskIntegrationTest'
+./gradlew test --tests '*ShaclSelExtractTaskIntegrationTest'
 ./gradlew test --tests '*XSpecCompileTaskIntegrationTest'
 ./gradlew test --tests '*XSpecTaskIntegrationTest'
 ```
@@ -714,6 +749,7 @@ Sample module self-tests (XSpec-driven):
 ./gradlew -p samples/validation/schematron runSelfTest
 ./gradlew -p samples/validation/xsd runSelfTest
 ./gradlew -p samples/transformation/sel runSelfTest
+./gradlew -p samples/transformation/shacl-sel runSelfTest
 ./gradlew -p samples/schematron-bootstrap-ooxml runSelfTest
 ```
 

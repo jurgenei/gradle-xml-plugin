@@ -28,6 +28,8 @@ Each sample resolves local plugin implementation through `pluginManagement.inclu
   - `runXQueryXir` (XIR input/output)
   - `runXQueryIdentity` (XIR identity scenario preserving namespace/comment/PI)
 - `transformation/sel` - compile and extract grouped SEL payloads from multiple canonical XML inputs, including `sel-preset.sch` preset-reuse showcase.
+- `transformation/shacl-sel` - compile SHACL (RDF/XML) Collibra-style relation shapes into SEL extraction stylesheet and run grouped extraction over sample case data.
+  - includes committed expected transpiler snapshots under `expected/` plus sync/verify tasks
 
 ### Special scenario
 
@@ -43,6 +45,7 @@ From repository root:
 ./gradlew -p samples/validation/xsd runSXsd runXsd
 ./gradlew -p samples/validation/schematron runSSchematron runSchematron
 ./gradlew -p samples/transformation/sel compileSel extractSel extractSelPreset
+./gradlew -p samples/transformation/shacl-sel compileShaclSel extractShaclSel
 ./gradlew -p samples/schematron-bootstrap-ooxml verifySample
 ```
 
@@ -54,12 +57,13 @@ Run module self-tests:
 ./gradlew -p samples/validation/schematron runSelfTest
 ./gradlew -p samples/validation/xsd runSelfTest
 ./gradlew -p samples/transformation/sel runSelfTest
+./gradlew -p samples/transformation/shacl-sel runSelfTest
 ./gradlew -p samples/schematron-bootstrap-ooxml runSelfTest
 ```
 
 ## Smoke-test samples
 
-Each sample provides a `verifySample` task. XSLT, XQuery, Schematron, XSD, SEL, and
+Each sample provides a `verifySample` task. XSLT, XQuery, Schematron, XSD, SEL, SHACL-SEL, and
 Schematron bootstrap samples route `verifySample` through `runSelfTest` (XSpec).
 
 ```bash
@@ -68,5 +72,6 @@ Schematron bootstrap samples route `verifySample` through `runSelfTest` (XSpec).
 ./gradlew -p samples/validation/xsd verifySample
 ./gradlew -p samples/validation/schematron verifySample
 ./gradlew -p samples/transformation/sel verifySample
+./gradlew -p samples/transformation/shacl-sel verifySample
 ./gradlew -p samples/schematron-bootstrap-ooxml verifySample
 ```
