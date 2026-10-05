@@ -1,25 +1,25 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml.xir;
-
-import name.jurgenei.xir.XirParser;
-import name.jurgenei.xir.XirSerializer;
-import org.junit.Assert;
-import org.junit.Test;
-import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
-import org.xml.sax.ext.LexicalHandler;
-import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import name.jurgenei.xir.XirParser;
+import name.jurgenei.xir.XirSerializer;
+import org.junit.Assert;
+import org.junit.Test;
+import org.xml.sax.Attributes;
+import org.xml.sax.ext.LexicalHandler;
+import org.xml.sax.helpers.DefaultHandler;
 
 public class XirFormatTest {
 
     @Test
     public void parsesCanonicalSyntaxWithNamespacesCommentsAndPi() throws Exception {
-        String input = """
+        String input =
+                """
             (m:math
               { xmlns:m "http://www.w3.org/1998/Math/MathML" id "b1" version "1.0" }
               (! "this is a comment")
@@ -35,14 +35,16 @@ public class XirFormatTest {
         Assert.assertTrue(handler.events.contains("spm:m=http://www.w3.org/1998/Math/MathML"));
         Assert.assertTrue(handler.events.contains("start:m:math:id=b1,version=1.0"));
         Assert.assertTrue(handler.events.contains("comment:this is a comment"));
-        Assert.assertTrue(handler.events.contains("pi:xml-stylesheet:type=\"text/xsl\" href=\"style.xsl\""));
+        Assert.assertTrue(
+                handler.events.contains("pi:xml-stylesheet:type=\"text/xsl\" href=\"style.xsl\""));
         Assert.assertTrue(handler.events.contains("chars:a"));
         Assert.assertTrue(handler.events.contains("chars:b"));
     }
 
     @Test
     public void serializesCanonicalSyntaxWithStablePiTokens() throws Exception {
-        String input = """
+        String input =
+                """
             (book
               { id "b1" version "1.0" }
               (?xml-stylesheet { type "text/xsl" href "style.xsl" })
@@ -55,20 +57,24 @@ public class XirFormatTest {
 
         String output = writer.toString();
         Assert.assertTrue(output.contains("{id \"b1\" version \"1.0\"}"));
-        Assert.assertTrue(output.contains("(?xml-stylesheet {type \"text/xsl\" href \"style.xsl\"})"));
+        Assert.assertTrue(
+                output.contains("(?xml-stylesheet {type \"text/xsl\" href \"style.xsl\"})"));
     }
 
     @Test
     public void rejectsLegacyAtAttributeSyntax() {
         String input = "(book (@id \"b1\") (title \"XML\"))";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
         Assert.assertNotNull(error.getMessage());
     }
 
     @Test
     public void parsesSxdmDocumentNodeMapArrayAndTypedAtomic() throws Exception {
-        String input = """
+        String input =
+                """
             (.
               (! "lead comment")
               (book
@@ -86,14 +92,20 @@ public class XirFormatTest {
         Assert.assertTrue(handler.events.contains("comment:lead comment"));
         Assert.assertTrue(handler.events.contains("spm:m=urn:math"));
         Assert.assertTrue(handler.events.contains("start:book:id=b1"));
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:map")));
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:array")));
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:typed-atomic:type=xs:date")));
+        Assert.assertTrue(
+                handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:map")));
+        Assert.assertTrue(
+                handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:array")));
+        Assert.assertTrue(
+                handler.events.stream()
+                        .anyMatch(
+                                event -> event.startsWith("start:xdm:typed-atomic:type=xs:date")));
     }
 
     @Test
     public void roundTripsSxdmConstructsInCompactMode() throws Exception {
-        String input = """
+        String input =
+                """
             (.
               (book
                 { id "b1" }
@@ -119,12 +131,14 @@ public class XirFormatTest {
         String input = "(book [\"A\" \"B\"])";
         RecordingHandler handler = new RecordingHandler();
         new XirParser().parse(new StringReader(input), handler);
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:array")));
+        Assert.assertTrue(
+                handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:array")));
     }
 
     @Test
     public void serializesCanonicalCommentAndPiMapSyntaxWhenEnabled() throws Exception {
-        String input = """
+        String input =
+                """
             (.
               (! "lead comment")
               (?xml-stylesheet { href "main.xsl" type "text/xsl" })
@@ -132,22 +146,24 @@ public class XirFormatTest {
             """;
 
         StringWriter writer = new StringWriter();
-        XirSerializer serializer = new XirSerializer(
-            writer,
-            XirSerializer.OutputFormat.COMPACT,
-            XirSerializer.SyntaxMode.CANONICAL
-        );
+        XirSerializer serializer =
+                new XirSerializer(
+                        writer,
+                        XirSerializer.OutputFormat.COMPACT,
+                        XirSerializer.SyntaxMode.CANONICAL);
         new XirParser().parse(new StringReader(input), serializer, serializer);
 
         String output = writer.toString();
         Assert.assertTrue(output.contains("(! \"lead comment\")"));
-        Assert.assertTrue(output.contains("(?xml-stylesheet {href \"main.xsl\" type \"text/xsl\"})"));
+        Assert.assertTrue(
+                output.contains("(?xml-stylesheet {href \"main.xsl\" type \"text/xsl\"})"));
         Assert.assertTrue(output.startsWith("(. "));
     }
 
     @Test
     public void parsesAndRoundTripsDocumentXmlDeclarationMap() throws Exception {
-        String input = """
+        String input =
+                """
             (.
               { version "1.0" encoding "UTF-8" }
               (book { id "b1" } (title "XML")))
@@ -155,14 +171,19 @@ public class XirFormatTest {
 
         RecordingHandler handler = new RecordingHandler();
         new XirParser().parse(new StringReader(input), handler, handler);
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:xml-decl:version=1.0,encoding=UTF-8")));
+        Assert.assertTrue(
+                handler.events.stream()
+                        .anyMatch(
+                                event ->
+                                        event.startsWith(
+                                                "start:xdm:xml-decl:version=1.0,encoding=UTF-8")));
 
         StringWriter writer = new StringWriter();
-        XirSerializer serializer = new XirSerializer(
-            writer,
-            XirSerializer.OutputFormat.COMPACT,
-            XirSerializer.SyntaxMode.CANONICAL
-        );
+        XirSerializer serializer =
+                new XirSerializer(
+                        writer,
+                        XirSerializer.OutputFormat.COMPACT,
+                        XirSerializer.SyntaxMode.CANONICAL);
         new XirParser().parse(new StringReader(input), serializer, serializer);
 
         String output = writer.toString();
@@ -172,34 +193,47 @@ public class XirFormatTest {
     @Test
     public void rejectsMapWithMissingValue() {
         String input = "(book { id })";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
-        Assert.assertTrue(error.getMessage().contains("Unexpected end of input") || error.getMessage().contains("Value token missing"));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(
+                error.getMessage().contains("Unexpected end of input")
+                        || error.getMessage().contains("Value token missing"));
     }
 
     @Test
     public void rejectsArrayWithMissingClosingBracket() {
         String input = "(book (xdm:array [\"A\" \"B\"))";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
-        Assert.assertTrue(error.getMessage().contains("Unexpected end of input while parsing array")
-            || error.getMessage().contains("Expected ')'")
-            || error.getMessage().contains("Value token missing"));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(
+                error.getMessage().contains("Unexpected end of input while parsing array")
+                        || error.getMessage().contains("Expected ')'")
+                        || error.getMessage().contains("Value token missing"));
     }
 
     @Test
     public void rejectsTypedAtomicWithoutValue() {
         String input = "(book (xs:boolean))";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
-        Assert.assertTrue(error.getMessage().contains("Typed atomic value missing") || error.getMessage().contains("Unexpected end of input"));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(
+                error.getMessage().contains("Typed atomic value missing")
+                        || error.getMessage().contains("Unexpected end of input"));
     }
 
     @Test
     public void rejectsPiMapWithNonAtomicValue() {
         String input = "(?xml-stylesheet { href { nested \"x\" } })";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
         Assert.assertTrue(error.getMessage().contains("must be atomic"));
     }
 
@@ -208,22 +242,28 @@ public class XirFormatTest {
         String input = "{ key \"value\" }";
         RecordingHandler handler = new RecordingHandler();
         new XirParser().parse(new StringReader(input), handler);
-        Assert.assertTrue(handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:map")));
+        Assert.assertTrue(
+                handler.events.stream().anyMatch(event -> event.startsWith("start:xdm:map")));
     }
 
     @Test
     public void rejectsXdmMapWithoutAssociativePayload() {
         String input = "(xdm:map \"oops\")";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
-        Assert.assertTrue(error.getMessage().contains("xdm:map requires associative payload block"));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        Assert.assertTrue(
+                error.getMessage().contains("xdm:map requires associative payload block"));
     }
 
     @Test
     public void rejectsAssociativeBlockAfterStructuredChildren() {
         String input = "(book (title \"x\") { id \"b1\" })";
-        IOException error = Assert.assertThrows(IOException.class,
-            () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
+        IOException error =
+                Assert.assertThrows(
+                        IOException.class,
+                        () -> new XirParser().parse(new StringReader(input), new DefaultHandler()));
         Assert.assertTrue(error.getMessage().contains("allowed only before child nodes"));
     }
 
@@ -241,7 +281,8 @@ public class XirFormatTest {
         }
 
         @Override
-        public void startElement(String uri, String localName, String qName, Attributes attributes) {
+        public void startElement(
+                String uri, String localName, String qName, Attributes attributes) {
             StringBuilder sb = new StringBuilder();
             sb.append("start:").append(qName);
             if (attributes.getLength() > 0) {
@@ -272,28 +313,22 @@ public class XirFormatTest {
         }
 
         @Override
-        public void startDTD(String name, String publicId, String systemId) {
-        }
+        public void startDTD(String name, String publicId, String systemId) {}
 
         @Override
-        public void endDTD() {
-        }
+        public void endDTD() {}
 
         @Override
-        public void startEntity(String name) {
-        }
+        public void startEntity(String name) {}
 
         @Override
-        public void endEntity(String name) {
-        }
+        public void endEntity(String name) {}
 
         @Override
-        public void startCDATA() {
-        }
+        public void startCDATA() {}
 
         @Override
-        public void endCDATA() {
-        }
+        public void endCDATA() {}
 
         @Override
         public void comment(char[] ch, int start, int length) {
@@ -301,6 +336,3 @@ public class XirFormatTest {
         }
     }
 }
-
-
-

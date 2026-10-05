@@ -1,4 +1,7 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
+
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,20 +12,19 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * Integration tests for {@link XSpecTask}.
  */
 public class XSpecTaskIntegrationTest {
 
-    @Rule
-    public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     @Test
     public void runsXspecFromSourceAndProducesXmlAndJunitReports() throws Exception {
         write("settings.gradle", "rootProject.name = 'xspec-run-success'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('runXSpec', name.jurgenei.gradle.xml.XSpecTask) {
@@ -34,13 +36,16 @@ public class XSpecTaskIntegrationTest {
         writeCommonXsltAndXspec();
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("runXSpec")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("runXSpec")
+                .withPluginClasspath()
+                .build();
 
         File xmlReport = new File(testProjectDir.getRoot(), "build/reports/xspec/sample.xspec.xml");
-        File junitReport = new File(testProjectDir.getRoot(), "build/reports/xspec/junit/sample.xspec.junit.xml");
+        File junitReport =
+                new File(
+                        testProjectDir.getRoot(),
+                        "build/reports/xspec/junit/sample.xspec.junit.xml");
 
         assertTrue(xmlReport.exists());
         assertTrue(junitReport.exists());
@@ -53,7 +58,9 @@ public class XSpecTaskIntegrationTest {
     @Test
     public void supportsPrecompiledRunnerReuse() throws Exception {
         write("settings.gradle", "rootProject.name = 'xspec-run-precompiled'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileXSpec', name.jurgenei.gradle.xml.XSpecCompileTask) {
@@ -71,27 +78,35 @@ public class XSpecTaskIntegrationTest {
         writeCommonXsltAndXspec();
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("runXSpec")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("runXSpec")
+                .withPluginClasspath()
+                .build();
 
-        File xmlReport = new File(testProjectDir.getRoot(), "build/reports/xspec/sample-report.xml");
-        File junitReport = new File(testProjectDir.getRoot(), "build/reports/xspec/junit/sample-report.junit.xml");
+        File xmlReport =
+                new File(testProjectDir.getRoot(), "build/reports/xspec/sample-report.xml");
+        File junitReport =
+                new File(
+                        testProjectDir.getRoot(),
+                        "build/reports/xspec/junit/sample-report.junit.xml");
         assertTrue(xmlReport.exists());
         assertTrue(junitReport.exists());
         assertTrue(read(xmlReport).contains("successful=\"true\""));
     }
 
     private void writeCommonXsltAndXspec() throws IOException {
-        write("src/main/xslt/main.xsl", """
+        write(
+                "src/main/xslt/main.xsl",
+                """
             <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
               <xsl:template match="/">
                 <result><xsl:value-of select="/doc/value"/></result>
               </xsl:template>
             </xsl:stylesheet>
             """);
-        write("src/main/xspec/sample.xspec", """
+        write(
+                "src/main/xspec/sample.xspec",
+                """
             <x:description xmlns:x="http://www.jenitennison.com/xslt/xspec"
                            stylesheet="../xslt/main.xsl">
               <x:scenario label="main transform">

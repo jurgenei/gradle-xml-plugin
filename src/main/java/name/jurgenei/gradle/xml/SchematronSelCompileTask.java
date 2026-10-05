@@ -1,32 +1,33 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
-import org.gradle.api.DefaultTask;
-import org.gradle.api.GradleException;
-import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.provider.MapProperty;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.OutputFile;
-import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.PathSensitive;
-import org.gradle.api.tasks.PathSensitivity;
-import org.gradle.api.tasks.TaskAction;
-import org.gradle.work.DisableCachingByDefault;
-import org.w3c.dom.Document;
-
-import javax.inject.Inject;
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import javax.inject.Inject;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.GradleException;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.provider.MapProperty;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Optional;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.api.tasks.TaskAction;
+import org.gradle.work.DisableCachingByDefault;
+import org.w3c.dom.Document;
 
 /**
  * Compiles annotation-bearing Schematron rules into an executable phase-2 SEL stylesheet.
  */
-@DisableCachingByDefault(because = "Compiler output depends on schema content and extraction annotation metadata")
+@DisableCachingByDefault(
+        because = "Compiler output depends on schema content and extraction annotation metadata")
 public abstract class SchematronSelCompileTask extends DefaultTask {
 
     /**
@@ -169,11 +170,15 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
             SelRuleSet collected = SelRuleCollector.collect(document);
             List<SelRuleDescriptor> rules = collected.rulesForPhase(normalizedPhase());
             Map<String, String> groupOutputs = getGroupOutputs().getOrElse(Map.of());
-            SelOutputConfig outputConfig = SelOutputConfig.resolve(
-                collected.outputConfig(),
-                getOutputNamespaceUri().isPresent() ? getOutputNamespaceUri().get() : null,
-                getOutputNamespacePrefix().isPresent() ? getOutputNamespacePrefix().get() : null
-            );
+            SelOutputConfig outputConfig =
+                    SelOutputConfig.resolve(
+                            collected.outputConfig(),
+                            getOutputNamespaceUri().isPresent()
+                                    ? getOutputNamespaceUri().get()
+                                    : null,
+                            getOutputNamespacePrefix().isPresent()
+                                    ? getOutputNamespacePrefix().get()
+                                    : null);
             String stylesheet = SelStylesheetCompiler.render(rules, groupOutputs, outputConfig);
 
             File outputFile = getOutputStylesheet().get().getAsFile();
@@ -182,7 +187,11 @@ public abstract class SchematronSelCompileTask extends DefaultTask {
                 Files.createDirectories(parent.toPath());
             }
             Files.writeString(outputFile.toPath(), stylesheet, StandardCharsets.UTF_8);
-            getLogger().lifecycle("Compiled SEL extraction stylesheet with {} rule(s): {}", rules.size(), outputFile);
+            getLogger()
+                    .lifecycle(
+                            "Compiled SEL extraction stylesheet with {} rule(s): {}",
+                            rules.size(),
+                            outputFile);
         } catch (Exception e) {
             throw new GradleException("Failed to compile Schematron SEL stylesheet", e);
         }

@@ -1,30 +1,31 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-
-import static org.junit.Assert.assertTrue;
-
 /**
  * Integration tests for {@link SchematronSelCompileTask}.
  */
 public class SchematronSelCompileTaskIntegrationTest {
 
-    @Rule
-    public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     @Test
     public void compilesSelStylesheetSkeletonFromAnnotatedRules() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-compile'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -35,7 +36,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -57,10 +60,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         File output = new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl");
         String stylesheet = read(output);
@@ -77,7 +80,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void compilesDefaultGroupWhenNoSelEmitRulesExist() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-default'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -86,7 +91,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'>
               <sch:pattern id='noop'>
                 <sch:rule context='*'>
@@ -97,10 +104,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         File output = new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl");
         String stylesheet = read(output);
@@ -113,7 +120,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void failsWhenSchemaPathDoesNotExist() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-missing-schema'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -122,11 +131,12 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .buildAndFail();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("compileSel")
+                        .withPluginClasspath()
+                        .buildAndFail();
 
         assertTrue(result.getOutput().contains("Schematron schema does not exist"));
     }
@@ -134,7 +144,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void compilesOnlyPatternsActivatedByExplicitPhase() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-compile-phase-explicit'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -145,7 +157,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -171,10 +185,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
         assertTrue(stylesheet.contains("type=\"paragraph\""));
@@ -184,7 +198,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void defaultsToSchemaDefaultPhaseWhenNoPhaseConfigured() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-compile-phase-default'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -193,7 +209,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'
@@ -220,10 +238,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
         assertTrue(stylesheet.contains("type=\"relationship-candidate\""));
@@ -233,7 +251,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void failsForUnknownPhase() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-compile-phase-unknown'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -243,7 +263,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -258,11 +280,12 @@ public class SchematronSelCompileTaskIntegrationTest {
             </sch:schema>
             """);
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .buildAndFail();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("compileSel")
+                        .withPluginClasspath()
+                        .buildAndFail();
 
         assertTrue(result.getOutput().contains(":compileSel"));
     }
@@ -270,7 +293,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void supportsReusableSelPresetsWithInlineOverridePrecedence() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-presets-compile'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -281,7 +306,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -299,10 +326,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
         assertTrue(stylesheet.contains("type=\"paragraph\""));
@@ -315,7 +342,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void failsForUnknownSelPresetReference() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-presets-missing'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -324,7 +353,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:sel='http://jurgenei.name/sel'>
               <sch:pattern id='p-knowledge'>
@@ -335,11 +366,12 @@ public class SchematronSelCompileTaskIntegrationTest {
             </sch:schema>
             """);
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel", "--stacktrace")
-            .withPluginClasspath()
-            .buildAndFail();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("compileSel", "--stacktrace")
+                        .withPluginClasspath()
+                        .buildAndFail();
 
         assertTrue(result.getOutput().contains("Unknown SEL preset 'missing'"));
     }
@@ -347,7 +379,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void supportsSchemaDefaultOutputNamespaceAndPrefix() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-output-schema-defaults'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -356,7 +390,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'
@@ -371,10 +407,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
         assertTrue(stylesheet.contains("xmlns:obs=\"urn:custom:sel\""));
@@ -385,7 +421,9 @@ public class SchematronSelCompileTaskIntegrationTest {
     @Test
     public void taskOverrideWinsOverSchemaOutputNamespaceAndPrefix() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-output-task-override'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -396,7 +434,9 @@ public class SchematronSelCompileTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'
@@ -411,10 +451,10 @@ public class SchematronSelCompileTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("compileSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("compileSel")
+                .withPluginClasspath()
+                .build();
 
         String stylesheet = read(new File(testProjectDir.getRoot(), "build/generated/sel/sel.xsl"));
         assertTrue(stylesheet.contains("xmlns:out=\"urn:override:sel\""));

@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
@@ -24,10 +25,12 @@ import org.gradle.work.DisableCachingByDefault;
 /**
  * Compiles XSLT XSpec descriptions into executable runner stylesheets.
  */
-@DisableCachingByDefault(because = "Compilation depends on external XSpec descriptions and compiler resources")
+@DisableCachingByDefault(
+        because = "Compilation depends on external XSpec descriptions and compiler resources")
 public abstract class XSpecCompileTask extends AbstractXmlTransformTask {
 
-    private static final String DEFAULT_COMPILER_CLASSPATH_RESOURCE = "io/xspec/xspec/impl/src/compiler/compile-xslt-tests.xsl";
+    private static final String DEFAULT_COMPILER_CLASSPATH_RESOURCE =
+            "io/xspec/xspec/impl/src/compiler/compile-xslt-tests.xsl";
 
     /**
      * Creates task with XSpec runner extension defaults.
@@ -69,7 +72,8 @@ public abstract class XSpecCompileTask extends AbstractXmlTransformTask {
     }
 
     @Override
-    protected void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception {
+    protected void transform(File inputFile, File outputFile, Map<String, String> params)
+            throws Exception {
         Processor processor = new Processor(false);
         SaxonXirResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
@@ -79,7 +83,8 @@ public abstract class XSpecCompileTask extends AbstractXmlTransformTask {
         XsltTransformer transformer = executable.load();
         transformer.setSource(new StreamSource(inputFile));
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            transformer.setParameter(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
+            transformer.setParameter(
+                    new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
         }
 
         Serializer serializer = processor.newSerializer(outputFile);
@@ -104,7 +109,9 @@ public abstract class XSpecCompileTask extends AbstractXmlTransformTask {
         }
         URL resource = getClass().getClassLoader().getResource(DEFAULT_COMPILER_CLASSPATH_RESOURCE);
         if (resource == null) {
-            throw new GradleException("Could not find XSpec compiler at classpath resource " + DEFAULT_COMPILER_CLASSPATH_RESOURCE);
+            throw new GradleException(
+                    "Could not find XSpec compiler at classpath resource "
+                            + DEFAULT_COMPILER_CLASSPATH_RESOURCE);
         }
         return new StreamSource(resource.toExternalForm());
     }

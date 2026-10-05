@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.util.ArrayList;
@@ -14,11 +15,10 @@ import java.util.Set;
  * @param outputConfig schema-level SEL output namespace/prefix defaults.
  */
 record SelRuleSet(
-    List<SelRuleDescriptor> rules,
-    String defaultPhase,
-    Map<String, List<String>> phasePatterns,
-    SelOutputConfig outputConfig
-) {
+        List<SelRuleDescriptor> rules,
+        String defaultPhase,
+        Map<String, List<String>> phasePatterns,
+        SelOutputConfig outputConfig) {
     List<SelRuleDescriptor> rulesForPhase(String phase) {
         if ("#ALL".equals(phase)) {
             return rules;
@@ -34,10 +34,10 @@ record SelRuleSet(
 
     private List<SelRuleDescriptor> rulesForNamedPhase(String phaseId) {
         if (!phasePatterns.containsKey(phaseId)) {
-            String known = phasePatterns.isEmpty() ? "<none>" : String.join(", ", phasePatterns.keySet());
+            String known =
+                    phasePatterns.isEmpty() ? "<none>" : String.join(", ", phasePatterns.keySet());
             throw new IllegalArgumentException(
-                "Unknown Schematron phase '" + phaseId + "'. Known phases: " + known
-            );
+                    "Unknown Schematron phase '" + phaseId + "'. Known phases: " + known);
         }
         Set<String> activePatterns = Set.copyOf(phasePatterns.get(phaseId));
         List<SelRuleDescriptor> selected = new ArrayList<>();

@@ -1,5 +1,32 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
+import java.io.File;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import javax.inject.Inject;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXResult;
+import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.stream.StreamSource;
 import name.jurgenei.gradle.xml.json.JsonCanonicalXmlReader;
 import name.jurgenei.gradle.xml.saxon.SaxonXirResolvers;
 import name.jurgenei.xir.XirReader;
@@ -31,33 +58,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
-
-import javax.inject.Inject;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.Source;
-import javax.xml.transform.sax.SAXResult;
-import javax.xml.transform.sax.SAXSource;
-import javax.xml.transform.stream.StreamSource;
-import java.io.File;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Collections;
-import java.util.Set;
 import org.xml.sax.InputSource;
 
 /**
@@ -66,7 +66,8 @@ import org.xml.sax.InputSource;
  * <p>The task can consume a precompiled extraction stylesheet or compile one on the fly
  * from annotation-bearing Schematron rules.</p>
  */
-@DisableCachingByDefault(because = "Extraction output fan-out depends on source trees and dynamic grouped mappings")
+@DisableCachingByDefault(
+        because = "Extraction output fan-out depends on source trees and dynamic grouped mappings")
 public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTask {
     private static final Set<String> SUPPORTED_SEXPR_FORMATS = Set.of("compact", "beautified");
     private static final String XMLNS_URI = "http://www.w3.org/2000/xmlns/";
@@ -312,7 +313,9 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     public void extract() {
         Set<File> rawInputs = new LinkedHashSet<>(getSourceFiles().getFiles());
         if (rawInputs.isEmpty()) {
-            throw new GradleException("No input files configured. Use source(...) to provide canonical XML/XIR/JSON files.");
+            throw new GradleException(
+                    "No input files configured. Use source(...) to provide canonical XML/XIR/JSON"
+                            + " files.");
         }
 
         List<File> inputs = new ArrayList<>(rawInputs);
@@ -341,29 +344,34 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         if (getStyle().isPresent()) {
             String phase = normalizedPhase();
             if (!"#DEFAULT".equals(phase)) {
-                getLogger().warn("Phase '{}' ignored because precompiled style is configured via style(...)", phase);
+                getLogger()
+                        .warn(
+                                "Phase '{}' ignored because precompiled style is configured via"
+                                        + " style(...)",
+                                phase);
             }
             return new RuntimeStylesheet(getStyle().get().getAsFile().toPath(), groups);
         }
 
         List<SelRuleDescriptor> activeRules = collected.rulesForPhase(normalizedPhase());
-        SelOutputConfig outputConfig = SelOutputConfig.resolve(
-            collected.outputConfig(),
-            getOutputNamespaceUri().isPresent() ? getOutputNamespaceUri().get() : null,
-            getOutputNamespacePrefix().isPresent() ? getOutputNamespacePrefix().get() : null
-        );
-        String stylesheetXml = SelStylesheetCompiler.render(
-            activeRules,
-            getGroupOutputs().getOrElse(Map.of()),
-            outputConfig
-        );
+        SelOutputConfig outputConfig =
+                SelOutputConfig.resolve(
+                        collected.outputConfig(),
+                        getOutputNamespaceUri().isPresent() ? getOutputNamespaceUri().get() : null,
+                        getOutputNamespacePrefix().isPresent()
+                                ? getOutputNamespacePrefix().get()
+                                : null);
+        String stylesheetXml =
+                SelStylesheetCompiler.render(
+                        activeRules, getGroupOutputs().getOrElse(Map.of()), outputConfig);
         Path temp = Files.createTempFile("sel-compiled-", ".xsl");
         Files.writeString(temp, stylesheetXml, StandardCharsets.UTF_8);
         temp.toFile().deleteOnExit();
         return new RuntimeStylesheet(temp, collectGroups(activeRules));
     }
 
-    private void runExtraction(RuntimeStylesheet runtimeStylesheet, File inputFile) throws Exception {
+    private void runExtraction(RuntimeStylesheet runtimeStylesheet, File inputFile)
+            throws Exception {
         Path base = getOutputDir().get().getAsFile().toPath().resolve(stem(inputFile.getName()));
         Files.createDirectories(base);
 
@@ -371,15 +379,20 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         SaxonXirResolvers.configure(processor);
         XsltCompiler compiler = processor.newXsltCompiler();
         SaxonXirResolvers.configure(compiler);
-        XsltExecutable executable = compiler.compile(stylesheetSource(runtimeStylesheet.stylesheet().toFile()));
+        XsltExecutable executable =
+                compiler.compile(stylesheetSource(runtimeStylesheet.stylesheet().toFile()));
         XsltTransformer transformer = executable.load();
         transformer.setSource(sourceForInput(inputFile));
-        transformer.setParameter(new QName("source-document"), new XdmAtomicValue(inputFile.getName()));
+        transformer.setParameter(
+                new QName("source-document"), new XdmAtomicValue(inputFile.getName()));
         transformer.setBaseOutputURI(base.toUri().toString());
 
         Map<String, Path> groupTargets = new LinkedHashMap<>();
         for (String group : runtimeStylesheet.groups()) {
-            String configured = getGroupOutputs().getOrElse(Map.of()).getOrDefault(group, "sel/" + group + ".xml");
+            String configured =
+                    getGroupOutputs()
+                            .getOrElse(Map.of())
+                            .getOrDefault(group, "sel/" + group + ".xml");
             Path target = base.resolve(configured).normalize();
             groupTargets.put(group, target);
             Path parent = target.getParent();
@@ -418,14 +431,16 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
             return new SAXSource(new XirReader(), new InputSource(inputFile.toURI().toString()));
         }
         if (useCanonicalJsonInput(inputFile)) {
-            return new SAXSource(new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
+            return new SAXSource(
+                    new JsonCanonicalXmlReader(), new InputSource(inputFile.toURI().toString()));
         }
         return new StreamSource(inputFile);
     }
 
     private Source stylesheetSource(File stylesheetFile) {
         if (isXirFile(stylesheetFile)) {
-            return new SAXSource(new XirReader(), new InputSource(stylesheetFile.toURI().toString()));
+            return new SAXSource(
+                    new XirReader(), new InputSource(stylesheetFile.toURI().toString()));
         }
         return new StreamSource(stylesheetFile);
     }
@@ -454,7 +469,9 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
             case "canonical" -> JsonMode.CANONICAL;
             case "auto" -> JsonMode.AUTO;
             default -> throw new GradleException(
-                "Unsupported jsonMode '" + configured + "'. Supported values: auto, native, canonical");
+                    "Unsupported jsonMode '"
+                            + configured
+                            + "'. Supported values: auto, native, canonical");
         };
     }
 
@@ -465,11 +482,14 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
             normalized = "beautified";
         }
         if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
-            throw new GradleException("Unsupported xirFormat '" + configured + "'. Supported values: compact, beautified");
+            throw new GradleException(
+                    "Unsupported xirFormat '"
+                            + configured
+                            + "'. Supported values: compact, beautified");
         }
         return "beautified".equals(normalized)
-            ? XirSerializer.OutputFormat.BEAUTIFIED
-            : XirSerializer.OutputFormat.COMPACT;
+                ? XirSerializer.OutputFormat.BEAUTIFIED
+                : XirSerializer.OutputFormat.COMPACT;
     }
 
     private boolean isXirPath(Path path) {
@@ -477,13 +497,16 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     }
 
     private void convertXmlFileToXir(Path targetFile) throws Exception {
-        Path tempFile = Files.createTempFile(targetFile.getParent(), targetFile.getFileName().toString(), ".tmp");
+        Path tempFile =
+                Files.createTempFile(
+                        targetFile.getParent(), targetFile.getFileName().toString(), ".tmp");
         try {
             try (Writer writer = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8)) {
                 Document document = parseXmlDocument(targetFile.toFile());
                 normalizeNamespacesForXir(document);
                 Transformer transformer = TransformerFactory.newDefaultInstance().newTransformer();
-                SAXResult destination = new SAXResult(new XirSerializer(writer, resolveXirOutputFormat()));
+                SAXResult destination =
+                        new SAXResult(new XirSerializer(writer, resolveXirOutputFormat()));
                 transformer.transform(new DOMSource(document), destination);
             }
             moveReplacing(targetFile, tempFile);
@@ -494,7 +517,11 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
 
     private void moveReplacing(Path targetFile, Path sourceFile) throws Exception {
         try {
-            Files.move(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            Files.move(
+                    sourceFile,
+                    targetFile,
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException ignored) {
             Files.move(sourceFile, targetFile, StandardCopyOption.REPLACE_EXISTING);
         }
@@ -598,7 +625,8 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         return declarations;
     }
 
-    private void pruneRedundantNamespaceDeclarations(Element element, Map<String, String> inheritedScope) {
+    private void pruneRedundantNamespaceDeclarations(
+            Element element, Map<String, String> inheritedScope) {
         Map<String, String> localDeclarations = namespaceDeclarations(element);
         List<Node> toRemove = new ArrayList<>();
         for (Map.Entry<String, String> declaration : localDeclarations.entrySet()) {
@@ -644,6 +672,5 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
         return dot > 0 ? fileName.substring(0, dot) : fileName;
     }
 
-    private record RuntimeStylesheet(Path stylesheet, List<String> groups) {
-    }
+    private record RuntimeStylesheet(Path stylesheet, List<String> groups) {}
 }

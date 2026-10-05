@@ -1,22 +1,22 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-import java.io.StringWriter;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * Extracts `sel:*` annotated rule metadata from a Schematron document.
@@ -26,8 +26,7 @@ final class SelRuleCollector {
     static final String SEL_NS = "http://jurgenei.name/sel";
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
-    private SelRuleCollector() {
-    }
+    private SelRuleCollector() {}
 
     static SelRuleSet collect(Document schematron) {
         Map<String, SelPreset> presets = collectPresets(schematron);
@@ -37,14 +36,12 @@ final class SelRuleCollector {
         descriptors.addAll(collectFromElements(schematron, "assert", presets));
         String defaultPhase = schematron.getDocumentElement().getAttribute("defaultPhase").trim();
         Map<String, List<String>> phasePatterns = collectPhasePatterns(schematron);
-        return new SelRuleSet(List.copyOf(descriptors), defaultPhase, phasePatterns, schemaOutputConfig);
+        return new SelRuleSet(
+                List.copyOf(descriptors), defaultPhase, phasePatterns, schemaOutputConfig);
     }
 
     private static List<SelRuleDescriptor> collectFromElements(
-        Document schematron,
-        String localName,
-        Map<String, SelPreset> presets
-    ) {
+            Document schematron, String localName, Map<String, SelPreset> presets) {
         List<SelRuleDescriptor> descriptors = new ArrayList<>();
         NodeList reports = schematron.getElementsByTagNameNS(SCH_NS, localName);
         for (int i = 0; i < reports.getLength(); i++) {
@@ -58,17 +55,17 @@ final class SelRuleCollector {
             EffectiveSelMetadata metadata = resolveSelMetadata(ruleNode, context, test, presets);
             String patternId = owningPatternId(ruleNode);
 
-            descriptors.add(new SelRuleDescriptor(
-                context,
-                test,
-                metadata.type(),
-                metadata.group(),
-                metadata.copy(),
-                metadata.context(),
-                metadata.templateFragment(),
-                localName,
-                patternId
-            ));
+            descriptors.add(
+                    new SelRuleDescriptor(
+                            context,
+                            test,
+                            metadata.type(),
+                            metadata.group(),
+                            metadata.copy(),
+                            metadata.context(),
+                            metadata.templateFragment(),
+                            localName,
+                            patternId));
         }
         return descriptors;
     }
@@ -100,8 +97,8 @@ final class SelRuleCollector {
         Node current = node.getParentNode();
         while (current != null) {
             if (current instanceof Element element
-                && SCH_NS.equals(element.getNamespaceURI())
-                && "pattern".equals(element.getLocalName())) {
+                    && SCH_NS.equals(element.getNamespaceURI())
+                    && "pattern".equals(element.getLocalName())) {
                 return element.getAttribute("id").trim();
             }
             current = current.getParentNode();
@@ -132,11 +129,7 @@ final class SelRuleCollector {
     }
 
     private static EffectiveSelMetadata resolveSelMetadata(
-        Element node,
-        String ruleContext,
-        String ruleTest,
-        Map<String, SelPreset> presets
-    ) {
+            Element node, String ruleContext, String ruleTest, Map<String, SelPreset> presets) {
         String type = "sel";
         String group = "default";
         String copy = ".";
@@ -149,15 +142,20 @@ final class SelRuleCollector {
                 SelPreset preset = presets.get(presetId);
                 if (preset == null) {
                     throw new IllegalArgumentException(
-                        "Unknown SEL preset '" + presetId + "' referenced by rule context='"
-                            + ruleContext + "' test='" + ruleTest + "'"
-                    );
+                            "Unknown SEL preset '"
+                                    + presetId
+                                    + "' referenced by rule context='"
+                                    + ruleContext
+                                    + "' test='"
+                                    + ruleTest
+                                    + "'");
                 }
                 type = nonBlank(preset.type(), type);
                 group = nonBlank(preset.group(), group);
                 copy = nonBlank(preset.copy(), copy);
                 contextExpr = nonBlank(preset.context(), contextExpr);
-                templateFragment = appendTemplateFragment(templateFragment, preset.templateFragment());
+                templateFragment =
+                        appendTemplateFragment(templateFragment, preset.templateFragment());
             }
         }
 
@@ -191,14 +189,15 @@ final class SelRuleCollector {
             if (presets.containsKey(id)) {
                 throw new IllegalArgumentException("Duplicate SEL preset id '" + id + "'");
             }
-            presets.put(id, new SelPreset(
-                id,
-                plainOrSelAttribute(presetNode, "type"),
-                plainOrSelAttribute(presetNode, "group"),
-                plainOrSelAttribute(presetNode, "copy"),
-                plainOrSelAttribute(presetNode, "context"),
-                extractTemplateFragment(presetNode)
-            ));
+            presets.put(
+                    id,
+                    new SelPreset(
+                            id,
+                            plainOrSelAttribute(presetNode, "type"),
+                            plainOrSelAttribute(presetNode, "group"),
+                            plainOrSelAttribute(presetNode, "copy"),
+                            plainOrSelAttribute(presetNode, "context"),
+                            extractTemplateFragment(presetNode)));
         }
         return Map.copyOf(presets);
     }
@@ -213,32 +212,29 @@ final class SelRuleCollector {
         NodeList outputNodes = schematron.getElementsByTagNameNS(SEL_NS, "output");
         if (outputNodes.getLength() > 0) {
             Element output = (Element) outputNodes.item(0);
-            namespaceUri = firstNonBlank(
-                output.getAttribute("namespace-uri"),
-                output.getAttribute("namespace"),
-                selAttribute(output, "namespace-uri"),
-                selAttribute(output, "namespace")
-            );
-            prefix = firstNonBlank(
-                output.getAttribute("prefix"),
-                selAttribute(output, "prefix")
-            );
+            namespaceUri =
+                    firstNonBlank(
+                            output.getAttribute("namespace-uri"),
+                            output.getAttribute("namespace"),
+                            selAttribute(output, "namespace-uri"),
+                            selAttribute(output, "namespace"));
+            prefix = firstNonBlank(output.getAttribute("prefix"), selAttribute(output, "prefix"));
         }
 
-        namespaceUri = firstNonBlank(
-            namespaceUri,
-            selAttribute(schemaRoot, "outputNamespaceUri"),
-            selAttribute(schemaRoot, "output-namespace-uri"),
-            schemaRoot.getAttribute("outputNamespaceUri"),
-            schemaRoot.getAttribute("output-namespace-uri")
-        );
-        prefix = firstNonBlank(
-            prefix,
-            selAttribute(schemaRoot, "outputNamespacePrefix"),
-            selAttribute(schemaRoot, "output-prefix"),
-            schemaRoot.getAttribute("outputNamespacePrefix"),
-            schemaRoot.getAttribute("output-prefix")
-        );
+        namespaceUri =
+                firstNonBlank(
+                        namespaceUri,
+                        selAttribute(schemaRoot, "outputNamespaceUri"),
+                        selAttribute(schemaRoot, "output-namespace-uri"),
+                        schemaRoot.getAttribute("outputNamespaceUri"),
+                        schemaRoot.getAttribute("output-namespace-uri"));
+        prefix =
+                firstNonBlank(
+                        prefix,
+                        selAttribute(schemaRoot, "outputNamespacePrefix"),
+                        selAttribute(schemaRoot, "output-prefix"),
+                        schemaRoot.getAttribute("outputNamespacePrefix"),
+                        schemaRoot.getAttribute("output-prefix"));
 
         return SelOutputConfig.resolve(defaults, namespaceUri, prefix);
     }
@@ -259,8 +255,8 @@ final class SelRuleCollector {
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
             if (child.getNodeType() == Node.ELEMENT_NODE
-                && SEL_NS.equals(child.getNamespaceURI())
-                && "template".equals(child.getLocalName())) {
+                    && SEL_NS.equals(child.getNamespaceURI())
+                    && "template".equals(child.getLocalName())) {
                 NodeList templateChildren = child.getChildNodes();
                 for (int j = 0; j < templateChildren.getLength(); j++) {
                     Node templateChild = templateChildren.item(j);
@@ -332,21 +328,13 @@ final class SelRuleCollector {
     }
 
     private record SelPreset(
-        String id,
-        String type,
-        String group,
-        String copy,
-        String context,
-        String templateFragment
-    ) {
-    }
+            String id,
+            String type,
+            String group,
+            String copy,
+            String context,
+            String templateFragment) {}
 
     private record EffectiveSelMetadata(
-        String type,
-        String group,
-        String copy,
-        String context,
-        String templateFragment
-    ) {
-    }
+            String type, String group, String copy, String context, String templateFragment) {}
 }

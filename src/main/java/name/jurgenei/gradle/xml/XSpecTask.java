@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
@@ -31,20 +32,25 @@ import org.w3c.dom.NodeList;
 /**
  * Executes XSpec runners and writes XML + JUnit reports.
  */
-@DisableCachingByDefault(because = "Execution depends on external XSpec files and runtime stylesheet resources")
+@DisableCachingByDefault(
+        because = "Execution depends on external XSpec files and runtime stylesheet resources")
 public abstract class XSpecTask extends AbstractXmlTransformTask {
 
     private static final String XSPEC_NS = "http://www.jenitennison.com/xslt/xspec";
     private static final QName XSPEC_MAIN_TEMPLATE = new QName(XSPEC_NS, "main");
-    private static final String DEFAULT_COMPILER_CLASSPATH_RESOURCE = "io/xspec/xspec/impl/src/compiler/compile-xslt-tests.xsl";
-    private static final String DEFAULT_JUNIT_REPORTER_CLASSPATH_RESOURCE = "io/xspec/xspec/impl/src/reporter/junit-report.xsl";
+    private static final String DEFAULT_COMPILER_CLASSPATH_RESOURCE =
+            "io/xspec/xspec/impl/src/compiler/compile-xslt-tests.xsl";
+    private static final String DEFAULT_JUNIT_REPORTER_CLASSPATH_RESOURCE =
+            "io/xspec/xspec/impl/src/reporter/junit-report.xsl";
 
     /**
      * Creates task with XSpec report defaults.
      */
     public XSpecTask() {
         getOutputExtension().convention(".xspec.xml");
-        getJunitOutputDir().convention(getProject().getLayout().getBuildDirectory().dir("reports/xspec/junit"));
+        getJunitOutputDir()
+                .convention(
+                        getProject().getLayout().getBuildDirectory().dir("reports/xspec/junit"));
     }
 
     /**
@@ -111,7 +117,8 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
     }
 
     @Override
-    protected void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception {
+    protected void transform(File inputFile, File outputFile, Map<String, String> params)
+            throws Exception {
         File runnerStylesheet = inputFile;
         File autoCompiledRunner = null;
         if (isXspec(inputFile)) {
@@ -130,7 +137,8 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
         transformer.setInitialTemplate(XSPEC_MAIN_TEMPLATE);
         transformer.setBaseOutputURI(outputFile.toURI().toString());
         for (Map.Entry<String, String> entry : params.entrySet()) {
-            transformer.setParameter(new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
+            transformer.setParameter(
+                    new QName(entry.getKey()), new XdmAtomicValue(entry.getValue()));
         }
 
         Serializer serializer = processor.newSerializer(outputFile);
@@ -147,22 +155,30 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
 
         FailedTestSummary failedTestSummary = summarizeFailures(outputFile);
         if (failedTestSummary.failures() > 0) {
-            throw new GradleException("XSpec failed for " + inputFile + " with "
-                + failedTestSummary.failures() + " failing test(s) out of " + failedTestSummary.total() + ".");
+            throw new GradleException(
+                    "XSpec failed for "
+                            + inputFile
+                            + " with "
+                            + failedTestSummary.failures()
+                            + " failing test(s) out of "
+                            + failedTestSummary.total()
+                            + ".");
         }
     }
 
     @Override
     protected long latestDependencyTimestamp(File inputFile) {
         long sourceTimestamp = inputFile.lastModified();
-        long junitReporterTimestamp = getJunitReporterStylesheet().isPresent()
-            ? getJunitReporterStylesheet().get().getAsFile().lastModified()
-            : sourceTimestamp;
+        long junitReporterTimestamp =
+                getJunitReporterStylesheet().isPresent()
+                        ? getJunitReporterStylesheet().get().getAsFile().lastModified()
+                        : sourceTimestamp;
 
         if (isXspec(inputFile)) {
-            long compilerTimestamp = getCompilerStylesheet().isPresent()
-                ? getCompilerStylesheet().get().getAsFile().lastModified()
-                : sourceTimestamp;
+            long compilerTimestamp =
+                    getCompilerStylesheet().isPresent()
+                            ? getCompilerStylesheet().get().getAsFile().lastModified()
+                            : sourceTimestamp;
             return Math.max(sourceTimestamp, Math.max(compilerTimestamp, junitReporterTimestamp));
         }
 
@@ -189,7 +205,9 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
         }
         URL resource = getClass().getClassLoader().getResource(DEFAULT_COMPILER_CLASSPATH_RESOURCE);
         if (resource == null) {
-            throw new GradleException("Could not find XSpec compiler at classpath resource " + DEFAULT_COMPILER_CLASSPATH_RESOURCE);
+            throw new GradleException(
+                    "Could not find XSpec compiler at classpath resource "
+                            + DEFAULT_COMPILER_CLASSPATH_RESOURCE);
         }
         return new StreamSource(resource.toExternalForm());
     }
@@ -198,15 +216,18 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
         if (getJunitReporterStylesheet().isPresent()) {
             return new StreamSource(getJunitReporterStylesheet().get().getAsFile());
         }
-        URL resource = getClass().getClassLoader().getResource(DEFAULT_JUNIT_REPORTER_CLASSPATH_RESOURCE);
+        URL resource =
+                getClass().getClassLoader().getResource(DEFAULT_JUNIT_REPORTER_CLASSPATH_RESOURCE);
         if (resource == null) {
-            throw new GradleException("Could not find XSpec JUnit reporter at classpath resource "
-                + DEFAULT_JUNIT_REPORTER_CLASSPATH_RESOURCE);
+            throw new GradleException(
+                    "Could not find XSpec JUnit reporter at classpath resource "
+                            + DEFAULT_JUNIT_REPORTER_CLASSPATH_RESOURCE);
         }
         return new StreamSource(resource.toExternalForm());
     }
 
-    private void writeJunitReport(File xspecReportFile, File junitOutputFile, Processor processor) throws Exception {
+    private void writeJunitReport(File xspecReportFile, File junitOutputFile, Processor processor)
+            throws Exception {
         XsltCompiler compiler = processor.newXsltCompiler();
         SaxonXirResolvers.configure(compiler);
         XsltExecutable executable = compiler.compile(junitReporterSource());
@@ -229,9 +250,10 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
             }
         }
         int extensionIndex = relative.lastIndexOf('.');
-        String replaced = extensionIndex >= 0
-            ? relative.substring(0, extensionIndex) + ".junit.xml"
-            : relative + ".junit.xml";
+        String replaced =
+                extensionIndex >= 0
+                        ? relative.substring(0, extensionIndex) + ".junit.xml"
+                        : relative + ".junit.xml";
         return new File(getJunitOutputDir().get().getAsFile(), replaced);
     }
 
@@ -245,7 +267,10 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
         int failed = 0;
         for (int i = 0; i < total; i++) {
             org.w3c.dom.Node node = tests.item(i);
-            org.w3c.dom.Node successful = node.getAttributes() == null ? null : node.getAttributes().getNamedItem("successful");
+            org.w3c.dom.Node successful =
+                    node.getAttributes() == null
+                            ? null
+                            : node.getAttributes().getNamedItem("successful");
             if (successful != null && !Boolean.parseBoolean(successful.getNodeValue())) {
                 failed++;
             }
@@ -257,6 +282,5 @@ public abstract class XSpecTask extends AbstractXmlTransformTask {
         return file.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".xspec");
     }
 
-    private record FailedTestSummary(int total, int failures) {
-    }
+    private record FailedTestSummary(int total, int failures) {}
 }

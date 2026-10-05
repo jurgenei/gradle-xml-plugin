@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import static org.junit.Assert.assertTrue;
@@ -16,8 +17,7 @@ import org.junit.rules.TemporaryFolder;
  */
 public class XsdTaskIntegrationTest {
 
-    @Rule
-    public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     /**
      * Verifies XSD validation emits SVRL and JUnit reports in AUTO engine mode.
@@ -27,7 +27,9 @@ public class XsdTaskIntegrationTest {
         write("settings.gradle", """
             rootProject.name = 'xsd-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
               schema 'src/main/xsd/schema.xsd'
@@ -39,7 +41,9 @@ public class XsdTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xsd/schema.xsd", """
+        write(
+                "src/main/xsd/schema.xsd",
+                """
             <?xml version='1.0' encoding='UTF-8'?>
             <xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'>
               <xs:element name='root'>
@@ -51,18 +55,23 @@ public class XsdTaskIntegrationTest {
               </xs:element>
             </xs:schema>
             """);
-        write("src/main/xml/invalid.xml", """
+        write(
+                "src/main/xml/invalid.xml",
+                """
             <root><wrong>bad</wrong></root>
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXsd")
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withPluginClasspath()
+                .withArguments("runXsd")
+                .build();
 
         File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/invalid.svrl.xml");
-        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/invalid.junit.xml");
+        File junit =
+                new File(
+                        testProjectDir.getRoot(),
+                        "build/reports/xml-validation/junit/invalid.junit.xml");
 
         assertTrue(svrl.exists());
         assertTrue(junit.exists());
@@ -78,7 +87,9 @@ public class XsdTaskIntegrationTest {
         write("settings.gradle", """
             rootProject.name = 'xsd-xir-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
               schema 'src/main/xsd/schema.xir'
@@ -90,7 +101,9 @@ public class XsdTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xsd/schema.xir", """
+        write(
+                "src/main/xsd/schema.xir",
+                """
             (xs:schema
               { xmlns:xs "http://www.w3.org/2001/XMLSchema" }
               (xs:element { name "root" }
@@ -98,19 +111,24 @@ public class XsdTaskIntegrationTest {
                   (xs:sequence
                     (xs:element { name "value" type "xs:string" })))))
             """);
-        write("src/main/xir/invalid.xir", """
+        write(
+                "src/main/xir/invalid.xir",
+                """
             (root
               (wrong "bad"))
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXsd")
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withPluginClasspath()
+                .withArguments("runXsd")
+                .build();
 
         File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/invalid.svrl.xml");
-        File junit = new File(testProjectDir.getRoot(), "build/reports/xml-validation/junit/invalid.junit.xml");
+        File junit =
+                new File(
+                        testProjectDir.getRoot(),
+                        "build/reports/xml-validation/junit/invalid.junit.xml");
 
         assertTrue(svrl.exists());
         assertTrue(junit.exists());

@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.util.LinkedHashMap;
@@ -8,14 +9,12 @@ import java.util.Map;
  * Renders an executable phase-2 extraction stylesheet from normalized SEL rules.
  */
 final class SelStylesheetCompiler {
-    private SelStylesheetCompiler() {
-    }
+    private SelStylesheetCompiler() {}
 
     static String render(
-        List<SelRuleDescriptor> rules,
-        Map<String, String> configuredGroupOutputs,
-        SelOutputConfig outputConfig
-    ) {
+            List<SelRuleDescriptor> rules,
+            Map<String, String> configuredGroupOutputs,
+            SelOutputConfig outputConfig) {
         Map<String, String> groups = new LinkedHashMap<>();
         groups.putAll(configuredGroupOutputs);
         for (SelRuleDescriptor rule : rules) {
@@ -34,10 +33,10 @@ final class SelStylesheetCompiler {
         xml.append("    xmlns:c=\"http://jurgenei.name/canonical\"\n");
         if (!outputConfig.prefix().isBlank()) {
             xml.append("    xmlns:")
-                .append(outputConfig.prefix())
-                .append("=\"")
-                .append(escape(outputConfig.namespaceUri()))
-                .append("\"\n");
+                    .append(outputConfig.prefix())
+                    .append("=\"")
+                    .append(escape(outputConfig.namespaceUri()))
+                    .append("\"\n");
         }
         xml.append("    exclude-result-prefixes=\"xs c sx\" expand-text=\"yes\">\n\n");
 
@@ -46,13 +45,15 @@ final class SelStylesheetCompiler {
         xml.append("  <xsl:param name=\"source-document\" as=\"xs:string\" select=\"''\"/>\n\n");
         xml.append("  <xsl:function name=\"sx:canonical-path\" as=\"xs:string\">\n");
         xml.append("    <xsl:param name=\"n\" as=\"node()\"/>\n");
-        xml.append("    <xsl:sequence select=\"replace(path($n), 'Q\\{http://jurgenei.name/canonical\\}', 'c:')\"/>\n");
+        xml.append(
+                "    <xsl:sequence select=\"replace(path($n),"
+                        + " 'Q\\{http://jurgenei.name/canonical\\}', 'c:')\"/>\n");
         xml.append("  </xsl:function>\n\n");
 
         for (int i = 0; i < rules.size(); i++) {
             xml.append("  <xsl:mode name=\"m-rule-")
-                .append(i)
-                .append("\" on-no-match=\"shallow-skip\"/>\n");
+                    .append(i)
+                    .append("\" on-no-match=\"shallow-skip\"/>\n");
         }
         if (!rules.isEmpty()) {
             xml.append("\n");
@@ -60,10 +61,10 @@ final class SelStylesheetCompiler {
 
         for (Map.Entry<String, String> entry : groups.entrySet()) {
             xml.append("  <xsl:param name=\"output-")
-                .append(escape(entry.getKey()))
-                .append("\" as=\"xs:string\" select=\"'")
-                .append(escape(entry.getValue()))
-                .append("'\"/>\n");
+                    .append(escape(entry.getKey()))
+                    .append("\" as=\"xs:string\" select=\"'")
+                    .append(escape(entry.getValue()))
+                    .append("'\"/>\n");
         }
         xml.append("\n");
 
@@ -71,8 +72,8 @@ final class SelStylesheetCompiler {
         xml.append("    <!-- Emit grouped SEL payloads into independent output files. -->\n");
         for (String group : groups.keySet()) {
             xml.append("    <xsl:result-document href=\"{$output-")
-                .append(escape(group))
-                .append("}\">\n");
+                    .append(escape(group))
+                    .append("}\">\n");
             xml.append("      ").append(observationsStartTag(group, outputConfig)).append("\n");
             for (int i = 0; i < rules.size(); i++) {
                 SelRuleDescriptor rule = rules.get(i);
@@ -80,8 +81,8 @@ final class SelStylesheetCompiler {
                     continue;
                 }
                 xml.append("        <xsl:apply-templates select=\"/\" mode=\"m-rule-")
-                    .append(i)
-                    .append("\"/>\n");
+                        .append(i)
+                        .append("\"/>\n");
             }
             xml.append("      ").append(observationsEndTag(outputConfig)).append("\n");
             xml.append("    </xsl:result-document>\n");
@@ -90,29 +91,28 @@ final class SelStylesheetCompiler {
 
         for (int i = 0; i < rules.size(); i++) {
             SelRuleDescriptor rule = rules.get(i);
-            String condition = "assert".equals(rule.sourceElement())
-                ? "not(" + rule.test() + ")"
-                : "(" + rule.test() + ")";
+            String condition =
+                    "assert".equals(rule.sourceElement())
+                            ? "not(" + rule.test() + ")"
+                            : "(" + rule.test() + ")";
 
             xml.append("\n  <xsl:template match=\"")
-                .append(escape(rule.context()))
-                .append("\" mode=\"m-rule-")
-                .append(i)
-                .append("\">\n");
-            xml.append("    <xsl:if test=\"")
-                .append(escape(condition))
-                .append("\">\n");
+                    .append(escape(rule.context()))
+                    .append("\" mode=\"m-rule-")
+                    .append(i)
+                    .append("\">\n");
+            xml.append("    <xsl:if test=\"").append(escape(condition)).append("\">\n");
             xml.append("      ").append(observationStartTag(rule, outputConfig)).append("\n");
             xml.append("        ").append(evidenceStartTag(outputConfig)).append("\n");
             xml.append("          <xsl:copy-of select=\"")
-                .append(escape(rule.copy()))
-                .append("\" copy-namespaces=\"no\"/>\n");
+                    .append(escape(rule.copy()))
+                    .append("\" copy-namespaces=\"no\"/>\n");
             xml.append("        ").append(evidenceEndTag(outputConfig)).append("\n");
             if (!rule.contextExpr().isBlank()) {
                 xml.append("        ").append(contextStartTag(outputConfig)).append("\n");
                 xml.append("          <xsl:copy-of select=\"")
-                    .append(escape(rule.contextExpr()))
-                    .append("\" copy-namespaces=\"no\"/>\n");
+                        .append(escape(rule.contextExpr()))
+                        .append("\" copy-namespaces=\"no\"/>\n");
                 xml.append("        ").append(contextEndTag(outputConfig)).append("\n");
             }
             if (!rule.templateFragment().isBlank()) {
@@ -130,21 +130,26 @@ final class SelStylesheetCompiler {
     }
 
     private static String escape(String text) {
-        return text
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&apos;");
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     private static String observationsStartTag(String group, SelOutputConfig outputConfig) {
         if (outputConfig.prefix().isBlank()) {
-            return "<Observations xmlns=\"" + escape(outputConfig.namespaceUri())
-                + "\" group=\"" + escape(group) + "\" xmlns:c=\"http://jurgenei.name/canonical\">";
+            return "<Observations xmlns=\""
+                    + escape(outputConfig.namespaceUri())
+                    + "\" group=\""
+                    + escape(group)
+                    + "\" xmlns:c=\"http://jurgenei.name/canonical\">";
         }
-        return "<" + outputConfig.prefix() + ":Observations group=\"" + escape(group)
-            + "\" xmlns:c=\"http://jurgenei.name/canonical\">";
+        return "<"
+                + outputConfig.prefix()
+                + ":Observations group=\""
+                + escape(group)
+                + "\" xmlns:c=\"http://jurgenei.name/canonical\">";
     }
 
     private static String observationsEndTag(SelOutputConfig outputConfig) {
@@ -154,14 +159,20 @@ final class SelStylesheetCompiler {
         return "</" + outputConfig.prefix() + ":Observations>";
     }
 
-    private static String observationStartTag(SelRuleDescriptor rule, SelOutputConfig outputConfig) {
+    private static String observationStartTag(
+            SelRuleDescriptor rule, SelOutputConfig outputConfig) {
         StringBuilder xml = new StringBuilder();
-        xml.append("<").append(elementName(outputConfig, "Observation"))
-            .append(" type=\"").append(escape(rule.type()))
-            .append("\" group=\"").append(escape(rule.group()))
-            .append("\" source=\"").append(escape(rule.sourceElement()))
-            .append("\" ruleContext=\"").append(escape(rule.context()))
-            .append("\">");
+        xml.append("<")
+                .append(elementName(outputConfig, "Observation"))
+                .append(" type=\"")
+                .append(escape(rule.type()))
+                .append("\" group=\"")
+                .append(escape(rule.group()))
+                .append("\" source=\"")
+                .append(escape(rule.sourceElement()))
+                .append("\" ruleContext=\"")
+                .append(escape(rule.context()))
+                .append("\">");
         return xml.toString();
     }
 
@@ -186,8 +197,9 @@ final class SelStylesheetCompiler {
     }
 
     private static String sourceTag(SelOutputConfig outputConfig) {
-        return "<" + elementName(outputConfig, "Source")
-            + " document=\"{$source-document}\" path=\"{sx:canonical-path(.)}\"/>";
+        return "<"
+                + elementName(outputConfig, "Source")
+                + " document=\"{$source-document}\" path=\"{sx:canonical-path(.)}\"/>";
     }
 
     private static String elementName(SelOutputConfig outputConfig, String localName) {

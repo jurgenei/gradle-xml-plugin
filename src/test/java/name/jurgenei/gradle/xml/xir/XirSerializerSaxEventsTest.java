@@ -1,26 +1,26 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml.xir;
 
+import java.io.StringWriter;
 import name.jurgenei.xir.XirSerializer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.xml.sax.helpers.AttributesImpl;
-
-import java.io.StringWriter;
 
 public class XirSerializerSaxEventsTest {
 
     @Test
     public void serializesFromDirectSaxEventsAndCoversInternalKinds() throws Exception {
         StringWriter writer = new StringWriter();
-        XirSerializer serializer = new XirSerializer(
-            writer,
-            XirSerializer.OutputFormat.BEAUTIFIED,
-            XirSerializer.SyntaxMode.CANONICAL
-        );
+        XirSerializer serializer =
+                new XirSerializer(
+                        writer,
+                        XirSerializer.OutputFormat.BEAUTIFIED,
+                        XirSerializer.SyntaxMode.CANONICAL);
 
         serializer.setDocumentLocator(null);
         serializer.startDocument();
-        serializer.ignorableWhitespace(new char[]{' '}, 0, 1);
+        serializer.ignorableWhitespace(new char[] {' '}, 0, 1);
         serializer.startDTD("d", null, null);
         serializer.endDTD();
         serializer.startEntity("e");
@@ -85,14 +85,20 @@ public class XirSerializerSaxEventsTest {
         serializer.endDocument();
 
         String out = writer.toString();
-        Assert.assertTrue(out, out.contains("{version") && out.contains("1.0") && out.contains("encoding") && out.contains("UTF-8") && out.contains("standalone") && out.contains("yes"));
+        Assert.assertTrue(
+                out,
+                out.contains("{version")
+                        && out.contains("1.0")
+                        && out.contains("encoding")
+                        && out.contains("UTF-8")
+                        && out.contains("standalone")
+                        && out.contains("yes"));
         Assert.assertTrue(out, out.contains("xs:string"));
-        Assert.assertTrue(out, out.contains("k 42"));  // map entry
-        Assert.assertTrue(out, out.contains("["));      // array
+        Assert.assertTrue(out, out.contains("k 42")); // map entry
+        Assert.assertTrue(out, out.contains("[")); // array
         Assert.assertTrue(out, out.contains("(m:book"));
         Assert.assertTrue(out, out.contains("(! \"inside\")"));
         Assert.assertTrue(out, out.contains("(?p"));
         Assert.assertTrue(out, out.contains("(?pi"));
     }
 }
-

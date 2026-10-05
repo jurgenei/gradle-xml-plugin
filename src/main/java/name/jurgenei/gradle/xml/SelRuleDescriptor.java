@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 /**
@@ -14,14 +15,12 @@ package name.jurgenei.gradle.xml;
  * @param patternId owning Schematron pattern id (may be empty when pattern has no id).
  */
 record SelRuleDescriptor(
-    String context,
-    String test,
-    String type,
-    String group,
-    String copy,
-    String contextExpr,
-    String templateFragment,
-    String sourceElement,
-    String patternId
-) {
-}
+        String context,
+        String test,
+        String type,
+        String group,
+        String copy,
+        String contextExpr,
+        String templateFragment,
+        String sourceElement,
+        String patternId) {}

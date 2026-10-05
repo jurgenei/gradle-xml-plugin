@@ -1,30 +1,31 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
-import org.gradle.testkit.runner.GradleRunner;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-
 import org.gradle.testkit.runner.BuildResult;
-import static org.junit.Assert.assertTrue;
+import org.gradle.testkit.runner.GradleRunner;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Integration tests for {@link SchematronSelExtractTask}.
  */
 public class SchematronSelExtractTaskIntegrationTest {
 
-    @Rule
-    public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     @Test
     public void extractsGroupedSelFilesFromAnnotatedSchematron() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-task'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -37,7 +38,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -54,7 +57,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Metadata>
                 <DocumentId>sample</DocumentId>
@@ -70,26 +75,31 @@ public class SchematronSelExtractTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
-        File architecture = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/architecture.xml");
+        File knowledge =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
+        File architecture =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/architecture.xml");
 
         assertTrue(knowledge.exists());
         assertTrue(architecture.exists());
         assertTrue(read(knowledge).contains("group=\"knowledge\""));
         assertTrue(read(knowledge).contains("sel:Observation"));
         assertTrue(read(knowledge).contains("sel:Evidence"));
-        assertTrue(read(knowledge).contains("<Paragraph") || read(knowledge).contains("<c:Paragraph"));
+        assertTrue(
+                read(knowledge).contains("<Paragraph") || read(knowledge).contains("<c:Paragraph"));
         assertTrue(read(knowledge).contains("Hello"));
         assertTrue(read(knowledge).contains("sel:Context"));
         assertTrue(read(knowledge).contains("<Title") || read(knowledge).contains("<c:Title"));
         assertTrue(read(knowledge).contains("Scope"));
         assertTrue(read(architecture).contains("type=\"relationship-candidate\""));
-        assertTrue(read(architecture).contains("<Connector") || read(architecture).contains("<c:Connector"));
+        assertTrue(
+                read(architecture).contains("<Connector")
+                        || read(architecture).contains("<c:Connector"));
         assertTrue(read(architecture).contains("source=\"a\""));
         assertTrue(read(architecture).contains("target=\"b\""));
     }
@@ -97,7 +107,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void supportsPrecompiledSelStyle() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-precompiled'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
@@ -117,7 +129,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -129,7 +143,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Metadata><DocumentId>sample</DocumentId></Metadata>
               <Body><Paragraph>Hello</Paragraph></Body>
@@ -137,12 +153,13 @@ public class SchematronSelExtractTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
+        File knowledge =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
         assertTrue(knowledge.exists());
         assertTrue(read(knowledge).contains("sel:Observation"));
     }
@@ -150,7 +167,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void resolvesXirViaDocFunctionInPrecompiledExtractionStyle() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-doc-xir'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -163,23 +182,28 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>
             """);
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Metadata><DocumentId>sample</DocumentId></Metadata>
             </Document>
             """);
         write("src/main/xir/lookup.xir", "(lookup (value \"doc-xir-ok\"))");
-        String lookupUri = new File(testProjectDir.getRoot(), "src/main/xir/lookup.xir").toURI().toString();
+        String lookupUri =
+                new File(testProjectDir.getRoot(), "src/main/xir/lookup.xir").toURI().toString();
         write("src/main/xslt/extract.xsl", extractionStyleWithLookupDoc(lookupUri));
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
         File output = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/default.xml");
         assertTrue(output.exists());
@@ -189,7 +213,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void supportsCanonicalJsonInput() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-json'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -202,7 +228,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:sel='http://jurgenei.name/sel'>
               <sch:pattern id='knowledge'>
@@ -213,7 +241,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/json/canonical.json", """
+        write(
+                "src/main/json/canonical.json",
+                """
             {
               "type": "element",
               "name": "Document",
@@ -232,12 +262,13 @@ public class SchematronSelExtractTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
+        File knowledge =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
         assertTrue(knowledge.exists());
         assertTrue(read(knowledge).contains("sel:Observation"));
     }
@@ -245,7 +276,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void supportsXirInputAndXirGroupOutputs() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-xir-to-xir'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -258,7 +291,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -272,19 +307,22 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xir/canonical.xir", """
+        write(
+                "src/main/xir/canonical.xir",
+                """
             (c:Document {xmlns:c "http://jurgenei.name/canonical"}
               (c:Body
                 (c:Paragraph "Hello from xir")))
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xir");
+        File knowledge =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xir");
         assertTrue(knowledge.exists());
         String content = read(knowledge);
         assertTrue(content.contains("sel:Observation"));
@@ -300,7 +338,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void supportsSourceFilesetOverload() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-fileset'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -314,7 +354,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -326,19 +368,22 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Body><Paragraph>Hello fileset</Paragraph></Body>
             </Document>
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File knowledge = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
+        File knowledge =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml");
         assertTrue(knowledge.exists());
         assertTrue(read(knowledge).contains("Hello fileset"));
     }
@@ -346,7 +391,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void reportsMissingInputFiles() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-missing-input'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -354,13 +401,16 @@ public class SchematronSelExtractTaskIntegrationTest {
               outputDir.set(layout.buildDirectory.dir('out/sel'))
             }
             """);
-        write("src/main/schematron/sel.sch", "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
+        write(
+                "src/main/schematron/sel.sch",
+                "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .buildAndFail();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("extractSel")
+                        .withPluginClasspath()
+                        .buildAndFail();
 
         assertTrue(result.getOutput().contains("No input files configured"));
     }
@@ -368,7 +418,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void continuesWhenFailOnErrorFalseWithNativeJsonMode() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-native-json'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -379,14 +431,17 @@ public class SchematronSelExtractTaskIntegrationTest {
               failOnError.set(false)
             }
             """);
-        write("src/main/schematron/sel.sch", "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
+        write(
+                "src/main/schematron/sel.sch",
+                "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
         write("src/main/json/input.json", "{\"message\":\"native-json\"}");
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("extractSel")
+                        .withPluginClasspath()
+                        .build();
 
         assertTrue(result.getOutput().contains("SEL extraction failed but failOnError=false"));
     }
@@ -394,7 +449,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void failsOnUnsupportedJsonMode() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-invalid-json-mode'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -404,14 +461,17 @@ public class SchematronSelExtractTaskIntegrationTest {
               outputDir.set(layout.buildDirectory.dir('out/sel'))
             }
             """);
-        write("src/main/schematron/sel.sch", "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
+        write(
+                "src/main/schematron/sel.sch",
+                "<sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'/>");
         write("src/main/json/input.json", "{\"message\":\"invalid-json-mode\"}");
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .buildAndFail();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("extractSel")
+                        .withPluginClasspath()
+                        .buildAndFail();
 
         assertTrue(result.getOutput().contains(":extractSel"));
     }
@@ -419,7 +479,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void extractsOnlyRulesFromSelectedPhaseInOnTheFlyMode() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-phase-explicit'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -432,7 +494,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -457,7 +521,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Body>
                 <Paragraph>Hello</Paragraph>
@@ -467,12 +533,13 @@ public class SchematronSelExtractTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File architecture = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/architecture.xml");
+        File architecture =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/architecture.xml");
         assertTrue(architecture.exists());
         String content = read(architecture);
         assertTrue(content.contains("type=\"relationship-candidate\""));
@@ -482,7 +549,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void failsWhenExplicitPhaseIsUnknown() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-extract-phase-unknown'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -494,7 +563,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -508,17 +579,20 @@ public class SchematronSelExtractTaskIntegrationTest {
               </sch:pattern>
             </sch:schema>
             """);
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Body><Paragraph>Hello</Paragraph></Body>
             </Document>
             """);
 
-        BuildResult result = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .buildAndFail();
+        BuildResult result =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withArguments("extractSel")
+                        .withPluginClasspath()
+                        .buildAndFail();
 
         assertTrue(result.getOutput().contains(":extractSel"));
     }
@@ -526,7 +600,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void supportsReusableSelPresetsAcrossMultipleRules() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-presets-extract'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -538,7 +614,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:sel='http://jurgenei.name/sel'>
               <sel:presets>
@@ -555,7 +633,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <root>
               <person>Jane</person>
               <employee>John</employee>
@@ -563,12 +643,13 @@ public class SchematronSelExtractTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        File quality = new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/quality.xml");
+        File quality =
+                new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/quality.xml");
         assertTrue(quality.exists());
         String content = read(quality);
         assertTrue(content.contains("group=\"quality\""));
@@ -582,7 +663,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void supportsDefaultNamespaceOutputWhenPrefixOverrideIsEmpty() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-default-namespace-output'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -596,7 +679,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -608,19 +693,25 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Body><Paragraph>Hello default namespace</Paragraph></Body>
             </Document>
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        String content = read(new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml"));
+        String content =
+                read(
+                        new File(
+                                testProjectDir.getRoot(),
+                                "build/out/sel/canonical/sel/knowledge.xml"));
         assertTrue(content.contains("<Observations xmlns=\"urn:sel:default\""));
         assertTrue(content.contains("<Observation"));
         assertTrue(!content.contains("sel:Observation"));
@@ -629,7 +720,9 @@ public class SchematronSelExtractTaskIntegrationTest {
     @Test
     public void evaluatesPresetTemplateContentInMatchedRuleContext() throws Exception {
         write("settings.gradle", "rootProject.name = 'schematron-sel-preset-template-context'\n");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
 
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
@@ -641,7 +734,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             }
             """);
 
-        write("src/main/schematron/sel.sch", """
+        write(
+                "src/main/schematron/sel.sch",
+                """
             <sch:schema xmlns:sch='http://purl.oclc.org/dsdl/schematron'
                         xmlns:c='http://jurgenei.name/canonical'
                         xmlns:sel='http://jurgenei.name/sel'>
@@ -663,7 +758,9 @@ public class SchematronSelExtractTaskIntegrationTest {
             </sch:schema>
             """);
 
-        write("src/main/xml/canonical.xml", """
+        write(
+                "src/main/xml/canonical.xml",
+                """
             <Document xmlns='http://jurgenei.name/canonical'>
               <Body>
                 <Section>
@@ -675,12 +772,16 @@ public class SchematronSelExtractTaskIntegrationTest {
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withArguments("extractSel")
-            .withPluginClasspath()
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withArguments("extractSel")
+                .withPluginClasspath()
+                .build();
 
-        String content = read(new File(testProjectDir.getRoot(), "build/out/sel/canonical/sel/knowledge.xml"));
+        String content =
+                read(
+                        new File(
+                                testProjectDir.getRoot(),
+                                "build/out/sel/canonical/sel/knowledge.xml"));
         assertTrue(content.contains("<sel:Meta code=\"p-1\">"));
         assertTrue(content.contains("<sel:Summary>Paragraph:Source payload</sel:Summary>"));
         assertTrue(content.contains("<sel:Section>Interfaces</sel:Section>"));
@@ -702,7 +803,8 @@ public class SchematronSelExtractTaskIntegrationTest {
                 </xsl:result-document>
               </xsl:template>
             </xsl:stylesheet>
-            """.formatted(lookupUri);
+            """
+                .formatted(lookupUri);
     }
 
     private void write(String relativePath, String content) throws IOException {

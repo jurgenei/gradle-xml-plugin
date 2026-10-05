@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import org.gradle.api.Plugin;
@@ -15,8 +16,7 @@ public class XmlTransformPlugin implements Plugin<Project> {
     /**
      * Creates the plugin instance.
      */
-    public XmlTransformPlugin() {
-    }
+    public XmlTransformPlugin() {}
 
     /**
      * Applies the plugin to a project.

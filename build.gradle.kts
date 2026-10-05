@@ -17,6 +17,7 @@ plugins {
     id("org.owasp.dependencycheck") version "13.0.0"
     id("com.github.spotbugs") version "6.5.11"
     id("org.sonarqube") version "7.5.0.8588"
+    id("com.diffplug.spotless") version "8.10.3"
 }
 
 group = "name.jurgenei.gradle"
@@ -114,6 +115,35 @@ extensions.configure<PublishingExtension> {
 //    useGpgCmd()
 //    sign(extensions.getByType(PublishingExtension::class.java).publications)
 //}
+
+
+spotless {
+    // optional: limit format enforcement to just the files changed by this feature branch
+    ratchetFrom("origin/main")
+
+    format("misc") {
+    // define the files to apply `misc` to
+    target("*.gradle", ".gitattributes", ".gitignore")
+
+    // define the steps to apply to those files
+    trimTrailingWhitespace()
+    leadingSpacesToTabs() // or leadingTabsToSpaces. Takes an integer argument if you don't like 4
+    endWithNewline()
+}
+    java {
+        // don't need to set target, it is inferred from java
+
+        // apply a specific flavor of google-java-format
+        googleJavaFormat("1.17.0").aosp().reflowLongStrings().skipJavadocFormatting()
+        // fix formatting of type annotations
+        formatAnnotations()
+        // make sure every file has the following copyright header.
+        // optionally, Spotless can set copyright years by digging
+        // through git history (see "license" section below)
+        licenseHeader("/* (C)\$YEAR */")
+    }
+}
+
 
 // OWASP Dependency-Check configuration
 extensions.getByName("dependencyCheck").withGroovyBuilder {
