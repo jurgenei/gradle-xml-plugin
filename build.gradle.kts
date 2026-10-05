@@ -282,42 +282,84 @@ tasks.register<Exec>("verifyXsltXirSample") {
     group = "verification"
     description = "Runs XSLT sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/transformation/xslt", "runSelfTest")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/xslt",
+        "runSelfTest"
+    )
 }
 
 tasks.register<Exec>("verifyXqueryXirSample") {
     group = "verification"
     description = "Runs XQuery sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/transformation/xquery", "runSelfTest")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/xquery",
+        "runSelfTest"
+    )
 }
 
 tasks.register<Exec>("verifySchematronSample") {
     group = "verification"
     description = "Runs Schematron sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/validation/schematron", "runSelfTest")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/validation/schematron",
+        "runSelfTest"
+    )
 }
 
 tasks.register<Exec>("verifyXsdSample") {
     group = "verification"
     description = "Runs XSD sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/validation/xsd", "runSelfTest")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/validation/xsd",
+        "runSelfTest"
+    )
 }
 
 tasks.register<Exec>("verifySelSample") {
     group = "verification"
     description = "Runs SEL sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/transformation/sel", "runSelfTest")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/sel",
+        "runSelfTest"
+    )
 }
 
 tasks.register<Exec>("verifyBootstrapSample") {
     group = "verification"
     description = "Runs Schematron bootstrap sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/schematron-bootstrap-ooxml", "runSelfTest")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/schematron-bootstrap-ooxml",
+        "runSelfTest"
+    )
 }
 
 tasks.register("verifyXirSample") {
