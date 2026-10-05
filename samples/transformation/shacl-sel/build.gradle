@@ -1,0 +1,64 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('compileShaclSel', name.jurgenei.gradle.xml.ShaclSelCompileTask) {
+    schema 'src/main/shacl/collibra-model.shacl.xml'
+    output 'build/generated/sel/shacl-sel.xsl'
+    outputSchematron 'build/generated/sel/shacl-sel.sch'
+    groupOutput 'relations', 'sel/relations.xml'
+}
+
+tasks.register('extractShaclSel', name.jurgenei.gradle.xml.ShaclSelExtractTask) {
+    dependsOn tasks.named('compileShaclSel')
+    schema 'build/generated/sel/shacl-sel.sch'
+    style 'build/generated/sel/shacl-sel.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/shacl-sel'))
+    groupOutput 'relations', 'sel/relations.xml'
+    failOnError.set(true)
+}
+
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
+    dependsOn 'extractShaclSel'
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('syncExpectedShaclSel') {
+    dependsOn 'compileShaclSel'
+    doLast {
+        copy {
+            from 'build/generated/sel/shacl-sel.xsl'
+            into 'expected'
+        }
+        copy {
+            from 'build/generated/sel/shacl-sel.sch'
+            into 'expected'
+        }
+    }
+}
+
+tasks.register('verifyExpectedShaclSel') {
+    dependsOn 'compileShaclSel'
+    doLast {
+        def expectedXsl = file('expected/shacl-sel.xsl')
+        def expectedSch = file('expected/shacl-sel.sch')
+        if (!expectedXsl.exists() || !expectedSch.exists()) {
+            throw new GradleException(
+                    "Expected snapshots missing. Run ./gradlew -p samples/transformation/shacl-sel syncExpectedShaclSel")
+        }
+
+        def actualXsl = file('build/generated/sel/shacl-sel.xsl').getText('UTF-8')
+        def actualSch = file('build/generated/sel/shacl-sel.sch').getText('UTF-8')
+        if (actualXsl != expectedXsl.getText('UTF-8') || actualSch != expectedSch.getText('UTF-8')) {
+            throw new GradleException(
+                    "SHACL-SEL snapshots out of date. Run ./gradlew -p samples/transformation/shacl-sel syncExpectedShaclSel")
+        }
+    }
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest', 'verifyExpectedShaclSel'
+}

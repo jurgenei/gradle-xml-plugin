@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:sh="http://www.w3.org/ns/shacl#"
+         xmlns:cr="https://example.org/collibra#">
+  <sh:NodeShape rdf:about="https://example.org/collibra#ApplicationComponentShape">
+    <sh:targetClass rdf:resource="https://example.org/collibra#ApplicationComponent"/>
+    <sh:property>
+      <sh:PropertyShape>
+        <sh:path rdf:resource="https://example.org/collibra#hasDataSet"/>
+        <sh:class rdf:resource="https://example.org/collibra#DataSet"/>
+      </sh:PropertyShape>
+    </sh:property>
+  </sh:NodeShape>
+
+  <sh:NodeShape rdf:about="https://example.org/collibra#DataSetShape">
+    <sh:targetClass rdf:resource="https://example.org/collibra#DataSet"/>
+    <sh:property>
+      <sh:PropertyShape>
+        <sh:path rdf:resource="https://example.org/collibra#hasTable"/>
+        <sh:class rdf:resource="https://example.org/collibra#DatabaseTable"/>
+      </sh:PropertyShape>
+    </sh:property>
+    <sh:property>
+      <sh:PropertyShape>
+        <sh:path rdf:resource="https://example.org/collibra#hasDomain"/>
+        <sh:class rdf:resource="https://example.org/collibra#DataDomain"/>
+      </sh:PropertyShape>
+    </sh:property>
+    <sh:property>
+      <sh:PropertyShape>
+        <sh:path rdf:resource="https://example.org/collibra#ownedBy"/>
+        <sh:class rdf:resource="https://example.org/collibra#DataOwner"/>
+      </sh:PropertyShape>
+    </sh:property>
+  </sh:NodeShape>
+
+  <sh:NodeShape rdf:about="https://example.org/collibra#DatabaseTableShape">
+    <sh:targetClass rdf:resource="https://example.org/collibra#DatabaseTable"/>
+    <sh:property>
+      <sh:PropertyShape>
+        <sh:path rdf:resource="https://example.org/collibra#hasColumn"/>
+        <sh:class rdf:resource="https://example.org/collibra#DatabaseColumn"/>
+      </sh:PropertyShape>
+    </sh:property>
+  </sh:NodeShape>
+</rdf:RDF>
