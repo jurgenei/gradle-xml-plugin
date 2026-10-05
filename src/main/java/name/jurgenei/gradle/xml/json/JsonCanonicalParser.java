@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,8 +22,7 @@ public final class JsonCanonicalParser {
     /**
      * Creates parser for canonical JSON/XML mapping.
      */
-    public JsonCanonicalParser() {
-    }
+    public JsonCanonicalParser() {}
 
     /**
      * Parses canonical JSON input and emits equivalent SAX events.
@@ -43,7 +43,8 @@ public final class JsonCanonicalParser {
         handler.endDocument();
     }
 
-    private void emitElement(JsonNode node, ContentHandler handler) throws IOException, SAXException {
+    private void emitElement(JsonNode node, ContentHandler handler)
+            throws IOException, SAXException {
         if (!node.isObject()) {
             throw new IOException("Expected object node for element, got: " + node.getNodeType());
         }
@@ -85,7 +86,8 @@ public final class JsonCanonicalParser {
         handler.endElement("", name, name);
     }
 
-    private void emitChildren(ArrayNode children, ContentHandler handler, String parentName) throws IOException, SAXException {
+    private void emitChildren(ArrayNode children, ContentHandler handler, String parentName)
+            throws IOException, SAXException {
         for (JsonNode child : children) {
             if (child == null || child.isNull()) {
                 continue;
@@ -97,7 +99,11 @@ public final class JsonCanonicalParser {
             }
 
             if (!child.isObject()) {
-                throw new IOException("Unsupported child node type under element '" + parentName + "': " + child.getNodeType());
+                throw new IOException(
+                        "Unsupported child node type under element '"
+                                + parentName
+                                + "': "
+                                + child.getNodeType());
             }
 
             String childType = textOrNull(child.get("type"));
@@ -111,7 +117,10 @@ public final class JsonCanonicalParser {
                 continue;
             }
 
-            throw new IOException("Unsupported object child under element '" + parentName + "': missing recognized 'type'");
+            throw new IOException(
+                    "Unsupported object child under element '"
+                            + parentName
+                            + "': missing recognized 'type'");
         }
     }
 

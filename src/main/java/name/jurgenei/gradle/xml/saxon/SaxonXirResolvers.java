@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml.saxon;
 
 import java.net.URI;
@@ -10,9 +11,9 @@ import name.jurgenei.xir.XirReader;
 import net.sf.saxon.Configuration;
 import net.sf.saxon.lib.ResourceRequest;
 import net.sf.saxon.lib.ResourceResolver;
-import net.sf.saxon.s9api.SaxonApiException;
-import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.resource.SuppliedItemResource;
+import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.trans.XPathException;
 import org.xml.sax.InputSource;
 
@@ -24,8 +25,7 @@ public final class SaxonXirResolvers {
 
     private static final String SEXPR_MEDIA_TYPE = "application/x-xir+xml";
 
-    private SaxonXirResolvers() {
-    }
+    private SaxonXirResolvers() {}
 
     /**
      * Configures resolver hooks on a Saxon processor.
@@ -50,24 +50,34 @@ public final class SaxonXirResolvers {
 
     private static void registerXirCollectionFactory(Configuration configuration) {
         configuration.registerFileExtension("xir", SEXPR_MEDIA_TYPE);
-        configuration.registerMediaType(SEXPR_MEDIA_TYPE, (context, details) -> {
-            try {
-                Processor processor = new Processor(context.getConfiguration());
-                net.sf.saxon.om.NodeInfo node = processor.newDocumentBuilder()
-                    .build(new SAXSource(new XirReader(), new InputSource(details.resourceUri)))
-                    .getUnderlyingNode();
-                return new SuppliedItemResource(() -> node, details.resourceUri);
-            } catch (SaxonApiException ex) {
-                throw new XPathException("Failed to parse S-expression resource: " + details.resourceUri, ex);
-            }
-        });
+        configuration.registerMediaType(
+                SEXPR_MEDIA_TYPE,
+                (context, details) -> {
+                    try {
+                        Processor processor = new Processor(context.getConfiguration());
+                        net.sf.saxon.om.NodeInfo node =
+                                processor
+                                        .newDocumentBuilder()
+                                        .build(
+                                                new SAXSource(
+                                                        new XirReader(),
+                                                        new InputSource(details.resourceUri)))
+                                        .getUnderlyingNode();
+                        return new SuppliedItemResource(() -> node, details.resourceUri);
+                    } catch (SaxonApiException ex) {
+                        throw new XPathException(
+                                "Failed to parse S-expression resource: " + details.resourceUri,
+                                ex);
+                    }
+                });
     }
 
     private static final class DualXirResolver implements ResourceResolver, URIResolver {
 
         @Override
         public Source resolve(ResourceRequest request) throws XPathException {
-            String candidate = chooseCandidateUri(request.uri, request.relativeUri, request.baseUri);
+            String candidate =
+                    chooseCandidateUri(request.uri, request.relativeUri, request.baseUri);
             if (!isXirReference(candidate)) {
                 return null;
             }
@@ -80,7 +90,9 @@ public final class SaxonXirResolvers {
             try {
                 candidate = chooseCandidateUri(null, href, base);
             } catch (IllegalArgumentException ex) {
-                throw new TransformerException("Invalid URI while resolving '" + href + "' against base '" + base + "'", ex);
+                throw new TransformerException(
+                        "Invalid URI while resolving '" + href + "' against base '" + base + "'",
+                        ex);
             }
             if (!isXirReference(candidate)) {
                 return null;
@@ -88,7 +100,8 @@ public final class SaxonXirResolvers {
             return new SAXSource(new XirReader(), new InputSource(candidate));
         }
 
-        private static String chooseCandidateUri(String absoluteUri, String relativeUri, String baseUri) {
+        private static String chooseCandidateUri(
+                String absoluteUri, String relativeUri, String baseUri) {
             if (notBlank(absoluteUri)) {
                 return absoluteUri;
             }
