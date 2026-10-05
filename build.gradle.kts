@@ -118,13 +118,15 @@ extensions.configure<PublishingExtension> {
 
 
 spotless {
-    // Optional: limit format enforcement to changed files, but only when CI checkout contains origin/main.
+    // Limit format enforcement to changed files even in shallow CI clones.
     val hasOriginMain = providers.exec {
         commandLine("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/main")
         isIgnoreExitValue = true
     }.result.get().exitValue == 0
     if (hasOriginMain) {
         ratchetFrom("origin/main")
+    } else {
+        ratchetFrom("HEAD")
     }
 
     format("misc") {
@@ -145,7 +147,7 @@ spotless {
         // make sure every file has the following copyright header.
         // optionally, Spotless can set copyright years by digging
         // through git history (see "license" section below)
-        licenseHeader("/* (C)\$YEAR */")
+        licenseHeader("/* (C)2026 */")
     }
 }
 
