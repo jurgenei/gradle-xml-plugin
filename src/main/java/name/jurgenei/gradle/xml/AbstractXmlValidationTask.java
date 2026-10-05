@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
@@ -39,7 +40,8 @@ import org.xml.sax.InputSource;
 /**
  * Shared base task for XSD and Schematron validations producing SVRL and optional JUnit reports.
  */
-@DisableCachingByDefault(because = "Validation is I/O heavy and depends on external schema resources")
+@DisableCachingByDefault(
+        because = "Validation is I/O heavy and depends on external schema resources")
 public abstract class AbstractXmlValidationTask extends SourceTask implements ValidationTaskSpec {
 
     @OutputDirectory
@@ -59,6 +61,16 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
     @Input
     public abstract Property<ReportFormat> getReportFormat();
+
+    /**
+     * Orthogonal alias for {@link #getReportFormat()}.
+     *
+     * @return report format property
+     */
+    @Internal
+    public Property<ReportFormat> getFormat() {
+        return getReportFormat();
+    }
 
     @OutputDirectory
     public abstract DirectoryProperty getJunitOutputDir();
@@ -88,7 +100,30 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         getReportFormat().convention(ReportFormat.SVRL);
         getJunitSuiteName().convention(getName());
         getProjectDir().convention(getProject().getLayout().getProjectDirectory());
-        getJunitOutputDir().convention(getProject().getLayout().getBuildDirectory().dir("reports/xml-validation/junit"));
+        getJunitOutputDir()
+                .convention(
+                        getProject()
+                                .getLayout()
+                                .getBuildDirectory()
+                                .dir("reports/xml-validation/junit"));
+    }
+
+    /**
+     * Sets validation report format using orthogonal DSL alias.
+     *
+     * @param format report format selection
+     */
+    public void format(ReportFormat format) {
+        getReportFormat().set(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #format(ReportFormat)}.
+     *
+     * @param format report format selection
+     */
+    public void setFormat(ReportFormat format) {
+        format(format);
     }
 
     /**
@@ -154,15 +189,25 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         }
 
         if (!failures.isEmpty() && getFailOnError().get()) {
-            throw new GradleException("Validation failed for " + failures.size() + " input file(s)", failures.get(0));
+            throw new GradleException(
+                    "Validation failed for " + failures.size() + " input file(s)", failures.get(0));
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, int workers, List<Exception> failures) {
-        try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
+    private void runParallel(
+            List<File> inputFiles,
+            File outputRoot,
+            Map<Path, String> relativePaths,
+            int workers,
+            List<Exception> failures) {
+        try (ExecutorService executor =
+                Executors.newFixedThreadPool(
+                        workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> validateOne(inputFile, outputRoot, relativePaths, failures)));
+                futures.add(
+                        executor.submit(
+                                () -> validateOne(inputFile, outputRoot, relativePaths, failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -182,15 +227,20 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         }
     }
 
-    private void validateOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, List<Exception> failures) {
+    private void validateOne(
+            File inputFile,
+            File outputRoot,
+            Map<Path, String> relativePaths,
+            List<Exception> failures) {
         File svrlFile = svrlFileFor(inputFile, outputRoot, relativePaths);
         mkdirs(svrlFile.getParentFile());
 
         try {
             ValidationResult result = validate(inputFile, getParams().get());
-            String svrlXml = result.svrlXml() == null || result.svrlXml().isBlank()
-                ? SvrlSupport.renderSvrl(inputFile.getPath(), result.issues())
-                : result.svrlXml();
+            String svrlXml =
+                    result.svrlXml() == null || result.svrlXml().isBlank()
+                            ? SvrlSupport.renderSvrl(inputFile.getPath(), result.issues())
+                            : result.svrlXml();
 
             if (getReportFormat().get().writesSvrl()) {
                 Files.writeString(svrlFile.toPath(), svrlXml, StandardCharsets.UTF_8);
@@ -199,7 +249,9 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
             if (getReportFormat().get().writesJunit()) {
                 File junitFile = junitFileFor(inputFile, relativePaths);
                 mkdirs(junitFile.getParentFile());
-                String junitXml = SvrlSupport.renderJunit(getJunitSuiteName().get(), inputFile.getName(), result.issues());
+                String junitXml =
+                        SvrlSupport.renderJunit(
+                                getJunitSuiteName().get(), inputFile.getName(), result.issues());
                 Files.writeString(junitFile.toPath(), junitXml, StandardCharsets.UTF_8);
             }
 
@@ -217,15 +269,17 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
         String relative = relativePaths.get(inputPath);
         if (relative == null) {
-            relative = inputPath.startsWith(projectPath)
-                ? projectPath.relativize(inputPath).toString()
-                : inputFile.getName();
+            relative =
+                    inputPath.startsWith(projectPath)
+                            ? projectPath.relativize(inputPath).toString()
+                            : inputFile.getName();
         }
 
         int extensionIndex = relative.lastIndexOf('.');
-        String replaced = extensionIndex >= 0
-            ? relative.substring(0, extensionIndex) + getOutputExtension().get()
-            : relative + getOutputExtension().get();
+        String replaced =
+                extensionIndex >= 0
+                        ? relative.substring(0, extensionIndex) + getOutputExtension().get()
+                        : relative + getOutputExtension().get();
         return new File(outputRoot, replaced);
     }
 
@@ -235,15 +289,17 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
         String relative = relativePaths.get(inputPath);
         if (relative == null) {
-            relative = inputPath.startsWith(projectPath)
-                ? projectPath.relativize(inputPath).toString()
-                : inputFile.getName();
+            relative =
+                    inputPath.startsWith(projectPath)
+                            ? projectPath.relativize(inputPath).toString()
+                            : inputFile.getName();
         }
 
         int extensionIndex = relative.lastIndexOf('.');
-        String replaced = extensionIndex >= 0
-            ? relative.substring(0, extensionIndex) + ".junit.xml"
-            : relative + ".junit.xml";
+        String replaced =
+                extensionIndex >= 0
+                        ? relative.substring(0, extensionIndex) + ".junit.xml"
+                        : relative + ".junit.xml";
         return new File(getJunitOutputDir().get().getAsFile(), replaced);
     }
 
@@ -257,15 +313,23 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
 
     private Map<Path, String> resolveRelativePaths() {
         Map<Path, String> relativePaths = new HashMap<>();
-        getSource().visit(details -> {
-            if (details.isDirectory()) {
-                return;
-            }
-            Path absolutePath = details.getFile().toPath().toAbsolutePath().normalize();
-            String relativePath = details.getRelativePath().getPathString();
-            relativePaths.merge(absolutePath, relativePath,
-                (existing, candidate) -> existing.length() <= candidate.length() ? existing : candidate);
-        });
+        getSource()
+                .visit(
+                        details -> {
+                            if (details.isDirectory()) {
+                                return;
+                            }
+                            Path absolutePath =
+                                    details.getFile().toPath().toAbsolutePath().normalize();
+                            String relativePath = details.getRelativePath().getPathString();
+                            relativePaths.merge(
+                                    absolutePath,
+                                    relativePath,
+                                    (existing, candidate) ->
+                                            existing.length() <= candidate.length()
+                                                    ? existing
+                                                    : candidate);
+                        });
         return relativePaths;
     }
 
@@ -277,7 +341,8 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
      * @return normalized validation result
      * @throws Exception when validation cannot be performed
      */
-    protected abstract ValidationResult validate(File inputFile, Map<String, String> params) throws Exception;
+    protected abstract ValidationResult validate(File inputFile, Map<String, String> params)
+            throws Exception;
 
     /**
      * Resolves a transform source for XML-like validation inputs.

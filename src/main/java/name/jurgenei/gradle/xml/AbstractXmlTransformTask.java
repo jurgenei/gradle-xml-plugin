@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
@@ -23,9 +24,10 @@ import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SourceTask;
@@ -127,6 +129,26 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getXirFormat();
 
     /**
+     * Canonical output-format alias for {@link #getXirFormat()}.
+     *
+     * @return S-expression output format property
+     */
+    @Internal
+    public Property<String> getOutputFormat() {
+        return getXirFormat();
+    }
+
+    /**
+     * Backward-compatible alias for {@link #getOutputFormat()}.
+     *
+     * @return S-expression output format property
+     */
+    @Internal
+    public Property<String> getXformat() {
+        return getOutputFormat();
+    }
+
+    /**
      * Optional JSON mode controlling how {@code .json} input/output is routed.
      *
      * <p>Supported values are {@code auto} (default), {@code native}, and {@code canonical}.</p>
@@ -136,6 +158,26 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     @Input
     @Optional
     public abstract Property<String> getJsonMode();
+
+    /**
+     * Canonical output-mode alias for {@link #getJsonMode()}.
+     *
+     * @return JSON routing mode property
+     */
+    @Internal
+    public Property<String> getOutputMode() {
+        return getJsonMode();
+    }
+
+    /**
+     * Backward-compatible alias for {@link #getOutputMode()}.
+     *
+     * @return JSON routing mode property
+     */
+    @Internal
+    public Property<String> getMode() {
+        return getOutputMode();
+    }
 
     /**
      * Transform parameters exposed to the execution engine.
@@ -237,12 +279,84 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     }
 
     /**
+     * Sets explicit S-expression output format using canonical DSL name.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void outputFormat(String format) {
+        getOutputFormat().set(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #outputFormat(String)}.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void setOutputFormat(String format) {
+        outputFormat(format);
+    }
+
+    /**
+     * Backward-compatible alias for {@link #outputFormat(String)}.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void xformat(String format) {
+        outputFormat(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #xformat(String)}.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void setXformat(String format) {
+        xformat(format);
+    }
+
+    /**
      * Sets JSON routing mode (Gradle DSL friendly).
      *
      * @param mode one of {@code auto}, {@code native}, or {@code canonical}
      */
     public void jsonMode(String mode) {
         getJsonMode().set(mode);
+    }
+
+    /**
+     * Sets JSON routing mode using canonical DSL name.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void outputMode(String mode) {
+        getOutputMode().set(mode);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #outputMode(String)}.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void setOutputMode(String mode) {
+        outputMode(mode);
+    }
+
+    /**
+     * Backward-compatible alias for {@link #outputMode(String)}.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void mode(String mode) {
+        outputMode(mode);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #mode(String)}.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void setMode(String mode) {
+        mode(mode);
     }
 
     @Override
@@ -262,10 +376,12 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         boolean hasExplicitInput = getInputFile().isPresent();
         boolean hasExplicitOutput = getOutputFile().isPresent();
         if (hasExplicitInput != hasExplicitOutput) {
-            throw new GradleException("Both inputFile and outputFile must be set together for single-file mode");
+            throw new GradleException(
+                    "Both inputFile and outputFile must be set together for single-file mode");
         }
 
-        Map<String, String> params = Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
+        Map<String, String> params =
+                Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
 
         if (hasExplicitInput) {
             transformExplicit(params);
@@ -302,7 +418,9 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
 
         if (!failures.isEmpty()) {
-            throw new GradleException("Transformation failed for " + failures.size() + " input file(s)", failures.get(0));
+            throw new GradleException(
+                    "Transformation failed for " + failures.size() + " input file(s)",
+                    failures.get(0));
         }
     }
 
@@ -314,8 +432,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
 
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
-        if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp) {
+        if (outputFile.exists() && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -336,11 +453,27 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, int workers, List<Exception> failures) {
-        try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
+    private void runParallel(
+            List<File> inputFiles,
+            File outputRoot,
+            Map<Path, String> relativePaths,
+            Map<String, String> params,
+            int workers,
+            List<Exception> failures) {
+        try (ExecutorService executor =
+                Executors.newFixedThreadPool(
+                        workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, params, failures)));
+                futures.add(
+                        executor.submit(
+                                () ->
+                                        transformOne(
+                                                inputFile,
+                                                outputRoot,
+                                                relativePaths,
+                                                params,
+                                                failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -360,12 +493,16 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, List<Exception> failures) {
+    private void transformOne(
+            File inputFile,
+            File outputRoot,
+            Map<Path, String> relativePaths,
+            Map<String, String> params,
+            List<Exception> failures) {
         File outputFile = outputFileFor(inputFile, outputRoot, relativePaths);
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
 
-        if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp) {
+        if (outputFile.exists() && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -428,12 +565,14 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
             normalized = "beautified";
         }
         if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
-            throw new GradleException("Unsupported xirFormat '" + configured
-                + "'. Supported values: compact, beautified");
+            throw new GradleException(
+                    "Unsupported xirFormat '"
+                            + configured
+                            + "'. Supported values: compact, beautified");
         }
         return "beautified".equals(normalized)
-            ? XirSerializer.OutputFormat.BEAUTIFIED
-            : XirSerializer.OutputFormat.COMPACT;
+                ? XirSerializer.OutputFormat.BEAUTIFIED
+                : XirSerializer.OutputFormat.COMPACT;
     }
 
     /**
@@ -445,8 +584,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         String configured = getJsonMode().getOrElse("auto");
         String normalized = configured.trim().toLowerCase(Locale.ROOT);
         if (!SUPPORTED_JSON_MODES.contains(normalized)) {
-            throw new GradleException("Unsupported jsonMode '" + configured
-                + "'. Supported values: auto, native, canonical");
+            throw new GradleException(
+                    "Unsupported jsonMode '"
+                            + configured
+                            + "'. Supported values: auto, native, canonical");
         }
         return switch (normalized) {
             case "native" -> JsonMode.NATIVE;
@@ -531,17 +672,19 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     }
 
     private String normalizeAndValidateMethod(String configuredMethod) {
-        String normalized = configuredMethod == null ? "" : configuredMethod.trim().toLowerCase(Locale.ROOT);
+        String normalized =
+                configuredMethod == null ? "" : configuredMethod.trim().toLowerCase(Locale.ROOT);
         if ("txt".equals(normalized)) {
             normalized = "text";
         }
         if (!SUPPORTED_OUTPUT_METHODS.contains(normalized)) {
-            throw new GradleException("Unsupported outputMethod '" + configuredMethod
-                + "'. Supported values: xml, json, text");
+            throw new GradleException(
+                    "Unsupported outputMethod '"
+                            + configuredMethod
+                            + "'. Supported values: xml, json, text");
         }
         return normalized;
     }
-
 
     private File outputFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
@@ -549,28 +692,40 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         String relative = relativePaths.get(inputPath);
         if (relative == null) {
-            relative = inputPath.startsWith(projectPath)
-                ? projectPath.relativize(inputPath).toString()
-                : inputFile.getName();
+            relative =
+                    inputPath.startsWith(projectPath)
+                            ? projectPath.relativize(inputPath).toString()
+                            : inputFile.getName();
         }
 
         int extensionIndex = relative.lastIndexOf('.');
         String extension = getOutputExtension().get();
-        String replaced = extensionIndex >= 0 ? relative.substring(0, extensionIndex) + extension : relative + extension;
+        String replaced =
+                extensionIndex >= 0
+                        ? relative.substring(0, extensionIndex) + extension
+                        : relative + extension;
         return new File(outputRoot, replaced);
     }
 
     private Map<Path, String> resolveRelativePaths() {
         Map<Path, String> relativePaths = new HashMap<>();
-        getSource().visit(details -> {
-            if (details.isDirectory()) {
-                return;
-            }
-            Path absolutePath = details.getFile().toPath().toAbsolutePath().normalize();
-            String relativePath = details.getRelativePath().getPathString();
-            relativePaths.merge(absolutePath, relativePath,
-                (existing, candidate) -> existing.length() <= candidate.length() ? existing : candidate);
-        });
+        getSource()
+                .visit(
+                        details -> {
+                            if (details.isDirectory()) {
+                                return;
+                            }
+                            Path absolutePath =
+                                    details.getFile().toPath().toAbsolutePath().normalize();
+                            String relativePath = details.getRelativePath().getPathString();
+                            relativePaths.merge(
+                                    absolutePath,
+                                    relativePath,
+                                    (existing, candidate) ->
+                                            existing.length() <= candidate.length()
+                                                    ? existing
+                                                    : candidate);
+                        });
         return relativePaths;
     }
 
@@ -582,6 +737,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      * @param params immutable task parameter view
      * @throws Exception any transform exception raised by the engine implementation
      */
-    protected abstract void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception;
+    protected abstract void transform(File inputFile, File outputFile, Map<String, String> params)
+            throws Exception;
 }
-

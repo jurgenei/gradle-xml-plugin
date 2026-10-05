@@ -35,7 +35,7 @@ public class XsdTaskIntegrationTest {
               schema 'src/main/xsd/schema.xsd'
               source 'src/main/xml/invalid.xml'
               outputDir.set(layout.buildDirectory.dir('out/xsd'))
-              reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+              format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
               failOnError.set(false)
               engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
             }

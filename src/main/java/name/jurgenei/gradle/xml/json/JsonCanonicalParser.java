@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Iterator;
 import java.util.Map;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -22,8 +22,7 @@ public final class JsonCanonicalParser {
     /**
      * Creates parser for canonical JSON/XML mapping.
      */
-    public JsonCanonicalParser() {
-    }
+    public JsonCanonicalParser() {}
 
     /**
      * Parses canonical JSON input and emits equivalent SAX events.
@@ -44,7 +43,8 @@ public final class JsonCanonicalParser {
         handler.endDocument();
     }
 
-    private void emitElement(JsonNode node, ContentHandler handler) throws IOException, SAXException {
+    private void emitElement(JsonNode node, ContentHandler handler)
+            throws IOException, SAXException {
         if (!node.isObject()) {
             throw new IOException("Expected object node for element, got: " + node.getNodeType());
         }
@@ -65,9 +65,8 @@ public final class JsonCanonicalParser {
             if (!attributesNode.isObject()) {
                 throw new IOException("'attributes' must be an object for element: " + name);
             }
-            Iterator<Map.Entry<String, JsonNode>> it = attributesNode.fields();
-            while (it.hasNext()) {
-                Map.Entry<String, JsonNode> entry = it.next();
+            ObjectNode attributesObject = (ObjectNode) attributesNode;
+            for (Map.Entry<String, JsonNode> entry : attributesObject.properties()) {
                 String attrName = entry.getKey();
                 String attrValue = scalarToString(entry.getValue());
                 attributes.addAttribute("", attrName, attrName, "CDATA", attrValue);
@@ -87,7 +86,8 @@ public final class JsonCanonicalParser {
         handler.endElement("", name, name);
     }
 
-    private void emitChildren(ArrayNode children, ContentHandler handler, String parentName) throws IOException, SAXException {
+    private void emitChildren(ArrayNode children, ContentHandler handler, String parentName)
+            throws IOException, SAXException {
         for (JsonNode child : children) {
             if (child == null || child.isNull()) {
                 continue;
@@ -99,7 +99,11 @@ public final class JsonCanonicalParser {
             }
 
             if (!child.isObject()) {
-                throw new IOException("Unsupported child node type under element '" + parentName + "': " + child.getNodeType());
+                throw new IOException(
+                        "Unsupported child node type under element '"
+                                + parentName
+                                + "': "
+                                + child.getNodeType());
             }
 
             String childType = textOrNull(child.get("type"));
@@ -113,7 +117,10 @@ public final class JsonCanonicalParser {
                 continue;
             }
 
-            throw new IOException("Unsupported object child under element '" + parentName + "': missing recognized 'type'");
+            throw new IOException(
+                    "Unsupported object child under element '"
+                            + parentName
+                            + "': missing recognized 'type'");
         }
     }
 
@@ -145,4 +152,3 @@ public final class JsonCanonicalParser {
         return node == null || node.isNull() ? null : node.asText();
     }
 }
-

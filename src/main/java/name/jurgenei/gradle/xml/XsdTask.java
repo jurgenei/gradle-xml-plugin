@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
@@ -20,15 +21,15 @@ import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.work.DisableCachingByDefault;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
-
-import org.gradle.work.DisableCachingByDefault;
 
 /**
  * Validates XML files against XSD and emits findings normalized as SVRL.
  */
-@DisableCachingByDefault(because = "XSD validation depends on external schema files and validator engine")
+@DisableCachingByDefault(
+        because = "XSD validation depends on external schema files and validator engine")
 public abstract class XsdTask extends AbstractXmlValidationTask {
 
     /**
@@ -69,11 +70,13 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
     }
 
     @Override
-    protected ValidationResult validate(File inputFile, Map<String, String> params) throws Exception {
+    protected ValidationResult validate(File inputFile, Map<String, String> params)
+            throws Exception {
         XsdEngine engine = resolveEngine();
-        List<ValidationIssue> issues = engine == XsdEngine.SAXON
-            ? validateWithSaxon(inputFile)
-            : validateWithJaxp(inputFile);
+        List<ValidationIssue> issues =
+                engine == XsdEngine.SAXON
+                        ? validateWithSaxon(inputFile)
+                        : validateWithJaxp(inputFile);
 
         return new ValidationResult(issues, null);
     }
@@ -85,13 +88,16 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         }
         if (requested == XsdEngine.SAXON) {
             if (!isSaxonSchemaAwareAvailable()) {
-                throw new GradleException("Saxon schema-aware validation requires Saxon PE/EE; configure engine = JAXP or AUTO");
+                throw new GradleException(
+                        "Saxon schema-aware validation requires Saxon PE/EE; configure engine ="
+                                + " JAXP or AUTO");
             }
             return XsdEngine.SAXON;
         }
         return isSaxonSchemaAwareAvailable() ? XsdEngine.SAXON : XsdEngine.JAXP;
     }
 
+    @SuppressWarnings("deprecation")
     private boolean isSaxonSchemaAwareAvailable() {
         try {
             Processor processor = new Processor(false);
@@ -102,6 +108,7 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private List<ValidationIssue> validateWithSaxon(File inputFile) {
         List<ValidationIssue> issues = new ArrayList<>();
         try {
@@ -125,26 +132,34 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         factory.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         factory.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-        javax.xml.validation.Schema schema = factory.newSchema(sourceForValidation(getSchema().get().getAsFile()));
+        javax.xml.validation.Schema schema =
+                factory.newSchema(sourceForValidation(getSchema().get().getAsFile()));
         javax.xml.validation.Validator validator = schema.newValidator();
         validator.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
         validator.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-        validator.setErrorHandler(new ErrorHandler() {
-            @Override
-            public void warning(SAXParseException exception) {
-                issues.add(ValidationIssue.error(exception.getMessage(), location(inputFile, exception)));
-            }
+        validator.setErrorHandler(
+                new ErrorHandler() {
+                    @Override
+                    public void warning(SAXParseException exception) {
+                        issues.add(
+                                ValidationIssue.error(
+                                        exception.getMessage(), location(inputFile, exception)));
+                    }
 
-            @Override
-            public void error(SAXParseException exception) {
-                issues.add(ValidationIssue.error(exception.getMessage(), location(inputFile, exception)));
-            }
+                    @Override
+                    public void error(SAXParseException exception) {
+                        issues.add(
+                                ValidationIssue.error(
+                                        exception.getMessage(), location(inputFile, exception)));
+                    }
 
-            @Override
-            public void fatalError(SAXParseException exception) {
-                issues.add(ValidationIssue.error(exception.getMessage(), location(inputFile, exception)));
-            }
-        });
+                    @Override
+                    public void fatalError(SAXParseException exception) {
+                        issues.add(
+                                ValidationIssue.error(
+                                        exception.getMessage(), location(inputFile, exception)));
+                    }
+                });
 
         try {
             validator.validate(sourceForValidation(inputFile));
@@ -158,4 +173,3 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         return input + ":" + exception.getLineNumber() + ":" + exception.getColumnNumber();
     }
 }
-

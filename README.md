@@ -1,4 +1,4 @@
-# Gradle XML Transform Plugin
+# Gradle XML Validate and Transform Plugin
 
 ![Conformance](https://img.shields.io/badge/Conformance-Check--All%20Passing-brightgreen)
 
@@ -16,702 +16,440 @@
 [![Java](https://img.shields.io/badge/java-21+-green.svg)](https://www.oracle.com/java/)
 [![Gradle](https://img.shields.io/badge/gradle-9.5+-blue.svg)](https://gradle.org/)
 
-A Gradle plugin providing **Saxon**-backed XSLT/XQuery transforms and SVRL-based XML validation tasks with an orthogonal, Gradle-style DSL.
+Plugin gives Gradle-native tasks for XML transformations and validations with Saxon-backed execution.
+It supports XML, XIR, and canonical JSON routing, with one orthogonal DSL across task types.
 
-## Overview
+## Introduction and Overview
 
-Define and execute XPath/XSLT/XQuery transformations and XML validations as Gradle tasks with:
+Use this plugin when project needs repeatable XML processing in build pipeline:
 
-- File-tree input matching (include/exclude patterns)
-- Explicit single-file mode via Ant-like `input(...)` / `output(...)`
-- Output file generation with configurable extension mapping
-- External parameter passing to transforms
-- Optional parallel processing using **virtual threads**
-- SVRL and optional JUnit XML reporting for validation
+- Transform XML with XSLT or XQuery
+- Validate XML with XSD or Schematron
+- Bootstrap Schematron from XSD
+- Compile and run SEL/SHACL extraction flows
+- Compile and run XSpec test suites
 
-The plugin contributes task types:
+Main task types:
 
-- `name.jurgenei.gradle.xml.XsltTask` — XSLT 3.0 transformations
-- `name.jurgenei.gradle.xml.XQueryTask` — XQuery transformations
-- `name.jurgenei.gradle.xml.SchematronTask` — Schematron to SVRL validation
-- `name.jurgenei.gradle.xml.XsdTask` — XSD validation normalized to SVRL
-- `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
-- `name.jurgenei.gradle.xml.SchematronSelCompileTask` — compile `sel:*` annotated Schematron into grouped SEL stylesheet skeleton
-- `name.jurgenei.gradle.xml.SchematronSelExtractTask` — execute runtime SEL extraction and emit grouped SEL XML
-- `name.jurgenei.gradle.xml.ShaclSelCompileTask` — compile SHACL relation shapes into grouped SEL stylesheet skeleton (+ generated Schematron bridge)
-- `name.jurgenei.gradle.xml.ShaclSelExtractTask` — execute runtime SEL extraction from SHACL-compiled stylesheet
-- `name.jurgenei.gradle.xml.XSpecCompileTask` — compile XSLT XSpec (`.xspec`) into executable runner stylesheet
-- `name.jurgenei.gradle.xml.XSpecTask` — run XSpec (from `.xspec` or precompiled runner) and emit XML + JUnit reports
+- `name.jurgenei.gradle.xml.XsltTask`
+- `name.jurgenei.gradle.xml.XQueryTask`
+- `name.jurgenei.gradle.xml.SchematronTask`
+- `name.jurgenei.gradle.xml.XsdTask`
+- `name.jurgenei.gradle.xml.SchematronBootstrapTask`
+- `name.jurgenei.gradle.xml.SchematronSelCompileTask`
+- `name.jurgenei.gradle.xml.SchematronSelExtractTask`
+- `name.jurgenei.gradle.xml.ShaclSelCompileTask`
+- `name.jurgenei.gradle.xml.ShaclSelExtractTask`
+- `name.jurgenei.gradle.xml.XSpecCompileTask`
+- `name.jurgenei.gradle.xml.XSpecTask`
 
-Both share a near-orthogonal API for unified Gradle-style configuration.
+Plugin ID: `name.jurgenei.gradle.xml`
+
+```kotlin
+plugins {
+    id("name.jurgenei.gradle.xml")
+}
+```
 
 ## Features
 
-- **Saxon HE** XSLT 3.0 and XQuery execution
-- **Schematron validation** via SchXslt2 transpiler (`name.dmaus.schxslt:schxslt2`)
-- **XSD validation** with AUTO engine resolution (Saxon PE/EE when available, JAXP fallback on HE)
-- **Orthogonal task API** — both task types inherit the same base configuration
-- **File-tree DSL** — Ant-like include/exclude filtering via Gradle's native `fileTree`
-- **Single-file DSL** — explicit one-to-one transforms via `input(...)` and `output(...)`
-- **Flexible output mapping** — custom extension and output directory per task
-- **Parameter passing** — externalize stylesheet/query variables
-- **Virtual-thread parallelism** — optional worker pool for concurrent file processing (default: serial)
-- **Comprehensive testing** — JUnit 4 integration tests with mirrored XSLT/XQuery scenarios
-- **Security automation** — CodeQL, OWASP Dependency-Check, SpotBugs + FindSecBugs, Dependabot
-- **XIR I/O** — `.xir` input and output routing for XSLT/XQuery tasks
-- **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
-- **Native XSpec support (XSLT v1)** — two-phase compile/run with XML + JUnit reporting
+- Saxon HE execution for XSLT and XQuery
+- Validation outputs normalized to SVRL (+ optional JUnit for validation/XSpec)
+- File-tree mode and explicit single-file mode
+- Parallel workers with virtual threads
+- Parameter passing via `param(name, value)`
+- XIR input/output support
+- Canonical JSON input/output support
+- Orthogonal output naming:
+  - `outputFormat` (`compact`, `beautified`)
+  - `outputMode` (`auto`, `native`, `canonical`)
+- Validation format naming unchanged:
+  - `format(...)` / `reportFormat` (`SVRL`, `JUNIT`, `SVRL_AND_JUNIT`)
 
 ## XIR Support
 
-XIR support provides a compact, human- and AI-friendly representation of XML and XDM-based technologies. Rather than introducing new semantics, it offers an alternative serialization syntax for established standards such as XML, XDM, XPath, XSLT, and XML Schema.
+XIR is alternate syntax for XML/XDM structures, not new data model.
+Think: same information as XML, different representation optimized for compactness and readability in diffs and generated artifacts.
 
-By reducing serialization overhead while preserving structure, typing, and validation capabilities, XIR makes it easier to work with existing XML assets in modern development and AI workflows. All processing continues to rely on the same mature standards and implementations that have evolved within the XML ecosystem for more than two decades.
+### Why XIR
 
-`XsltTask` and `XQueryTask` support `.xir` files in file-tree mode and explicit mode.
+- Less punctuation noise vs XML
+- Easier nested-structure scanning in code review
+- Roundtrip-friendly with existing XML tooling path
+- Works with same transformation and validation pipeline
 
-S-expression runtime ships inside `gradle-xml-plugin` artifact.
+### XIR syntax relation to XML and XDM
 
-- Internal package: `name.jurgenei.gradle.xml.xir`
-- No separate `name.jurgenei.xml:xml-xir` dependency required
-- S-expression parser/serializer runtime is Saxon-agnostic (`java.xml` SAX/JAXP APIs)
-
-- Input `.xir` is parsed as SAX source.
-- XSLT stylesheet may also be `.xir` (for `XsltTask.style(...)`).
-- Output `.xir` is serialized from XML result events through SAX/JAXP pipeline.
-- Saxon URI dereferencing routes `.xir` resources through the same SAX parser path for `doc()` and `collection()` calls.
-- `xirFormat` controls output style: `compact` (default) or `beautified`.
-
-XIR format details:
-
-- `()` = nodes
-- `{}` = associative structures
-- `[]` = sequences
-- `.` = document node head
-- `?` = processing instruction head
-- `!` = comment node head
-
-Canonical examples:
-
-- Element node: `(book (title "XML"))`
-- Element associative block (attributes + namespaces): `(book { id "b1" xmlns:m "urn:math" } (m:title "XML"))`
-- Document with XML declaration map: `(. { version "1.0" encoding "UTF-8" } (book))`
-- Map node: `(xdm:map { name "John" age 42 })`
-- Array node: `(xdm:array [ "A" "B" "C" ])`
-- Typed atomics: `(xs:boolean true)`, `(xs:date "2026-09-06")`
-- Comment: `(! "text")`
-- Processing instruction: `(?xml-stylesheet { href "main.xsl" type "text/xsl" })`
+| XIR token | Meaning | XML/XDM equivalent |
+|---|---|---|
+| `(...)` | node expression | element/document node structure |
+| `{...}` | associative payload | attributes + namespace bindings, or XDM map value |
+| `[...]` | sequence payload | XDM sequence / array value |
+| `.` | document node head | XML document root wrapper |
+| `?` | PI node head | processing instruction |
+| `!` | comment node head | XML comment |
 
 Disambiguation:
 
-- `(map ...)` and `(array ...)` are XML elements named `map`/`array`.
-- XDM map/array nodes use explicit heads: `xdm:map` and `xdm:array`.
+- `{...}` denotes XDM map value.
+- `[...]` denotes XDM sequence/array value.
+- `(map ...)` and `(array ...)` are XML elements unless mapped from XPath Functions XML namespace bridge.
+- If first child of element is map value, explicit empty attribute block can disambiguate:
+  - `(element {} { key value })`
 
-Serializer compatibility modes:
+<details>
+<summary>XML and XIR side-by-side example</summary>
 
-- Canonical mode (default): canonical token classes and forms shown above
-- Legacy mode: retained for compatibility output only
-
-Internal bridge note:
-
-- SAX cannot represent XDM map/array/typed-atomic/xml-declaration directly.
-- Runtime uses internal `xdm:*` helper elements in URI `urn:name.jurgenei.gradle.xml:xdm` as lossless bridge between parser and serializer.
-
-`xirFormat` is also reused for canonical JSON output formatting.
-
-Format conventions:
-
-```lisp
-; compact
-(book {id "b1"} (title "XML"))
-
-; beautified
-(book
-  {id "b1"}
-  (title "XML"))
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<book id="b1" xmlns:m="urn:math">
+  <title>XML</title>
+</book>
 ```
 
-### XSLT Example
+```lisp
+(. { version "1.0" encoding "UTF-8" }
+  (book { id "b1" xmlns:m "urn:math" }
+    (title "XML")))
+```
+</details>
+
+Runtime note:
+
+- XIR parser/serializer ships inside plugin artifact.
+- No extra runtime dependency needed.
+
+## Transformations
+
+Transformations use `XsltTask` and `XQueryTask`.
+
+### Ways to work with files
+
+1. File-tree mode: `source(...)` + `outputDir`
+2. Explicit mode: `input(...)` + `output(...)`
+
+### Common transformation options
+
+- `outputExtension`
+- `outputMethod` (`xml`, `json`, `text`)
+- `outputFormat` (`compact`, `beautified`) for XIR/canonical JSON style
+- `outputMode` (`auto`, `native`, `canonical`) for JSON routing
+- `workers`
+- `failOnError`
+- `param(name, value)`
+
+### XSLT transformation
+
+<details>
+<summary>Input/output example in XML and XIR</summary>
+
+```xml
+<book id="b1"><title>XML</title></book>
+```
+
+```lisp
+(book {id "b1"} (title "XML"))
+```
+</details>
+
+<details>
+<summary>Groovy Task Def (XSLT)</summary>
 
 ```groovy
 tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
   style 'src/main/xslt/identity.xsl'
-  source 'src/main/xml/input.xml'
+  source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('out/xslt'))
   outputExtension.set('.xir')
-}
-
-tasks.register('xirToXml', name.jurgenei.gradle.xml.XsltTask) {
-  style 'src/main/xslt/identity.xsl'
-  input 'build/out/xslt/input.xir'
-  output 'build/out/xml/result.xml'
+  outputFormat.set('beautified')
+  outputMode('auto')
+  workers.set(4)
+  param 'tenant', 'acme'
 }
 ```
+</details>
 
-## Canonical JSON Support
-
-`XsltTask` and `XQueryTask` support optional canonical JSON parsing/serialization.
-
-- Canonical JSON maps XML element trees to JSON objects with `type`, `name`, `attributes`, `children`.
-- Canonical JSON mode is reversible for XML -> JSON -> XML roundtrips.
-- `xirFormat` controls canonical JSON output style too: `compact` or `beautified`.
-
-Set JSON routing mode with `jsonMode`:
-
-- `auto` (default): canonical parser for `.json` input; for `.json` output, try canonical hierarchical JSON first and fall back to native Saxon JSON when canonical serialization is not applicable (for example map/array results)
-- `native`: no canonical JSON parser for input; for `.json` output, same canonical-first behavior with native fallback
-- `canonical`: canonical parser + canonical serializer for `.json` input/output (no fallback)
-
-### XSLT Canonical JSON Example
-
-```groovy
-tasks.register('xmlToJsonCanonical', name.jurgenei.gradle.xml.XsltTask) {
-  style 'src/main/xslt/identity.xsl'
-  source 'src/main/xml/input.xml'
-  outputDir.set(layout.buildDirectory.dir('out/json'))
-  outputExtension.set('.json')
-  jsonMode.set('canonical')
-  xirFormat.set('beautified')
-}
-
-tasks.register('jsonCanonicalToXml', name.jurgenei.gradle.xml.XsltTask) {
-  style 'src/main/xslt/identity.xsl'
-  input 'build/out/json/input.json'
-  output 'build/out/xml/result.xml'
-  jsonMode.set('canonical')
-}
-```
-
-### Beautified Output Switch
-
-Kotlin DSL:
+<details>
+<summary>Kotlin Task Def (XSLT)</summary>
 
 ```kotlin
 tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToXir") {
     style("src/main/xslt/identity.xsl")
-    source("src/main/xml/input.xml")
+    source(fileTree("src/main/xml") { include("**/*.xml") })
     outputDir.set(layout.buildDirectory.dir("out/xslt"))
     outputExtension.set(".xir")
-    xirFormat.set("beautified")
+    outputFormat.set("beautified")
+    outputMode("auto")
+    workers.set(4)
+    param("tenant", "acme")
 }
 ```
+</details>
 
-Groovy DSL:
+### XQuery transformation
+
+<details>
+<summary>Input/output example in XML and XIR</summary>
+
+```xml
+<book id="b1"><title>XML</title></book>
+```
+
+```lisp
+(book {id "b1"} (title "XML"))
+```
+</details>
+
+<details>
+<summary>Groovy Task Def (XQuery)</summary>
 
 ```groovy
-tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
-  style 'src/main/xslt/identity.xsl'
+tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+  query 'src/main/xquery/main.xq'
   source 'src/main/xml/input.xml'
-  outputDir.set(layout.buildDirectory.dir('out/xslt'))
-  outputExtension.set('.xir')
-  xirFormat.set('beautified')
+  outputDir.set(layout.buildDirectory.dir('out/xquery'))
+  outputExtension.set('.json')
+  outputMode('canonical')
+  outputFormat.set('beautified')
 }
 ```
+</details>
 
-## Input/Output Modes
+<details>
+<summary>Kotlin Task Def (XQuery)</summary>
 
-`XsltTask` and `XQueryTask` support two equivalent execution modes:
+```kotlin
+tasks.register<name.jurgenei.gradle.xml.XQueryTask>("runXQuery") {
+    query("src/main/xquery/main.xq")
+    source("src/main/xml/input.xml")
+    outputDir.set(layout.buildDirectory.dir("out/xquery"))
+    outputExtension.set(".json")
+    outputMode("canonical")
+    outputFormat.set("beautified")
+}
+```
+</details>
 
-- **File-tree mode**: set `source(...)` and `outputDir`
-- **Explicit single-file mode**: set `input(...)` and `output(...)`
+### Canonical JSON mode details
 
-Notes:
+- `outputMode('auto')`: parse JSON canonically on input; output tries canonical-first with native fallback.
+- `outputMode('native')`: no canonical input parser; output still canonical-first with native fallback.
+- `outputMode('canonical')`: canonical input and canonical output only.
 
-- In explicit mode, `input(...)` and `output(...)` must be set together.
-- In file-tree mode, `outputDir` is required.
-- Both modes support `param(...)`; file-tree mode additionally supports `workers` and extension-based mapping.
+Legacy aliases still work:
 
-## Validation API Contract
+- `jsonMode` / `mode`
+- `xirFormat` / `xformat`
 
-Validation tasks share a common contract (`ValidationTaskSpec`) and defaults:
+### SEL and SHACL transformation pipelines
 
-- `outputExtension = '.svrl.xml'`
-- `workers = 1`
-- `reportFormat = SVRL`
-- `failOnError = true`
-- `junitOutputDir = build/reports/xml-validation/junit`
+- `SchematronSelCompileTask`: compile `sel:*` metadata to extraction stylesheet
+- `SchematronSelExtractTask`: run extraction and emit grouped outputs
+- `ShaclSelCompileTask` + `ShaclSelExtractTask`: same compile/extract shape for SHACL-driven flows
 
-`ReportFormat` values:
+## Validations
 
-- `SVRL`
-- `JUNIT`
-- `SVRL_AND_JUNIT`
+Validation tasks use shared contract:
 
-`XsdTask` supports `XsdEngine` values:
+- `outputExtension` (default `.svrl.xml`)
+- `workers` (default `1`)
+- `failOnError` (default `true`)
+- `format(...)` / `reportFormat` values:
+  - `SVRL`
+  - `JUNIT`
+  - `SVRL_AND_JUNIT`
 
-- `AUTO` (default; prefers Saxon schema-aware, otherwise JAXP)
+### XSD validation (`XsdTask`)
+
+Engine options:
+
+- `AUTO` (default; chooses best available engine)
 - `SAXON`
 - `JAXP`
 
-## Plugin ID and Coordinates
+<details>
+<summary>XML and XIR validation inputs</summary>
 
-- Supported plugin ID: `name.jurgenei.gradle.xml`
-- Maven artifact for legacy `buildscript` usage: `name.jurgenei.gradle:gradle-xml-transform:<version>`
-- Obsolete/legacy IDs from earlier docs are no longer supported.
-
-## Installation
-
-Add to `build.gradle.kts`:
-
-```kotlin
-plugins {
-    id("name.jurgenei.gradle.xml")
-}
+```xml
+<root><wrong>bad</wrong></root>
 ```
 
-Or `build.gradle`:
+```lisp
+(root (wrong "bad"))
+```
+</details>
+
+<details>
+<summary>Groovy Task Def (XSD validation)</summary>
 
 ```groovy
-plugins {
-    id 'name.jurgenei.gradle.xml'
+tasks.register('validateXsd', name.jurgenei.gradle.xml.XsdTask) {
+  schema 'src/main/xsd/schema.xsd'
+  source(fileTree('src/main/xml') { include '**/*.xml' })
+  outputDir.set(layout.buildDirectory.dir('reports/xsd'))
+  format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+  engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+  failOnError.set(false)
 }
 ```
+</details>
 
-Legacy `buildscript` usage:
+<details>
+<summary>Kotlin Task Def (XSD validation)</summary>
 
 ```kotlin
-buildscript {
-    repositories {
-        mavenCentral()
-        gradlePluginPortal()
-    }
-    dependencies {
-        classpath("name.jurgenei.gradle:gradle-xml-transform:0.1.1")
-    }
-}
-
-apply(plugin = "name.jurgenei.gradle.xml")
-```
-
-## Example (Kotlin DSL)
-
-```kotlin
-plugins {
-    id("name.jurgenei.gradle.xml")
-}
-
-tasks.register<name.jurgenei.gradle.xml.XsltTask>("transformDocs") {
-    style("src/main/xslt/main.xsl")
-    source(fileTree("src/main/xml") {
-        include("**/*.xml")
-        exclude("**/legacy/**")
-    })
-    outputDir.set(layout.buildDirectory.dir("generated/xslt"))
-    outputExtension.set(".html")
-    workers.set(4)
-    param("env", "dev")
-}
-
-tasks.register<name.jurgenei.gradle.xml.XQueryTask>("queryDocs") {
-    query("src/main/xquery/main.xq")
-    source("src/main/xml/single.xml")
-    outputDir.set(layout.buildDirectory.dir("generated/xquery"))
-    outputExtension.set(".xml")
-    workers.set(1)
-    param("tenant", "acme")
-}
-
-tasks.register<name.jurgenei.gradle.xml.XsltTask>("transformOne") {
-    style("src/main/xslt/main.xsl")
-    input("src/main/xml/a.xml")
-    output("build/custom/b.xml")
-}
-
-tasks.register<name.jurgenei.gradle.xml.XQueryTask>("queryOne") {
-    query("src/main/xquery/main.xq")
-    input("src/main/xml/a.xml")
-    output("build/custom/b.xml")
+tasks.register<name.jurgenei.gradle.xml.XsdTask>("validateXsd") {
+    schema("src/main/xsd/schema.xsd")
+    source(fileTree("src/main/xml") { include("**/*.xml") })
+    outputDir.set(layout.buildDirectory.dir("reports/xsd"))
+    format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+    failOnError.set(false)
 }
 ```
+</details>
 
-## Example (Groovy DSL)
+### Schematron validation (`SchematronTask`)
 
-```groovy
-plugins {
-  id 'name.jurgenei.gradle.xml'
-}
+Schematron options include:
 
-tasks.register('transformDocs', name.jurgenei.gradle.xml.XsltTask) {
-  style 'src/main/xslt/main.xsl'
-  source(fileTree('src/main/xml') {
-    include '**/*.xml'
-    exclude '**/legacy/**'
-  })
-  outputDir.set(layout.buildDirectory.dir('generated/xslt'))
-  outputExtension.set('.html')
-  workers.set(4)
-  param 'env', 'dev'
-}
+- `style(...)` for persistent compiled stylesheet cache
+- optional `transpilerStylesheet(...)`
+- SchXslt parameter set: `phase`, `severityThreshold`, `streamable`, `compactReport`, and others
 
-tasks.register('queryDocs', name.jurgenei.gradle.xml.XQueryTask) {
-  query 'src/main/xquery/main.xq'
-  source 'src/main/xml/single.xml'
-  outputDir.set(layout.buildDirectory.dir('generated/xquery'))
-  outputExtension.set('.xml')
-  workers.set(1)
-  param 'tenant', 'acme'
-}
-
-tasks.register('transformOne', name.jurgenei.gradle.xml.XsltTask) {
-  style 'src/main/xslt/main.xsl'
-  input 'src/main/xml/a.xml'
-  output 'build/custom/b.xml'
-}
-
-tasks.register('queryOne', name.jurgenei.gradle.xml.XQueryTask) {
-  query 'src/main/xquery/main.xq'
-  input 'src/main/xml/a.xml'
-  output 'build/custom/b.xml'
-}
-```
-
-## Validation Examples (Groovy DSL)
+<details>
+<summary>Groovy Task Def (Schematron validation)</summary>
 
 ```groovy
 tasks.register('validateSchematron', name.jurgenei.gradle.xml.SchematronTask) {
   schema 'src/main/schematron/rules.sch'
-  // Optional persistent compiled stylesheet cache.
   style 'build/generated/schematron/rules.compiled.xsl'
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/schematron'))
-  reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
-  // Optional SchXslt transpiler parameters.
+  format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
   phase.set('#ALL')
   severityThreshold.set('warning')
   workers.set(4)
   failOnError.set(false)
 }
+```
+</details>
 
-tasks.register('validateXsd', name.jurgenei.gradle.xml.XsdTask) {
-  schema 'src/main/xsd/schema.xsd'
-  source(fileTree('src/main/xml') { include '**/*.xml' })
-  outputDir.set(layout.buildDirectory.dir('reports/xsd'))
-  reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
-  engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+<details>
+<summary>Kotlin Task Def (Schematron validation)</summary>
+
+```kotlin
+tasks.register<name.jurgenei.gradle.xml.SchematronTask>("validateSchematron") {
+    schema("src/main/schematron/rules.sch")
+    style("build/generated/schematron/rules.compiled.xsl")
+    source(fileTree("src/main/xml") { include("**/*.xml") })
+    outputDir.set(layout.buildDirectory.dir("reports/schematron"))
+    format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    phase.set("#ALL")
+    severityThreshold.set("warning")
+    workers.set(4)
+    failOnError.set(false)
 }
 ```
+</details>
 
-Schematron-specific options:
+### Schematron bootstrap from XSD
 
-- `style(...)`/`style.set(...)` (optional): persistent location for compiled Schematron XSLT.
-  - When unset, a temp compiled stylesheet is used per validation run.
-  - When set, recompilation is skipped if the compiled stylesheet is newer than inputs and transpiler parameters are unchanged.
-- `transpilerStylesheet(...)` (optional): override bundled SchXslt transpiler.
-- Optional SchXslt transpiler parameter properties (only passed when explicitly set):
-  - `debug`, `phase`, `expandText`, `streamable`, `locationFunction`, `failEarly`
-  - `terminateValidationOnError`, `reportActivePattern`, `reportFiredRule`, `reportSuppressedRule`
-  - `reportSkippedAssertion`, `compactReport`, `severityThreshold`, `defaultSeverity`, `defaultFrom`
-  - `checkAssembledSchema`, `handleDynamicErrors`
+`SchematronBootstrapTask` can generate initial Schematron from XSD and does not overwrite existing target file.
 
-## Schematron Bootstrap From XSD
+## XSpec testing
 
-Use `SchematronBootstrapTask` to create an initial SEL Schematron from an XSD.
-The generated file is comprehensive (captures required children/attributes as SEL profiles)
-but intentionally passing (bootstrap-safe) until you tighten rules manually.
+### Current native scope
 
-Safety behavior:
+- `XSpecCompileTask`: compile `.xspec` to executable runner
+- `XSpecTask`: run XSpec and emit XML + JUnit reports
+- Current built-in scope: XSLT XSpec
 
-- If output `.sch` already exists, bootstrap does **not** overwrite it.
-- The task logs a lifecycle warning and exits.
+### Scenarios
 
-Cross-plugin workflow (OOXML + XML plugins):
+1. **XSLT scenario**: direct `.xspec` compile/run flow.
+2. **XQuery scenario**: validate XQuery outputs through integration tasks, then assert results in test layer (JUnit/TestKit).
+3. **XSD scenario**: run `XsdTask`, assert SVRL/JUnit outputs in pipeline.
+4. **Schematron scenario**: run `SchematronTask`, assert SVRL/JUnit outputs, optionally combine with XSpec around downstream XSLT assets.
 
-```groovy
-plugins {
-  id 'name.jurgenei.gradle.ooxml'
-  id 'name.jurgenei.gradle.xml'
-}
-
-tasks.register('bootstrapCanonicalSchematron', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
-  def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
-  schemaUrl(ooxmlExt.canonicalSchemaUrl.get())
-  output 'src/main/schematron/canonical-sel.sch'
-}
-
-tasks.register('copyCanonicalXsd') {
-  doLast {
-    def ooxmlExt = project.extensions.getByType(name.jurgenei.gradle.ooxml.OoXmlExtension)
-    def target = file('src/main/xsd/canonical.local.xsd')
-    if (!target.exists()) {
-      target.parentFile.mkdirs()
-      target.text = new URL(ooxmlExt.canonicalSchemaUrl.get()).getText('UTF-8')
-    }
-  }
-}
-
-tasks.register('bootstrapFromLocalXsd', name.jurgenei.gradle.xml.SchematronBootstrapTask) {
-  dependsOn tasks.named('copyCanonicalXsd')
-  schemaFile.set(layout.projectDirectory.file('src/main/xsd/canonical.local.xsd'))
-  output 'src/main/schematron/canonical-local.sch'
-}
-
-tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.SchematronTask) {
-  dependsOn tasks.named('bootstrapCanonicalSchematron')
-  schema.set(layout.projectDirectory.file('src/main/schematron/canonical-sel.sch'))
-  source 'src/main/xml/canonical.xml'
-  outputDir.set(layout.buildDirectory.dir('reports/schematron'))
-}
-```
-
-## SEL Compiler Skeleton (Phase 2)
-
-`SchematronSelCompileTask` compiles `sel:*` rule metadata into an extraction stylesheet skeleton
-with grouped `xsl:result-document` outputs.
-
-Reusable SEL metadata can be defined once and referenced from many rules (SQF-style):
-
-```xml
-<sel:presets xmlns:sel="http://jurgenei.name/sel">
-  <sel:preset id="id-required"
-              type="missing-id"
-              group="quality"
-              copy="."/>
-</sel:presets>
-
-<sch:rule context="person">
-  <sch:assert test="@id" sel:preset="id-required">
-    Person must have id.
-  </sch:assert>
-</sch:rule>
-```
-
-Presets can also provide reusable output template fragments. Template text/attributes support value templates
-evaluated in the current matched rule context:
-
-```xml
-<sel:presets xmlns:sel="http://jurgenei.name/sel"
-             xmlns:c="http://jurgenei.name/canonical">
-  <sel:preset id="paragraph-template" type="paragraph" group="knowledge" copy=".">
-    <sel:template>
-      <sel:Meta code="{@code}">
-        <sel:Summary>{concat(local-name(), ':', normalize-space(.))}</sel:Summary>
-        <sel:Section>{ancestor::c:Section[1]/c:Title}</sel:Section>
-      </sel:Meta>
-    </sel:template>
-  </sel:preset>
-</sel:presets>
-```
-
-Preset merge order is deterministic: defaults -> referenced preset(s) in declared order -> inline `sel:*` attributes on the assert/report node (inline wins).
-
-```groovy
-tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
-  schema 'src/main/schematron/sel.sch'
-  output 'build/generated/sel/sel.xsl'
-  phase '#DEFAULT' // '#DEFAULT' | '#ALL' | explicit phase id
-  outputNamespaceUri 'http://jurgenei.name/sel'   // optional task-level override
-  outputNamespacePrefix 'sel'                     // optional; '' => default namespace output
-  groupOutput 'knowledge', 'sel/knowledge.xml'
-  groupOutput 'terminology', 'sel/terminology.xml'
-  groupOutput 'architecture', 'sel/architecture.xml'
-}
-```
-
-Schema-level defaults can be declared once and are used unless task-level override is set:
-
-```xml
-<sch:schema xmlns:sch="http://purl.oclc.org/dsdl/schematron"
-            xmlns:sel="http://jurgenei.name/sel"
-            sel:outputNamespaceUri="http://jurgenei.name/sel"
-            sel:outputNamespacePrefix="sel">
-```
-
-## SEL Runtime Extraction (Phase 3)
-
-`SchematronSelExtractTask` executes SEL extraction against canonical XML, XIR (`.xir`), or canonical JSON (`.json`) inputs and emits grouped outputs.
-It can either:
-
-- compile extraction style on the fly from `schema`, or
-- consume a precompiled style via `style`.
-
-```groovy
-tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
-  schema 'src/main/schematron/sel.sch'
-  // Optional if precompiled by SchematronSelCompileTask:
-  // style 'build/generated/sel/sel.xsl'
-  phase 'knowledge-phase' // used when style is compiled on-the-fly from schema
-  outputNamespaceUri 'http://jurgenei.name/sel'  // optional task-level override
-  outputNamespacePrefix 'sel'                    // optional; '' => default namespace output
-  source(fileTree('src/main/xml') { include '**/*.xml' })
-  outputDir.set(layout.buildDirectory.dir('reports/sel'))
-  groupOutput 'knowledge', 'sel/knowledge.xml'
-  groupOutput 'terminology', 'sel/terminology.xml'
-  groupOutput 'architecture', 'sel/architecture.xml'
-  // XIR targets are supported by using .xir output paths:
-  // groupOutput 'knowledge', 'sel/knowledge.xir'
-  // xirFormat.set('beautified')
-  jsonMode.set('auto')
-  failOnError.set(true)
-}
-```
-
-Phase behavior for SEL compile/extract tasks:
-
-- `#DEFAULT` (default): uses `sch:schema/@defaultPhase`; if absent, all patterns are active.
-- `#ALL`: all SEL-annotated rules are compiled.
-- explicit phase id: only rules whose owning pattern is activated via `<sch:phase><sch:active pattern='...'/></sch:phase>`.
-
-## SHACL-Sel Compile + Extract
-
-`ShaclSelCompileTask` and `ShaclSelExtractTask` follow same compile/extract shape as Schematron SEL tasks.
-
-Current SHACL compile input is RDF/XML and targets relation-oriented SEL extraction.
-
-```groovy
-tasks.register('compileShaclSel', name.jurgenei.gradle.xml.ShaclSelCompileTask) {
-  schema 'src/main/shacl/collibra-model.shacl.xml'
-  output 'build/generated/sel/shacl-sel.xsl'
-  outputSchematron 'build/generated/sel/shacl-sel.sch'
-  groupOutput 'relations', 'sel/relations.xml'
-}
-
-tasks.register('extractShaclSel', name.jurgenei.gradle.xml.ShaclSelExtractTask) {
-  dependsOn tasks.named('compileShaclSel')
-  schema 'build/generated/sel/shacl-sel.sch'
-  style 'build/generated/sel/shacl-sel.xsl'
-  source(fileTree('src/main/xml') { include '*.xml' })
-  outputDir.set(layout.buildDirectory.dir('reports/shacl-sel'))
-  groupOutput 'relations', 'sel/relations.xml'
-  failOnError.set(true)
-}
-```
-
-Sample `samples/transformation/shacl-sel` also commits snapshot artifacts for discoverability:
-
-- `expected/shacl-sel.sch`
-- `expected/shacl-sel.xsl`
-
-## XSpec Compile (Phase 2)
-
-`XSpecCompileTask` transpiles XSLT XSpec files (`.xspec`) into executable runner stylesheets.
+<details>
+<summary>Groovy Task Def (XSpec compile + run)</summary>
 
 ```groovy
 tasks.register('compileXSpec', name.jurgenei.gradle.xml.XSpecCompileTask) {
   source(fileTree('src/main/xspec') { include '**/*.xspec' })
   outputDir.set(layout.buildDirectory.dir('generated/xspec'))
-  outputExtension.set('.xspec.xsl') // default
-  failOnError.set(true)
+  outputExtension.set('.xspec.xsl')
 }
-```
 
-## XSpec Run (Phase 3)
-
-`XSpecTask` executes XSpec and emits XML + JUnit reports.
-
-v1 scope is **XSLT XSpec only**.
-
-Runtime inputs:
-
-- `.xspec` (auto-compiles internally, then runs), or
-- precompiled runner stylesheet (`.xsl`) from `XSpecCompileTask`.
-
-```groovy
 tasks.register('runXSpec', name.jurgenei.gradle.xml.XSpecTask) {
-  // Either source .xspec files (auto-compile)...
+  dependsOn tasks.named('compileXSpec')
   source(fileTree('src/main/xspec') { include '**/*.xspec' })
   outputDir.set(layout.buildDirectory.dir('reports/xspec'))
-
-  // ...or explicit precompiled runner input:
-  // input 'build/generated/xspec/sample.xspec.xsl'
-  // output 'build/reports/xspec/sample-report.xml'
-
   junitOutputDir.set(layout.buildDirectory.dir('reports/xspec/junit'))
   failOnError.set(true)
 }
 ```
+</details>
 
-## Run tests
+<details>
+<summary>Kotlin Task Def (XSpec compile + run)</summary>
 
-```bash
-./gradlew test
+```kotlin
+tasks.register<name.jurgenei.gradle.xml.XSpecCompileTask>("compileXSpec") {
+    source(fileTree("src/main/xspec") { include("**/*.xspec") })
+    outputDir.set(layout.buildDirectory.dir("generated/xspec"))
+    outputExtension.set(".xspec.xsl")
+}
+
+tasks.register<name.jurgenei.gradle.xml.XSpecTask>("runXSpec") {
+    dependsOn(tasks.named("compileXSpec"))
+    source(fileTree("src/main/xspec") { include("**/*.xspec") })
+    outputDir.set(layout.buildDirectory.dir("reports/xspec"))
+    junitOutputDir.set(layout.buildDirectory.dir("reports/xspec/junit"))
+    failOnError.set(true)
+}
 ```
+</details>
 
-## Test Coverage
+## Code Style
 
-Generate coverage report and enforce the current minimum line coverage baseline (>= 0%):
+- Java 21+
+- Public API/classes documented with Javadoc
+- Multiline literals use text blocks where practical
+- Build scripts follow standard Gradle Groovy/Kotlin DSL idioms
 
-```bash
-./gradlew coverage
-```
-
-Coverage report outputs:
-
-- XML: `build/reports/jacoco/test/jacocoTestReport.xml`
-- HTML: `build/reports/jacoco/test/html/index.html`
-
-CI coverage workflow: `.github/workflows/coverage.yml`
-
-To enable Codecov upload/badge, add repository secret `CODECOV_TOKEN`.
-
-## Security Scanning
-
-Security automation runs in GitHub Actions:
-
-- CodeQL static analysis: `.github/workflows/codeql.yml`
-- OWASP Dependency-Check: `.github/workflows/dependency-check.yml`
-- SpotBugs + FindSecBugs: `.github/workflows/spotbugs-security.yml`
-- Dependabot updates: `.github/dependabot.yml`
-
-Set repository secret `NVD_API_KEY` for faster/more reliable Dependency-Check NVD lookups.
-
-Run locally:
-
-```bash
-./gradlew dependencyCheckAnalyze --no-configuration-cache
-./gradlew spotbugsMain -PspotbugsIgnoreFailures=false --no-configuration-cache
-./gradlew allSecurityChecks
-```
-
-## Building
+## Build, Test, Security
 
 ```bash
 ./gradlew build
+./gradlew test
+./gradlew coverage
+./gradlew allSecurityChecks
 ```
 
-Required Java version: **21+**
+Coverage outputs:
 
-## Architecture
+- `build/reports/jacoco/test/jacocoTestReport.xml`
+- `build/reports/jacoco/test/html/index.html`
 
-### Task Hierarchy
+## Architecture (quick view)
 
+```text
+AbstractXmlTransformTask
+  ├── XsltTask
+  ├── XQueryTask
+  ├── XSpecCompileTask
+  └── XSpecTask
+
+AbstractXmlValidationTask
+  ├── SchematronTask
+  └── XsdTask
 ```
-AbstractXmlTransformTask (shared base)
-  ├── XsltTask (XSLT transformations)
-  └── XQueryTask (XQuery transformations)
 
-AbstractXmlValidationTask (shared base)
-  ├── SchematronTask (Schematron validation)
-  └── XsdTask (XSD validation)
+## Samples
 
-AbstractXmlTransformTask (XSpec additions)
-  ├── XSpecCompileTask (compile .xspec to runner stylesheet)
-  └── XSpecTask (execute XSpec runner, emit XML + JUnit)
-```
-
-### Execution Flow
-
-1. Resolve input files from `source` / `fileset`
-2. Sort files deterministically
-3. Optionally parallelize using virtual-thread worker pool (if `workers > 1`)
-4. For each input file:
-   - Skip when output is newer than transform dependencies (source + style/query/schema)
-   - Derive output file path using `outputExtension` mapping
-   - Create output directories (thread-safe via `Files.createDirectories`)
-   - Compile and execute transform (XSLT or XQuery)
-   - Log success or collect failure
-
-### Parallelism
-
-- `workers = 1` (default): Sequential processing
-- `workers > 1`: Fixed virtual-thread pool with concurrent file processing
-
-Virtual threads are used to maximize throughput with minimal memory overhead for I/O-bound XML transformations.
-
-## Development
-
-### Samples
-
-Runnable minimal examples are available under `samples/`:
+See runnable examples under `samples/`:
 
 - `samples/transformation/xslt`
 - `samples/transformation/xquery`
@@ -721,47 +459,9 @@ Runnable minimal examples are available under `samples/`:
 - `samples/validation/schematron`
 - `samples/schematron-bootstrap-ooxml`
 
-See `samples/README.md` for run commands.
-
-### Testing
-
-JUnit 4 with Gradle TestKit for functional integration testing:
-
-```bash
-./gradlew test --tests '*XsltTaskIntegrationTest'
-./gradlew test --tests '*XQueryTaskIntegrationTest'
-./gradlew test --tests '*SchematronTaskIntegrationTest'
-./gradlew test --tests '*XsdTaskIntegrationTest'
-./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
-./gradlew test --tests '*SchematronSelCompileTaskIntegrationTest'
-./gradlew test --tests '*SchematronSelExtractTaskIntegrationTest'
-./gradlew test --tests '*ShaclSelCompileTaskIntegrationTest'
-./gradlew test --tests '*ShaclSelExtractTaskIntegrationTest'
-./gradlew test --tests '*XSpecCompileTaskIntegrationTest'
-./gradlew test --tests '*XSpecTaskIntegrationTest'
-```
-
-Sample module self-tests (XSpec-driven):
-
-```bash
-./gradlew -p samples/transformation/xslt runSelfTest
-./gradlew -p samples/transformation/xquery runSelfTest
-./gradlew -p samples/validation/schematron runSelfTest
-./gradlew -p samples/validation/xsd runSelfTest
-./gradlew -p samples/transformation/sel runSelfTest
-./gradlew -p samples/transformation/shacl-sel runSelfTest
-./gradlew -p samples/schematron-bootstrap-ooxml runSelfTest
-```
-
-### Code Style
-
-- Java 21+ source
-- Javadoc on all public APIs and classes
-- Text blocks for multiline strings (Java 15+)
-
 ## Contributing
 
-Contribution workflow and coding expectations are documented in `CONTRIBUTING.md`.
+Workflow and expectations: `CONTRIBUTING.md`
 
 ## License
 

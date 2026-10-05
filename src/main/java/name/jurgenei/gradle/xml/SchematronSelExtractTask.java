@@ -47,6 +47,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.PathSensitive;
@@ -179,6 +180,26 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     public abstract Property<String> getJsonMode();
 
     /**
+     * Canonical output-mode alias for {@link #getJsonMode()}.
+     *
+     * @return JSON routing mode property
+     */
+    @Internal
+    public Property<String> getOutputMode() {
+        return getJsonMode();
+    }
+
+    /**
+     * Backward-compatible alias for {@link #getOutputMode()}.
+     *
+     * @return JSON routing mode property
+     */
+    @Internal
+    public Property<String> getMode() {
+        return getOutputMode();
+    }
+
+    /**
      * Optional XIR output format used when emitting {@code .xir} group outputs.
      *
      * <p>Supported values are {@code compact} (default) and {@code beautified}.</p>
@@ -188,6 +209,26 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     @Input
     @Optional
     public abstract Property<String> getXirFormat();
+
+    /**
+     * Canonical output-format alias for {@link #getXirFormat()}.
+     *
+     * @return XIR serializer output format property
+     */
+    @Internal
+    public Property<String> getOutputFormat() {
+        return getXirFormat();
+    }
+
+    /**
+     * Backward-compatible alias for {@link #getOutputFormat()}.
+     *
+     * @return XIR serializer output format property
+     */
+    @Internal
+    public Property<String> getXformat() {
+        return getOutputFormat();
+    }
 
     /**
      * Active Schematron phase used for on-the-fly SEL compilation.
@@ -289,12 +330,84 @@ public abstract class SchematronSelExtractTask extends org.gradle.api.DefaultTas
     }
 
     /**
+     * Sets JSON routing mode using canonical DSL name.
+     *
+     * @param mode one of auto, native, canonical
+     */
+    public void outputMode(String mode) {
+        getOutputMode().set(mode);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #outputMode(String)}.
+     *
+     * @param mode one of auto, native, canonical
+     */
+    public void setOutputMode(String mode) {
+        outputMode(mode);
+    }
+
+    /**
+     * Backward-compatible alias for {@link #outputMode(String)}.
+     *
+     * @param mode one of auto, native, canonical
+     */
+    public void mode(String mode) {
+        outputMode(mode);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #mode(String)}.
+     *
+     * @param mode one of auto, native, canonical
+     */
+    public void setMode(String mode) {
+        mode(mode);
+    }
+
+    /**
      * Sets S-expression output format for {@code .xir} group outputs (Gradle DSL friendly).
      *
      * @param format one of compact, beautified
      */
     public void xirFormat(String format) {
         getXirFormat().set(format);
+    }
+
+    /**
+     * Sets S-expression output format using canonical DSL name.
+     *
+     * @param format one of compact, beautified
+     */
+    public void outputFormat(String format) {
+        getOutputFormat().set(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #outputFormat(String)}.
+     *
+     * @param format one of compact, beautified
+     */
+    public void setOutputFormat(String format) {
+        outputFormat(format);
+    }
+
+    /**
+     * Backward-compatible alias for {@link #outputFormat(String)}.
+     *
+     * @param format one of compact, beautified
+     */
+    public void xformat(String format) {
+        outputFormat(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #xformat(String)}.
+     *
+     * @param format one of compact, beautified
+     */
+    public void setXformat(String format) {
+        xformat(format);
     }
 
     /**
