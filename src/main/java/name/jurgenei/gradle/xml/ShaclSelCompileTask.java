@@ -369,7 +369,7 @@ public abstract class ShaclSelCompileTask extends DefaultTask {
 
     private String attribute(Element element, String namespaceUri, String localName) {
         String value = element.getAttributeNS(namespaceUri, localName);
-        return value == null ? "" : value.trim();
+        return value.trim();
     }
 
     private record ShaclRule(String sourceType, String path, String targetType, String shapeRef) {}

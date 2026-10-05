@@ -45,6 +45,9 @@ public final class SaxXmlWriter {
             StringWriter output = new StringWriter();
             SAXTransformerFactory factory =
                     (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
             TransformerHandler handler = factory.newTransformerHandler();
             Transformer transformer = handler.getTransformer();
             transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
