@@ -17,6 +17,7 @@ plugins {
     id("org.owasp.dependencycheck") version "13.0.0"
     id("com.github.spotbugs") version "6.5.12"
     id("org.sonarqube") version "7.5.0.8588"
+    id("com.diffplug.spotless") version "8.10.3"
 }
 
 group = "name.jurgenei.gradle"
@@ -43,13 +44,14 @@ extensions.configure<GradlePluginDevelopmentExtension> {
             id = "name.jurgenei.gradle.xml"
             implementationClass = "name.jurgenei.gradle.xml.XmlTransformPlugin"
             displayName = "XML Transform & Validate Plugin"
-            description = "Saxon based XSLT, XQuery, Schematron and XSD tasks with SVRL/JUnit reporting"
+            description = "Saxon based XSLT, XQuery, Schematron, XSD, and XSpec tasks with SVRL/JUnit reporting"
             tags.set(
                 listOf(
                     "xml",
                     "gradle-plugin",
                     "xslt",
                     "xquery",
+                    "xspec",
                     "schematron",
                     "xsd",
                     "saxon",
@@ -75,7 +77,7 @@ extensions.configure<PublishingExtension> {
     publications.withType<MavenPublication>().configureEach {
         pom {
             name.set("Gradle XML Plugin")
-            description.set("Gradle plugin for XSLT, XQuery, Schematron, and XSD validation")
+            description.set("Gradle plugin for XSLT, XQuery, Schematron, XSD, and XSpec")
             url.set("https://github.com/jurgenei/gradle-xml-plugin.git")
 
             licenses {
@@ -113,6 +115,42 @@ extensions.configure<PublishingExtension> {
 //    useGpgCmd()
 //    sign(extensions.getByType(PublishingExtension::class.java).publications)
 //}
+
+
+spotless {
+    // Limit format enforcement to changed files even in shallow CI clones.
+    val hasOriginMain = providers.exec {
+        commandLine("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/main")
+        isIgnoreExitValue = true
+    }.result.get().exitValue == 0
+    if (hasOriginMain) {
+        ratchetFrom("origin/main")
+    } else {
+        ratchetFrom("HEAD")
+    }
+
+    format("misc") {
+    // define the files to apply `misc` to
+    target("*.gradle", ".gitattributes", ".gitignore")
+        // define the steps to apply to those files
+        trimTrailingWhitespace()
+        leadingSpacesToTabs() // or leadingTabsToSpaces. Takes an integer argument if you don't like 4
+        endWithNewline()
+    }
+    java {
+        // don't need to set target, it is inferred from java
+
+        // apply a specific flavor of google-java-format
+        googleJavaFormat("1.17.0").aosp().reflowLongStrings().skipJavadocFormatting()
+        // fix formatting of type annotations
+        formatAnnotations()
+        // make sure every file has the following copyright header.
+        // optionally, Spotless can set copyright years by digging
+        // through git history (see "license" section below)
+        licenseHeader("/* (C)2026 */")
+    }
+}
+
 
 // OWASP Dependency-Check configuration
 extensions.getByName("dependencyCheck").withGroovyBuilder {
@@ -163,7 +201,8 @@ dependencies {
     }
 
     add("implementation", "net.sf.saxon:Saxon-HE:13.0")
-    add("implementation", "name.jurgenei:xir-sax:0.1.2")
+    add("implementation", "io.xspec:xspec:3.2.2")
+    add("implementation", "name.jurgenei:xir-sax:0.1.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.3")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
     add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
@@ -241,20 +280,117 @@ tasks.register("allSecurityChecks") {
 
 tasks.register<Exec>("verifyXsltXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xslt-xir-identity sample."
+    description = "Runs XSLT sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xslt-xir-identity", "verifySample")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/xslt",
+        "runSelfTest"
+    )
 }
 
 tasks.register<Exec>("verifyXqueryXirSample") {
     group = "verification"
-    description = "Runs smoke verification for s-xquery-xir-identity sample."
+    description = "Runs XQuery sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/s-xquery-xir-identity", "verifySample")
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/xquery",
+        "runSelfTest"
+    )
+}
+
+tasks.register<Exec>("verifySchematronSample") {
+    group = "verification"
+    description = "Runs Schematron sample self-tests."
+    workingDir = projectDir
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/validation/schematron",
+        "runSelfTest"
+    )
+}
+
+tasks.register<Exec>("verifyXsdSample") {
+    group = "verification"
+    description = "Runs XSD sample self-tests."
+    workingDir = projectDir
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/validation/xsd",
+        "runSelfTest"
+    )
+}
+
+tasks.register<Exec>("verifySelSample") {
+    group = "verification"
+    description = "Runs SEL sample self-tests."
+    workingDir = projectDir
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/transformation/sel",
+        "runSelfTest"
+    )
+}
+
+tasks.register<Exec>("verifyBootstrapSample") {
+    group = "verification"
+    description = "Runs Schematron bootstrap sample self-tests."
+    workingDir = projectDir
+    commandLine(
+        "./gradlew",
+        "--no-daemon",
+        "--stacktrace",
+        "-p",
+        "samples/schematron-bootstrap-ooxml",
+        "runSelfTest"
+    )
+}
+
+tasks.named("verifyXqueryXirSample") {
+    mustRunAfter("verifyXsltXirSample")
+}
+
+tasks.named("verifySchematronSample") {
+    mustRunAfter("verifyXqueryXirSample")
+}
+
+tasks.named("verifyXsdSample") {
+    mustRunAfter("verifySchematronSample")
+}
+
+tasks.named("verifySelSample") {
+    mustRunAfter("verifyXsdSample")
+}
+
+tasks.named("verifyBootstrapSample") {
+    mustRunAfter("verifySelSample")
 }
 
 tasks.register("verifyXirSample") {
     group = "verification"
-    description = "Runs XIR sample smoke tests."
-    dependsOn("verifyXsltXirSample", "verifyXqueryXirSample")
+    description = "Runs all sample self-tests."
+    dependsOn(
+        "verifyXsltXirSample",
+        "verifyXqueryXirSample",
+        "verifySchematronSample",
+        "verifyXsdSample",
+        "verifySelSample",
+        "verifyBootstrapSample"
+    )
 }

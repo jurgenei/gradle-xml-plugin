@@ -1,0 +1,78 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+    schema 'src/main/schematron/sel.sch'
+    phase '#ALL'
+    output 'build/generated/sel/sel.xsl'
+    groupOutput 'knowledge', 'sel/knowledge.xml'
+    groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+}
+
+tasks.register('compileSelPreset', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
+    schema 'src/main/schematron/sel-preset.sch'
+    phase '#ALL'
+    output 'build/generated/sel/sel-preset.xsl'
+    groupOutput 'knowledge', 'sel/knowledge.xml'
+    groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+}
+
+tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+    dependsOn tasks.named('compileSel')
+    schema 'src/main/schematron/sel.sch'
+    style 'build/generated/sel/sel.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/sel'))
+    groupOutput 'knowledge', 'sel/knowledge.xml'
+    groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+    failOnError.set(true)
+}
+
+tasks.register('extractSelPreset', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+    dependsOn tasks.named('compileSelPreset')
+    schema 'src/main/schematron/sel-preset.sch'
+    style 'build/generated/sel/sel-preset.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/sel-preset'))
+    groupOutput 'knowledge', 'sel/knowledge.xml'
+    groupOutput 'architecture', 'sel/architecture.xml'
+    groupOutput 'terminology', 'sel/terminology.xml'
+    failOnError.set(true)
+}
+
+tasks.register('extractTerminologySel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+    schema 'src/main/schematron/sel.sch'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('out/sel-terminology'))
+    phase 'terminology-phase'
+    groupOutput 'terminology', 'sel/terminology.xml'
+    failOnError.set(true)
+}
+
+tasks.register('extractSelXir', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
+    dependsOn tasks.named('compileSel')
+    schema 'src/main/schematron/sel.sch'
+    style 'build/generated/sel/sel.xsl'
+    source(fileTree('src/main/xir') { include '*.xir' })
+    outputDir.set(layout.buildDirectory.dir('out/sel-xir'))
+    groupOutput 'knowledge', 'sel/knowledge.xir'
+    groupOutput 'architecture', 'sel/architecture.xir'
+    groupOutput 'terminology', 'sel/terminology.xir'
+    xirFormat.set('beautified')
+    failOnError.set(true)
+}
+
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
+    dependsOn 'extractSel', 'extractSelXir', 'extractSelPreset', 'extractTerminologySel'
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
+}

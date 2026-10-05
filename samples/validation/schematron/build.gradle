@@ -1,0 +1,34 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runSSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    schema 'src/main/schematron/rules.xir'
+    transpilerStylesheet 'src/main/schematron/transpile.xsl'
+    source 'src/main/xir/invalid.xir'
+    outputDir.set(layout.buildDirectory.dir('reports/schematron-xir'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    failOnError.set(false)
+}
+
+tasks.register('runSchematron', name.jurgenei.gradle.xml.SchematronTask) {
+    schema 'src/main/schematron/rules.sch'
+    style 'build/generated/schematron/rules.compiled.xsl'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('reports/schematron-xml'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    phase.set('#ALL')
+    severityThreshold.set('warning')
+    failOnError.set(false)
+}
+
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
+    dependsOn 'runSSchematron', 'runSchematron'
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
+}

@@ -9,6 +9,7 @@
 [![CodeQL](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/codeql.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/codeql.yml)
 [![Dependency Check](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/dependency-check.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/dependency-check.yml)
 [![SpotBugs Security](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/spotbugs-security.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/spotbugs-security.yml)
+[![Checkstyle](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/checkstyle.yml/badge.svg)](https://github.com/jurgenei/gradle-xml-plugin/actions/workflows/checkstyle.yml)
 [![Dependabot](https://img.shields.io/badge/dependabot-enabled-025E8C?logo=dependabot)](https://github.com/jurgenei/gradle-xml-plugin/security/dependabot)
 [![Coverage](https://codecov.io/gh/jurgenei/gradle-xml-plugin/graph/badge.svg?branch=main)](https://codecov.io/gh/jurgenei/gradle-xml-plugin)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -28,7 +29,7 @@ Define and execute XPath/XSLT/XQuery transformations and XML validations as Grad
 - Optional parallel processing using **virtual threads**
 - SVRL and optional JUnit XML reporting for validation
 
-The plugin contributes four task types:
+The plugin contributes task types:
 
 - `name.jurgenei.gradle.xml.XsltTask` — XSLT 3.0 transformations
 - `name.jurgenei.gradle.xml.XQueryTask` — XQuery transformations
@@ -37,6 +38,8 @@ The plugin contributes four task types:
 - `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
 - `name.jurgenei.gradle.xml.SchematronSelCompileTask` — compile `sel:*` annotated Schematron into grouped SEL stylesheet skeleton
 - `name.jurgenei.gradle.xml.SchematronSelExtractTask` — execute runtime SEL extraction and emit grouped SEL XML
+- `name.jurgenei.gradle.xml.XSpecCompileTask` — compile XSLT XSpec (`.xspec`) into executable runner stylesheet
+- `name.jurgenei.gradle.xml.XSpecTask` — run XSpec (from `.xspec` or precompiled runner) and emit XML + JUnit reports
 
 Both share a near-orthogonal API for unified Gradle-style configuration.
 
@@ -55,6 +58,7 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Security automation** — CodeQL, OWASP Dependency-Check, SpotBugs + FindSecBugs, Dependabot
 - **XIR I/O** — `.xir` input and output routing for XSLT/XQuery tasks
 - **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
+- **Native XSpec support (XSLT v1)** — two-phase compile/run with XML + JUnit reporting
 
 ## XIR Support
 
@@ -452,14 +456,62 @@ tasks.register('validateCanonicalSchematron', name.jurgenei.gradle.xml.Schematro
 `SchematronSelCompileTask` compiles `sel:*` rule metadata into an extraction stylesheet skeleton
 with grouped `xsl:result-document` outputs.
 
+Reusable SEL metadata can be defined once and referenced from many rules (SQF-style):
+
+```xml
+<sel:presets xmlns:sel="http://jurgenei.name/sel">
+  <sel:preset id="id-required"
+              type="missing-id"
+              group="quality"
+              copy="."/>
+</sel:presets>
+
+<sch:rule context="person">
+  <sch:assert test="@id" sel:preset="id-required">
+    Person must have id.
+  </sch:assert>
+</sch:rule>
+```
+
+Presets can also provide reusable output template fragments. Template text/attributes support value templates
+evaluated in the current matched rule context:
+
+```xml
+<sel:presets xmlns:sel="http://jurgenei.name/sel"
+             xmlns:c="http://jurgenei.name/canonical">
+  <sel:preset id="paragraph-template" type="paragraph" group="knowledge" copy=".">
+    <sel:template>
+      <sel:Meta code="{@code}">
+        <sel:Summary>{concat(local-name(), ':', normalize-space(.))}</sel:Summary>
+        <sel:Section>{ancestor::c:Section[1]/c:Title}</sel:Section>
+      </sel:Meta>
+    </sel:template>
+  </sel:preset>
+</sel:presets>
+```
+
+Preset merge order is deterministic: defaults -> referenced preset(s) in declared order -> inline `sel:*` attributes on the assert/report node (inline wins).
+
 ```groovy
 tasks.register('compileSel', name.jurgenei.gradle.xml.SchematronSelCompileTask) {
   schema 'src/main/schematron/sel.sch'
   output 'build/generated/sel/sel.xsl'
+  phase '#DEFAULT' // '#DEFAULT' | '#ALL' | explicit phase id
+  outputNamespaceUri 'http://jurgenei.name/sel'   // optional task-level override
+  outputNamespacePrefix 'sel'                     // optional; '' => default namespace output
   groupOutput 'knowledge', 'sel/knowledge.xml'
   groupOutput 'terminology', 'sel/terminology.xml'
   groupOutput 'architecture', 'sel/architecture.xml'
 }
+```
+
+Schema-level defaults can be declared once and are used unless task-level override is set:
+
+```xml
+<sch:schema xmlns:sch="http://purl.oclc.org/dsdl/schematron"
+            xmlns:sel="http://jurgenei.name/sel"
+            sel:outputNamespaceUri="http://jurgenei.name/sel"
+            sel:outputNamespacePrefix="sel">
 ```
 
 ## SEL Runtime Extraction (Phase 3)
@@ -475,12 +527,63 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
   schema 'src/main/schematron/sel.sch'
   // Optional if precompiled by SchematronSelCompileTask:
   // style 'build/generated/sel/sel.xsl'
+  phase 'knowledge-phase' // used when style is compiled on-the-fly from schema
+  outputNamespaceUri 'http://jurgenei.name/sel'  // optional task-level override
+  outputNamespacePrefix 'sel'                    // optional; '' => default namespace output
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/sel'))
   groupOutput 'knowledge', 'sel/knowledge.xml'
   groupOutput 'terminology', 'sel/terminology.xml'
   groupOutput 'architecture', 'sel/architecture.xml'
+  // XIR targets are supported by using .xir output paths:
+  // groupOutput 'knowledge', 'sel/knowledge.xir'
+  // xirFormat.set('beautified')
   jsonMode.set('auto')
+  failOnError.set(true)
+}
+```
+
+Phase behavior for SEL compile/extract tasks:
+
+- `#DEFAULT` (default): uses `sch:schema/@defaultPhase`; if absent, all patterns are active.
+- `#ALL`: all SEL-annotated rules are compiled.
+- explicit phase id: only rules whose owning pattern is activated via `<sch:phase><sch:active pattern='...'/></sch:phase>`.
+
+## XSpec Compile (Phase 2)
+
+`XSpecCompileTask` transpiles XSLT XSpec files (`.xspec`) into executable runner stylesheets.
+
+```groovy
+tasks.register('compileXSpec', name.jurgenei.gradle.xml.XSpecCompileTask) {
+  source(fileTree('src/main/xspec') { include '**/*.xspec' })
+  outputDir.set(layout.buildDirectory.dir('generated/xspec'))
+  outputExtension.set('.xspec.xsl') // default
+  failOnError.set(true)
+}
+```
+
+## XSpec Run (Phase 3)
+
+`XSpecTask` executes XSpec and emits XML + JUnit reports.
+
+v1 scope is **XSLT XSpec only**.
+
+Runtime inputs:
+
+- `.xspec` (auto-compiles internally, then runs), or
+- precompiled runner stylesheet (`.xsl`) from `XSpecCompileTask`.
+
+```groovy
+tasks.register('runXSpec', name.jurgenei.gradle.xml.XSpecTask) {
+  // Either source .xspec files (auto-compile)...
+  source(fileTree('src/main/xspec') { include '**/*.xspec' })
+  outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+
+  // ...or explicit precompiled runner input:
+  // input 'build/generated/xspec/sample.xspec.xsl'
+  // output 'build/reports/xspec/sample-report.xml'
+
+  junitOutputDir.set(layout.buildDirectory.dir('reports/xspec/junit'))
   failOnError.set(true)
 }
 ```
@@ -547,6 +650,10 @@ AbstractXmlTransformTask (shared base)
 AbstractXmlValidationTask (shared base)
   ├── SchematronTask (Schematron validation)
   └── XsdTask (XSD validation)
+
+AbstractXmlTransformTask (XSpec additions)
+  ├── XSpecCompileTask (compile .xspec to runner stylesheet)
+  └── XSpecTask (execute XSpec runner, emit XML + JUnit)
 ```
 
 ### Execution Flow
@@ -574,14 +681,12 @@ Virtual threads are used to maximize throughput with minimal memory overhead for
 
 Runnable minimal examples are available under `samples/`:
 
-- `samples/xslt-basic`
-- `samples/s-xslt-xir-identity`
-- `samples/xquery-basic`
-- `samples/s-xquery-xir-identity`
-- `samples/sel-multi-canonical`
-- `samples/s-xsd`
-- `samples/s-schematron`
-- `samples/validation-basic`
+- `samples/transformation/xslt`
+- `samples/transformation/xquery`
+- `samples/transformation/sel`
+- `samples/validation/xsd`
+- `samples/validation/schematron`
+- `samples/schematron-bootstrap-ooxml`
 
 See `samples/README.md` for run commands.
 
@@ -597,6 +702,19 @@ JUnit 4 with Gradle TestKit for functional integration testing:
 ./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelCompileTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelExtractTaskIntegrationTest'
+./gradlew test --tests '*XSpecCompileTaskIntegrationTest'
+./gradlew test --tests '*XSpecTaskIntegrationTest'
+```
+
+Sample module self-tests (XSpec-driven):
+
+```bash
+./gradlew -p samples/transformation/xslt runSelfTest
+./gradlew -p samples/transformation/xquery runSelfTest
+./gradlew -p samples/validation/schematron runSelfTest
+./gradlew -p samples/validation/xsd runSelfTest
+./gradlew -p samples/transformation/sel runSelfTest
+./gradlew -p samples/schematron-bootstrap-ooxml runSelfTest
 ```
 
 ### Code Style

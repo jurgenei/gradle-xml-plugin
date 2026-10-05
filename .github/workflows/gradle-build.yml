@@ -34,9 +34,7 @@ jobs:
     - name: Build, test, and verify samples
       run: |
         ./gradlew clean build --stacktrace
-        ./gradlew -p samples/xslt-basic verifySample --stacktrace
-        ./gradlew -p samples/xquery-basic verifySample --stacktrace
-        ./gradlew -p samples/validation-basic verifySample --stacktrace
+        ./gradlew verifyXirSample --stacktrace
         
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v7

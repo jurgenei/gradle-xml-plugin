@@ -1,6 +1,0 @@
-pluginManagement {
-    includeBuild("../..")
-}
-
-rootProject.name = "validation-basic"
-

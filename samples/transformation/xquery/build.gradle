@@ -1,0 +1,39 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
+    query 'src/main/xquery/main.xq'
+    source 'src/main/xml/input.xml'
+    outputDir.set(layout.buildDirectory.dir('out/xquery'))
+    outputExtension.set('.xml')
+    param 'prefix', 'Hello '
+}
+
+tasks.register('runXQueryXir', name.jurgenei.gradle.xml.XQueryTask) {
+    query 'src/main/xquery/main.xq'
+    source 'src/main/xir/input.xir'
+    outputDir.set(layout.buildDirectory.dir('out/xquery-xir'))
+    outputExtension.set('.xir')
+    xirFormat.set('beautified')
+    param 'prefix', 'Hello '
+}
+
+tasks.register('runXQueryIdentity', name.jurgenei.gradle.xml.XQueryTask) {
+    query 'src/main/xquery/identity.xq'
+    source 'src/main/xir/identity-input.xir'
+    outputDir.set(layout.buildDirectory.dir('out/xquery-identity'))
+    outputExtension.set('.xir')
+    xirFormat.set('beautified')
+}
+
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
+    dependsOn 'runXQuery', 'runXQueryXir', 'runXQueryIdentity'
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
+}

@@ -1,0 +1,32 @@
+plugins {
+    id 'name.jurgenei.gradle.xml'
+}
+
+tasks.register('runSXsd', name.jurgenei.gradle.xml.XsdTask) {
+    schema 'src/main/xsd/schema.xir'
+    source 'src/main/xir/invalid.xir'
+    outputDir.set(layout.buildDirectory.dir('reports/xsd-xir'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.JAXP)
+    failOnError.set(false)
+}
+
+tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
+    schema 'src/main/xsd/schema.xsd'
+    source(fileTree('src/main/xml') { include '*.xml' })
+    outputDir.set(layout.buildDirectory.dir('reports/xsd-xml'))
+    reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+    engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
+    failOnError.set(false)
+}
+
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
+    dependsOn 'runSXsd', 'runXsd'
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
+}
