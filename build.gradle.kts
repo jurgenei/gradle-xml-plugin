@@ -118,8 +118,14 @@ extensions.configure<PublishingExtension> {
 
 
 spotless {
-    // optional: limit format enforcement to just the files changed by this feature branch
-    ratchetFrom("origin/main")
+    // Optional: limit format enforcement to changed files, but only when CI checkout contains origin/main.
+    val hasOriginMain = providers.exec {
+        commandLine("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/main")
+        isIgnoreExitValue = true
+    }.result.get().exitValue == 0
+    if (hasOriginMain) {
+        ratchetFrom("origin/main")
+    }
 
     format("misc") {
     // define the files to apply `misc` to
