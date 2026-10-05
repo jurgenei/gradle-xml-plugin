@@ -362,6 +362,26 @@ tasks.register<Exec>("verifyBootstrapSample") {
     )
 }
 
+tasks.named("verifyXqueryXirSample") {
+    mustRunAfter("verifyXsltXirSample")
+}
+
+tasks.named("verifySchematronSample") {
+    mustRunAfter("verifyXqueryXirSample")
+}
+
+tasks.named("verifyXsdSample") {
+    mustRunAfter("verifySchematronSample")
+}
+
+tasks.named("verifySelSample") {
+    mustRunAfter("verifyXsdSample")
+}
+
+tasks.named("verifyBootstrapSample") {
+    mustRunAfter("verifySelSample")
+}
+
 tasks.register("verifyXirSample") {
     group = "verification"
     description = "Runs all sample self-tests."
