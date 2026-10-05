@@ -3,6 +3,7 @@ package name.jurgenei.gradle.xml;
 
 import java.io.File;
 import javax.inject.Inject;
+import org.gradle.work.DisableCachingByDefault;
 
 /**
  * Executes SHACL-driven SEL extraction.
@@ -11,6 +12,10 @@ import javax.inject.Inject;
  * Typical flow compiles SHACL into grouped SEL stylesheet via {@link ShaclSelCompileTask},
  * then runs extraction using that precompiled style.</p>
  */
+@DisableCachingByDefault(
+        because =
+                "Extraction output depends on dynamic source/schema/style inputs and filesystem"
+                        + " state")
 public abstract class ShaclSelExtractTask extends SchematronSelExtractTask {
     /**
      * Creates task instance.

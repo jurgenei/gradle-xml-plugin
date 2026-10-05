@@ -27,7 +27,8 @@ import org.xml.sax.helpers.AttributesImpl;
  * Minimal SAX XML writer with pretty-print output and helper methods for namespace-aware emission.
  */
 public final class SaxXmlWriter {
-    private static final String INDENT_AMOUNT_PROPERTY = "{http://xml.apache.org/xslt}indent-amount";
+    private static final String INDENT_AMOUNT_PROPERTY =
+            "{http://xml.apache.org/xslt}indent-amount";
 
     private final StringWriter output;
     private final TransformerHandler handler;
@@ -42,7 +43,8 @@ public final class SaxXmlWriter {
     public static SaxXmlWriter createPretty() {
         try {
             StringWriter output = new StringWriter();
-            SAXTransformerFactory factory = (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+            SAXTransformerFactory factory =
+                    (SAXTransformerFactory) SAXTransformerFactory.newInstance();
             TransformerHandler handler = factory.newTransformerHandler();
             Transformer transformer = handler.getTransformer();
             transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
@@ -81,13 +83,19 @@ public final class SaxXmlWriter {
         }
         elementPrefixMappings.push(startedPrefixes);
         handler.startElement(
-                safeNamespace(namespaceUri), safeLocal(localName, qName), qName, toAttributes(attributes));
+                safeNamespace(namespaceUri),
+                safeLocal(localName, qName),
+                qName,
+                toAttributes(attributes));
     }
 
-    public void endElement(String namespaceUri, String localName, String qName) throws SAXException {
+    public void endElement(String namespaceUri, String localName, String qName)
+            throws SAXException {
         handler.endElement(safeNamespace(namespaceUri), safeLocal(localName, qName), qName);
         List<String> startedPrefixes =
-                elementPrefixMappings.isEmpty() ? Collections.emptyList() : elementPrefixMappings.pop();
+                elementPrefixMappings.isEmpty()
+                        ? Collections.emptyList()
+                        : elementPrefixMappings.pop();
         for (int i = startedPrefixes.size() - 1; i >= 0; i--) {
             handler.endPrefixMapping(startedPrefixes.get(i));
         }
@@ -156,7 +164,8 @@ public final class SaxXmlWriter {
         return new XmlAttribute("", name, name, value == null ? "" : value);
     }
 
-    public static XmlAttribute attr(String namespaceUri, String localName, String qName, String value) {
+    public static XmlAttribute attr(
+            String namespaceUri, String localName, String qName, String value) {
         return new XmlAttribute(
                 namespaceUri == null ? "" : namespaceUri,
                 localName == null || localName.isBlank() ? qName : localName,
@@ -194,6 +203,14 @@ public final class SaxXmlWriter {
     private void emitElement(Node node) throws SAXException {
         NamedNodeMap nodeAttributes = node.getAttributes();
         List<String> startedPrefixes = new ArrayList<>();
+        String namespaceUri = safeNamespace(node.getNamespaceURI());
+        String qName = node.getNodeName();
+        String localName = safeLocal(node.getLocalName(), qName);
+        String elementPrefix = prefixOf(qName);
+        if (!namespaceUri.isBlank() && !startedPrefixes.contains(elementPrefix)) {
+            handler.startPrefixMapping(elementPrefix, namespaceUri);
+            startedPrefixes.add(elementPrefix);
+        }
         AttributesImpl attributes = new AttributesImpl();
         if (nodeAttributes != null) {
             for (int i = 0; i < nodeAttributes.getLength(); i++) {
@@ -202,23 +219,23 @@ public final class SaxXmlWriter {
                 String attrQName = attribute.getNodeName();
                 String attrLocal = safeLocal(attribute.getLocalName(), attrQName);
                 if (XMLConstants.XMLNS_ATTRIBUTE_NS_URI.equals(attrNamespace)) {
-                    String prefix =
-                            XMLConstants.XMLNS_ATTRIBUTE.equals(attrQName)
-                                    ? ""
-                                    : attrLocal;
+                    String prefix = XMLConstants.XMLNS_ATTRIBUTE.equals(attrQName) ? "" : attrLocal;
                     handler.startPrefixMapping(prefix, attribute.getNodeValue());
                     startedPrefixes.add(prefix);
                 } else {
+                    String attrPrefix = prefixOf(attrQName);
+                    if (!attrNamespace.isBlank()
+                            && !attrPrefix.isBlank()
+                            && !startedPrefixes.contains(attrPrefix)) {
+                        handler.startPrefixMapping(attrPrefix, attrNamespace);
+                        startedPrefixes.add(attrPrefix);
+                    }
                     attributes.addAttribute(
                             attrNamespace, attrLocal, attrQName, "CDATA", attribute.getNodeValue());
                 }
             }
         }
         elementPrefixMappings.push(startedPrefixes);
-
-        String namespaceUri = safeNamespace(node.getNamespaceURI());
-        String qName = node.getNodeName();
-        String localName = safeLocal(node.getLocalName(), qName);
         handler.startElement(namespaceUri, localName, qName, attributes);
 
         Node child = node.getFirstChild();
@@ -264,7 +281,14 @@ public final class SaxXmlWriter {
             return localName;
         }
         int separator = qName.indexOf(':');
-        return separator >= 0 && separator + 1 < qName.length() ? qName.substring(separator + 1) : qName;
+        return separator >= 0 && separator + 1 < qName.length()
+                ? qName.substring(separator + 1)
+                : qName;
+    }
+
+    private String prefixOf(String qName) {
+        int separator = qName.indexOf(':');
+        return separator > 0 ? qName.substring(0, separator) : "";
     }
 
     private String escapeAttribute(String value) {

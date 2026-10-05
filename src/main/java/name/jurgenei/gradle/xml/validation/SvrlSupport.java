@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml.validation;
 
 import java.util.ArrayList;
@@ -16,8 +17,7 @@ public final class SvrlSupport {
 
     private static final String SVRL_NS = "http://purl.oclc.org/dsdl/svrl";
 
-    private SvrlSupport() {
-    }
+    private SvrlSupport() {}
 
     /**
      * Renders a normalized SVRL document from validation issues.
@@ -80,15 +80,21 @@ public final class SvrlSupport {
         factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
         factory.setXIncludeAware(false);
         factory.setExpandEntityReferences(false);
-        Document document = factory.newDocumentBuilder()
-            .parse(new java.io.ByteArrayInputStream(svrlXml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        Document document =
+                factory.newDocumentBuilder()
+                        .parse(
+                                new java.io.ByteArrayInputStream(
+                                        svrlXml.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
         NodeList asserts = document.getElementsByTagNameNS(SVRL_NS, "failed-assert");
         List<ValidationIssue> issues = new ArrayList<>();
         for (int i = 0; i < asserts.getLength(); i++) {
             Element failedAssert = (Element) asserts.item(i);
             String location = failedAssert.getAttribute("location");
             NodeList texts = failedAssert.getElementsByTagNameNS(SVRL_NS, "text");
-            String message = texts.getLength() > 0 ? texts.item(0).getTextContent() : "Schematron assertion failed";
+            String message =
+                    texts.getLength() > 0
+                            ? texts.item(0).getTextContent()
+                            : "Schematron assertion failed";
             issues.add(ValidationIssue.error(message, location));
         }
         return issues;
@@ -102,7 +108,8 @@ public final class SvrlSupport {
      * @param issues normalized validation findings
      * @return JUnit XML string
      */
-    public static String renderJunit(String suiteName, String testcaseName, List<ValidationIssue> issues) {
+    public static String renderJunit(
+            String suiteName, String testcaseName, List<ValidationIssue> issues) {
         try {
             SaxXmlWriter xml = SaxXmlWriter.createPretty();
             int failures = issues.size();

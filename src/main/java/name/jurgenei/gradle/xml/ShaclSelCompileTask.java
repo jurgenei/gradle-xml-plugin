@@ -205,14 +205,16 @@ public abstract class ShaclSelCompileTask extends DefaultTask {
         for (int i = 0; i < nodeShapes.getLength(); i++) {
             Element nodeShape = (Element) nodeShapes.item(i);
             String shapeRef = attribute(nodeShape, RDF_NS, "about");
-            String sourceType = localNameFromIri(firstChildResource(nodeShape, SH_NS, "targetClass"));
+            String sourceType =
+                    localNameFromIri(firstChildResource(nodeShape, SH_NS, "targetClass"));
             if (sourceType.isBlank()) {
                 continue;
             }
 
             for (Element propertyShape : propertyShapes(nodeShape)) {
                 String path = localNameFromIri(firstChildResource(propertyShape, SH_NS, "path"));
-                String targetType = localNameFromIri(firstChildResource(propertyShape, SH_NS, "class"));
+                String targetType =
+                        localNameFromIri(firstChildResource(propertyShape, SH_NS, "class"));
                 if (path.isBlank() || targetType.isBlank()) {
                     continue;
                 }
@@ -235,7 +237,8 @@ public abstract class ShaclSelCompileTask extends DefaultTask {
             if (!(propertyNode instanceof Element propertyElement)) {
                 continue;
             }
-            Element directPropertyShape = firstChildElement(propertyElement, SH_NS, "PropertyShape");
+            Element directPropertyShape =
+                    firstChildElement(propertyElement, SH_NS, "PropertyShape");
             if (directPropertyShape != null) {
                 result.add(directPropertyShape);
                 continue;
@@ -301,7 +304,8 @@ public abstract class ShaclSelCompileTask extends DefaultTask {
                                     SaxXmlWriter.attr(SEL_NS, "type", "sel:type", rule.path()),
                                     SaxXmlWriter.attr(SEL_NS, "group", "sel:group", "relations"),
                                     SaxXmlWriter.attr(SEL_NS, "copy", "sel:copy", "."),
-                                    SaxXmlWriter.attr(SEL_NS, "context", "sel:context", relationPath)),
+                                    SaxXmlWriter.attr(
+                                            SEL_NS, "context", "sel:context", relationPath)),
                             Map.of());
                     xml.text("SHACL relation " + rule.sourceType() + " -> " + rule.targetType());
                     xml.endElement(SCH_NS, "report", "sch:report");

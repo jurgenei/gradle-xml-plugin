@@ -57,9 +57,7 @@ final class SelStylesheetCompiler {
                     XSL_NS,
                     "output",
                     "xsl:output",
-                    List.of(
-                            SaxXmlWriter.attr("method", "xml"),
-                            SaxXmlWriter.attr("indent", "yes")),
+                    List.of(SaxXmlWriter.attr("method", "xml"), SaxXmlWriter.attr("indent", "yes")),
                     Map.of());
             xml.emptyElement(
                     XSL_NS,
@@ -89,9 +87,7 @@ final class SelStylesheetCompiler {
                     XSL_NS,
                     "param",
                     "xsl:param",
-                    List.of(
-                            SaxXmlWriter.attr("name", "n"),
-                            SaxXmlWriter.attr("as", "node()")),
+                    List.of(SaxXmlWriter.attr("name", "n"), SaxXmlWriter.attr("as", "node()")),
                     Map.of());
             xml.emptyElement(
                     XSL_NS,
@@ -100,7 +96,8 @@ final class SelStylesheetCompiler {
                     List.of(
                             SaxXmlWriter.attr(
                                     "select",
-                                    "replace(path($n), 'Q\\{http://jurgenei.name/canonical\\}', 'c:')")),
+                                    "replace(path($n), 'Q\\{http://jurgenei.name/canonical\\}',"
+                                            + " 'c:')")),
                     Map.of());
             xml.endElement(XSL_NS, "function", "xsl:function");
 
@@ -128,7 +125,11 @@ final class SelStylesheetCompiler {
             }
 
             xml.startElement(
-                    XSL_NS, "template", "xsl:template", List.of(SaxXmlWriter.attr("match", "/")), Map.of());
+                    XSL_NS,
+                    "template",
+                    "xsl:template",
+                    List.of(SaxXmlWriter.attr("match", "/")),
+                    Map.of());
             xml.comment(" Emit grouped SEL payloads into independent output files. ");
             for (String group : groups.keySet()) {
                 xml.startElement(

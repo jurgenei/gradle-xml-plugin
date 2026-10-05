@@ -81,7 +81,8 @@ public class ShaclSelExtractTaskIntegrationTest {
                 .withPluginClasspath()
                 .build();
 
-        File output = new File(testProjectDir.getRoot(), "build/out/shacl-sel/case/sel/relations.xml");
+        File output =
+                new File(testProjectDir.getRoot(), "build/out/shacl-sel/case/sel/relations.xml");
         String xml = read(output);
         assertTrue(output.exists());
         assertTrue(xml.contains("group=\"relations\""));
