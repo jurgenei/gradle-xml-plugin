@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import java.io.File;
@@ -375,10 +376,12 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         boolean hasExplicitInput = getInputFile().isPresent();
         boolean hasExplicitOutput = getOutputFile().isPresent();
         if (hasExplicitInput != hasExplicitOutput) {
-            throw new GradleException("Both inputFile and outputFile must be set together for single-file mode");
+            throw new GradleException(
+                    "Both inputFile and outputFile must be set together for single-file mode");
         }
 
-        Map<String, String> params = Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
+        Map<String, String> params =
+                Collections.unmodifiableMap(new HashMap<>(getParams().getOrElse(Map.of())));
 
         if (hasExplicitInput) {
             transformExplicit(params);
@@ -415,7 +418,9 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
 
         if (!failures.isEmpty()) {
-            throw new GradleException("Transformation failed for " + failures.size() + " input file(s)", failures.get(0));
+            throw new GradleException(
+                    "Transformation failed for " + failures.size() + " input file(s)",
+                    failures.get(0));
         }
     }
 
@@ -427,8 +432,7 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
 
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
-        if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp) {
+        if (outputFile.exists() && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -449,11 +453,27 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void runParallel(List<File> inputFiles, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, int workers, List<Exception> failures) {
-        try (ExecutorService executor = Executors.newFixedThreadPool(workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
+    private void runParallel(
+            List<File> inputFiles,
+            File outputRoot,
+            Map<Path, String> relativePaths,
+            Map<String, String> params,
+            int workers,
+            List<Exception> failures) {
+        try (ExecutorService executor =
+                Executors.newFixedThreadPool(
+                        workers, Thread.ofVirtual().name(getName() + "-vt-", 0).factory())) {
             List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
             for (File inputFile : inputFiles) {
-                futures.add(executor.submit(() -> transformOne(inputFile, outputRoot, relativePaths, params, failures)));
+                futures.add(
+                        executor.submit(
+                                () ->
+                                        transformOne(
+                                                inputFile,
+                                                outputRoot,
+                                                relativePaths,
+                                                params,
+                                                failures)));
             }
             for (java.util.concurrent.Future<?> future : futures) {
                 try {
@@ -473,12 +493,16 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         }
     }
 
-    private void transformOne(File inputFile, File outputRoot, Map<Path, String> relativePaths, Map<String, String> params, List<Exception> failures) {
+    private void transformOne(
+            File inputFile,
+            File outputRoot,
+            Map<Path, String> relativePaths,
+            Map<String, String> params,
+            List<Exception> failures) {
         File outputFile = outputFileFor(inputFile, outputRoot, relativePaths);
         long newestDependencyTimestamp = latestDependencyTimestamp(inputFile);
 
-        if (outputFile.exists()
-                && outputFile.lastModified() >= newestDependencyTimestamp) {
+        if (outputFile.exists() && outputFile.lastModified() >= newestDependencyTimestamp) {
             getLogger().lifecycle("[SKIP] {}", inputFile);
             return;
         }
@@ -541,12 +565,14 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
             normalized = "beautified";
         }
         if (!SUPPORTED_SEXPR_FORMATS.contains(normalized)) {
-            throw new GradleException("Unsupported xirFormat '" + configured
-                + "'. Supported values: compact, beautified");
+            throw new GradleException(
+                    "Unsupported xirFormat '"
+                            + configured
+                            + "'. Supported values: compact, beautified");
         }
         return "beautified".equals(normalized)
-            ? XirSerializer.OutputFormat.BEAUTIFIED
-            : XirSerializer.OutputFormat.COMPACT;
+                ? XirSerializer.OutputFormat.BEAUTIFIED
+                : XirSerializer.OutputFormat.COMPACT;
     }
 
     /**
@@ -558,8 +584,10 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
         String configured = getJsonMode().getOrElse("auto");
         String normalized = configured.trim().toLowerCase(Locale.ROOT);
         if (!SUPPORTED_JSON_MODES.contains(normalized)) {
-            throw new GradleException("Unsupported jsonMode '" + configured
-                + "'. Supported values: auto, native, canonical");
+            throw new GradleException(
+                    "Unsupported jsonMode '"
+                            + configured
+                            + "'. Supported values: auto, native, canonical");
         }
         return switch (normalized) {
             case "native" -> JsonMode.NATIVE;
@@ -644,17 +672,19 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     }
 
     private String normalizeAndValidateMethod(String configuredMethod) {
-        String normalized = configuredMethod == null ? "" : configuredMethod.trim().toLowerCase(Locale.ROOT);
+        String normalized =
+                configuredMethod == null ? "" : configuredMethod.trim().toLowerCase(Locale.ROOT);
         if ("txt".equals(normalized)) {
             normalized = "text";
         }
         if (!SUPPORTED_OUTPUT_METHODS.contains(normalized)) {
-            throw new GradleException("Unsupported outputMethod '" + configuredMethod
-                + "'. Supported values: xml, json, text");
+            throw new GradleException(
+                    "Unsupported outputMethod '"
+                            + configuredMethod
+                            + "'. Supported values: xml, json, text");
         }
         return normalized;
     }
-
 
     private File outputFileFor(File inputFile, File outputRoot, Map<Path, String> relativePaths) {
         Path inputPath = inputFile.toPath().toAbsolutePath().normalize();
@@ -662,28 +692,40 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
 
         String relative = relativePaths.get(inputPath);
         if (relative == null) {
-            relative = inputPath.startsWith(projectPath)
-                ? projectPath.relativize(inputPath).toString()
-                : inputFile.getName();
+            relative =
+                    inputPath.startsWith(projectPath)
+                            ? projectPath.relativize(inputPath).toString()
+                            : inputFile.getName();
         }
 
         int extensionIndex = relative.lastIndexOf('.');
         String extension = getOutputExtension().get();
-        String replaced = extensionIndex >= 0 ? relative.substring(0, extensionIndex) + extension : relative + extension;
+        String replaced =
+                extensionIndex >= 0
+                        ? relative.substring(0, extensionIndex) + extension
+                        : relative + extension;
         return new File(outputRoot, replaced);
     }
 
     private Map<Path, String> resolveRelativePaths() {
         Map<Path, String> relativePaths = new HashMap<>();
-        getSource().visit(details -> {
-            if (details.isDirectory()) {
-                return;
-            }
-            Path absolutePath = details.getFile().toPath().toAbsolutePath().normalize();
-            String relativePath = details.getRelativePath().getPathString();
-            relativePaths.merge(absolutePath, relativePath,
-                (existing, candidate) -> existing.length() <= candidate.length() ? existing : candidate);
-        });
+        getSource()
+                .visit(
+                        details -> {
+                            if (details.isDirectory()) {
+                                return;
+                            }
+                            Path absolutePath =
+                                    details.getFile().toPath().toAbsolutePath().normalize();
+                            String relativePath = details.getRelativePath().getPathString();
+                            relativePaths.merge(
+                                    absolutePath,
+                                    relativePath,
+                                    (existing, candidate) ->
+                                            existing.length() <= candidate.length()
+                                                    ? existing
+                                                    : candidate);
+                        });
         return relativePaths;
     }
 
@@ -695,5 +737,6 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      * @param params immutable task parameter view
      * @throws Exception any transform exception raised by the engine implementation
      */
-    protected abstract void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception;
+    protected abstract void transform(File inputFile, File outputFile, Map<String, String> params)
+            throws Exception;
 }

@@ -1,3 +1,4 @@
+/* (C)2026 */
 package name.jurgenei.gradle.xml;
 
 import static org.junit.Assert.assertEquals;
@@ -19,8 +20,7 @@ import org.junit.rules.TemporaryFolder;
  */
 public class XQueryTaskIntegrationTest {
 
-    @Rule
-    public final TemporaryFolder testProjectDir = new TemporaryFolder();
+    @Rule public final TemporaryFolder testProjectDir = new TemporaryFolder();
 
     /**
      * Verifies external variable passing for a single source file transformation.
@@ -30,7 +30,9 @@ public class XQueryTaskIntegrationTest {
         write("settings.gradle", """
             rootProject.name = 'xquery-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -40,21 +42,26 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xml/input.xml", """
+        write(
+                "src/main/xml/input.xml",
+                """
             <root><value>Gradle</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             declare variable $prefix external;
             <result>{ $prefix }{ /root/value/text() }</result>
             """);
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
 
@@ -68,10 +75,14 @@ public class XQueryTaskIntegrationTest {
      */
     @Test
     public void infersJsonOutputMethodFromExtension() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-json-method-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -81,20 +92,25 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xml/input.xml", """
+        write(
+                "src/main/xml/input.xml",
+                """
             <root><value>Gradle</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             map { 'value': data(/root/value) }
             """);
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
 
@@ -105,10 +121,14 @@ public class XQueryTaskIntegrationTest {
 
     @Test
     public void autoModeWritesHierarchicalJsonForXmlNodeResults() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-json-auto-hierarchical-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -122,17 +142,20 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book><title>XML</title></book>");
         write("src/main/xquery/main.xq", ".");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.json"));
-        assertTrue(output.contains("\"type\":\"element\"") || output.contains("\"type\" : \"element\""));
+        assertTrue(
+                output.contains("\"type\":\"element\"")
+                        || output.contains("\"type\" : \"element\""));
         assertTrue(output.contains("\"name\":\"book\"") || output.contains("\"name\" : \"book\""));
         assertTrue(!output.contains("\"attributes\" : { }"));
         assertTrue(!output.contains("\"attributes\":{}"));
@@ -140,10 +163,14 @@ public class XQueryTaskIntegrationTest {
 
     @Test
     public void nativeModeWritesHierarchicalJsonForXmlNodeResults() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-json-native-hierarchical-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -157,17 +184,20 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book><title>XML</title></book>");
         write("src/main/xquery/main.xq", ".");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.json"));
-        assertTrue(output.contains("\"type\":\"element\"") || output.contains("\"type\" : \"element\""));
+        assertTrue(
+                output.contains("\"type\":\"element\"")
+                        || output.contains("\"type\" : \"element\""));
         assertTrue(output.contains("\"name\":\"book\"") || output.contains("\"name\" : \"book\""));
         assertTrue(!output.contains("\"attributes\" : { }"));
         assertTrue(!output.contains("\"attributes\":{}"));
@@ -178,10 +208,14 @@ public class XQueryTaskIntegrationTest {
      */
     @Test
     public void usesExplicitTextOutputMethod() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-text-method-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -192,20 +226,25 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xml/input.xml", """
+        write(
+                "src/main/xml/input.xml",
+                """
             <root><value>Gradle</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             concat('VALUE=', data(/root/value))
             """);
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
 
@@ -219,10 +258,14 @@ public class XQueryTaskIntegrationTest {
      */
     @Test
     public void transformsSingleFileWithExplicitInputOutput() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-explicit-io-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -231,20 +274,25 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xml/a.xml", """
+        write(
+                "src/main/xml/a.xml",
+                """
             <root><value>Gradle</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             <result>{ /root/value/text() }</result>
             """);
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
 
@@ -258,10 +306,14 @@ public class XQueryTaskIntegrationTest {
      */
     @Test
     public void transformsFileTreeWithPatternsAndWorkers() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-tree-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -278,21 +330,27 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/a.xml", """
             <root><value>A</value></root>
             """);
-        write("src/main/xml/foo/b.xml", """
+        write(
+                "src/main/xml/foo/b.xml",
+                """
             <root><value>B</value></root>
             """);
-        write("src/main/xml/skip.xml", """
+        write(
+                "src/main/xml/skip.xml",
+                """
             <root><value>SKIP</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             <result>{ /root/value/text() }</result>
             """);
 
         newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build();
+                .withProjectDir(testProjectDir.getRoot())
+                .withPluginClasspath()
+                .withArguments("runXQuery")
+                .build();
 
         File outputA = new File(testProjectDir.getRoot(), "build/out/xquery/a.out.xml");
         File outputB = new File(testProjectDir.getRoot(), "build/out/xquery/foo/b.out.xml");
@@ -310,10 +368,14 @@ public class XQueryTaskIntegrationTest {
      */
     @Test
     public void skipsTransformationWhenOutputIsNewerThanSourceAndQuery() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-skip-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -322,18 +384,23 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xml/input.xml", """
+        write(
+                "src/main/xml/input.xml",
+                """
             <root><value>Gradle</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             <result>{ /root/value/text() }</result>
             """);
 
-        BuildResult firstRun = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery", "--rerun-tasks")
-            .build();
+        BuildResult firstRun =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery", "--rerun-tasks")
+                        .build();
 
         File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
         assertTrue(output.exists());
@@ -342,11 +409,12 @@ public class XQueryTaskIntegrationTest {
         long futureTimestamp = System.currentTimeMillis() + 60_000;
         assertTrue(output.setLastModified(futureTimestamp));
 
-        BuildResult secondRun = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery", "--rerun-tasks")
-            .build();
+        BuildResult secondRun =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery", "--rerun-tasks")
+                        .build();
 
         assertTrue(secondRun.getOutput().contains("[SKIP]"));
     }
@@ -356,10 +424,14 @@ public class XQueryTaskIntegrationTest {
      */
     @Test
     public void skipsTransformationWhenOutputIsNewerEvenIfParamsChange() throws IOException {
-        write("settings.gradle", """
+        write(
+                "settings.gradle",
+                """
             rootProject.name = 'xquery-param-fingerprint-test'
             """);
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -369,19 +441,24 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        write("src/main/xml/input.xml", """
+        write(
+                "src/main/xml/input.xml",
+                """
             <root><value>Gradle</value></root>
             """);
-        write("src/main/xquery/main.xq", """
+        write(
+                "src/main/xquery/main.xq",
+                """
             declare variable $prefix external;
             <result>{ $prefix }{ /root/value/text() }</result>
             """);
 
-        BuildResult firstRun = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery", "--rerun-tasks")
-            .build();
+        BuildResult firstRun =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery", "--rerun-tasks")
+                        .build();
 
         File output = new File(testProjectDir.getRoot(), "build/out/xquery/input.xml");
         assertTrue(output.exists());
@@ -391,7 +468,9 @@ public class XQueryTaskIntegrationTest {
         long futureTimestamp = System.currentTimeMillis() + 60_000;
         assertTrue(output.setLastModified(futureTimestamp));
 
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -401,11 +480,12 @@ public class XQueryTaskIntegrationTest {
             }
             """);
 
-        BuildResult secondRun = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery", "--rerun-tasks")
-            .build();
+        BuildResult secondRun =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery", "--rerun-tasks")
+                        .build();
 
         assertTrue(secondRun.getOutput().contains("[SKIP]"));
         assertTrue(read(output).contains("<result>Hello Gradle</result>"));
@@ -414,7 +494,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void transformsXirInputWithXQuery() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-xir-input-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -425,13 +507,14 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xir/input.xir", "(book { id \"b1\" } (title \"XML\"))");
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xml"));
@@ -441,7 +524,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void resolvesXirViaDocFunction() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-doc-xir-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -451,18 +536,23 @@ public class XQueryTaskIntegrationTest {
             """);
         write("src/main/xml/input.xml", "<root/>");
         write("src/main/xir/lookup.xir", "(lookup (value \"from-xir\"))");
-        String lookupUri = new File(testProjectDir.getRoot(), "src/main/xir/lookup.xir").toURI().toString();
-        write("src/main/xquery/main.xq", """
+        String lookupUri =
+                new File(testProjectDir.getRoot(), "src/main/xir/lookup.xir").toURI().toString();
+        write(
+                "src/main/xquery/main.xq",
+                """
             <result>{ doc("%s")/lookup/value/text() }</result>
-            """.formatted(lookupUri));
+            """
+                        .formatted(lookupUri));
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xml"));
@@ -472,7 +562,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void resolvesXirViaCollectionFunction() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-collection-xir-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -483,20 +575,25 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<root/>");
         write("src/main/xir/a.xir", "(item (name \"A\"))");
         write("src/main/xir/b.xir", "(item (name \"B\"))");
-        String collectionUri = new File(testProjectDir.getRoot(), "src/main/xir/").toURI().toString()
-            + "?select=*.xir;recurse=no";
-        write("src/main/xquery/main.xq", """
+        String collectionUri =
+                new File(testProjectDir.getRoot(), "src/main/xir/").toURI().toString()
+                        + "?select=*.xir;recurse=no";
+        write(
+                "src/main/xquery/main.xq",
+                """
             let $docs := collection("%s")/item
             return <result count="{count($docs)}">{ for $d in $docs return <name>{$d/name/text()}</name> }</result>
-            """.formatted(collectionUri));
+            """
+                        .formatted(collectionUri));
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xml"));
@@ -508,7 +605,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void writesXirOutputWithXQuery() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-xir-output-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -518,15 +617,18 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
-        write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
+        write(
+                "src/main/xquery/main.xq",
+                "<book id='b1'><title>{/book/title/text()}</title></book>");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xir"));
@@ -538,7 +640,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void writesBeautifiedXirOutputWithXQuery() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-xir-output-beautified-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -549,15 +653,18 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
-        write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
+        write(
+                "src/main/xquery/main.xq",
+                "<book id='b1'><title>{/book/title/text()}</title></book>");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xir"));
@@ -569,7 +676,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void transformsCanonicalJsonInputWithXQuery() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-json-input-canonical-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -578,7 +687,9 @@ public class XQueryTaskIntegrationTest {
               jsonMode.set('canonical')
             }
             """);
-        write("src/main/json/input.json", """
+        write(
+                "src/main/json/input.json",
+                """
             {
               "type": "element",
               "name": "book",
@@ -597,13 +708,14 @@ public class XQueryTaskIntegrationTest {
             """);
         write("src/main/xquery/main.xq", "<result>{/book/title/text()}</result>");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.xml"));
@@ -613,7 +725,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void writesCanonicalJsonOutputWithXQuery() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-json-output-canonical-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('runXQuery', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -625,15 +739,18 @@ public class XQueryTaskIntegrationTest {
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
-        write("src/main/xquery/main.xq", "<book id='b1'><title>{/book/title/text()}</title></book>");
+        write(
+                "src/main/xquery/main.xq",
+                "<book id='b1'><title>{/book/title/text()}</title></book>");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXQuery")
-            .build()
-            .task(":runXQuery")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("runXQuery")
+                        .build()
+                        .task(":runXQuery")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xquery/input.json"));
@@ -647,7 +764,9 @@ public class XQueryTaskIntegrationTest {
     @Test
     public void roundtripsXmlThroughCanonicalJsonWithXQuery() throws IOException {
         write("settings.gradle", "rootProject.name = 'xquery-json-roundtrip-canonical-test'");
-        write("build.gradle", """
+        write(
+                "build.gradle",
+                """
             plugins { id 'name.jurgenei.gradle.xml' }
             tasks.register('xmlToJson', name.jurgenei.gradle.xml.XQueryTask) {
               query 'src/main/xquery/main.xq'
@@ -667,13 +786,14 @@ public class XQueryTaskIntegrationTest {
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");
         write("src/main/xquery/main.xq", ".");
 
-        TaskOutcome outcome = newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("jsonToXml")
-            .build()
-            .task(":jsonToXml")
-            .getOutcome();
+        TaskOutcome outcome =
+                newGradleRunner()
+                        .withProjectDir(testProjectDir.getRoot())
+                        .withPluginClasspath()
+                        .withArguments("jsonToXml")
+                        .build()
+                        .task(":jsonToXml")
+                        .getOutcome();
 
         assertEquals(TaskOutcome.SUCCESS, outcome);
         String output = read(new File(testProjectDir.getRoot(), "build/out/xml/result.xml"));
