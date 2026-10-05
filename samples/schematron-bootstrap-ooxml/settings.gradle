@@ -1,7 +1,17 @@
 pluginManagement {
     includeBuild('../..')
-    includeBuild('../../../gradle-ooxml-plugin')
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        id('name.jurgenei.gradle.ooxml') version '0.1.10'
+    }
+
+    def ooxmlBuild = file('../../../gradle-ooxml-plugin')
+    if (ooxmlBuild.exists()) {
+        includeBuild('../../../gradle-ooxml-plugin')
+    }
 }
 
 rootProject.name = 'schematron-bootstrap-ooxml'
-
