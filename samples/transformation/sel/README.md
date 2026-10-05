@@ -25,6 +25,7 @@ Comprehensive Schematron SEL sample using multiple canonical input files.
 
 ```bash
 ./gradlew -p samples/transformation/sel verifySample
+./gradlew -p samples/transformation/sel runSelfTest
 ./gradlew -p samples/transformation/sel extractSelXir
 ./gradlew -p samples/transformation/sel extractSelPreset
 ```

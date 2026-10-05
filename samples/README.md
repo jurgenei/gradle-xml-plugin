@@ -46,10 +46,21 @@ From repository root:
 ./gradlew -p samples/schematron-bootstrap-ooxml verifySample
 ```
 
+Run module self-tests:
+
+```bash
+./gradlew -p samples/transformation/xslt runSelfTest
+./gradlew -p samples/transformation/xquery runSelfTest
+./gradlew -p samples/validation/schematron runSelfTest
+./gradlew -p samples/validation/xsd runSelfTest
+./gradlew -p samples/transformation/sel runSelfTest
+./gradlew -p samples/schematron-bootstrap-ooxml runSelfTest
+```
+
 ## Smoke-test samples
 
-Each sample provides a tiny `verifySample` task that runs sample task(s)
-and asserts expected output files exist.
+Each sample provides a `verifySample` task. XSLT, XQuery, Schematron, XSD, SEL, and
+Schematron bootstrap samples route `verifySample` through `runSelfTest` (XSpec).
 
 ```bash
 ./gradlew -p samples/transformation/xslt verifySample

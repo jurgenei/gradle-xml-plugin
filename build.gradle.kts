@@ -43,13 +43,14 @@ extensions.configure<GradlePluginDevelopmentExtension> {
             id = "name.jurgenei.gradle.xml"
             implementationClass = "name.jurgenei.gradle.xml.XmlTransformPlugin"
             displayName = "XML Transform & Validate Plugin"
-            description = "Saxon based XSLT, XQuery, Schematron and XSD tasks with SVRL/JUnit reporting"
+            description = "Saxon based XSLT, XQuery, Schematron, XSD, and XSpec tasks with SVRL/JUnit reporting"
             tags.set(
                 listOf(
                     "xml",
                     "gradle-plugin",
                     "xslt",
                     "xquery",
+                    "xspec",
                     "schematron",
                     "xsd",
                     "saxon",
@@ -75,7 +76,7 @@ extensions.configure<PublishingExtension> {
     publications.withType<MavenPublication>().configureEach {
         pom {
             name.set("Gradle XML Plugin")
-            description.set("Gradle plugin for XSLT, XQuery, Schematron, and XSD validation")
+            description.set("Gradle plugin for XSLT, XQuery, Schematron, XSD, and XSpec")
             url.set("https://github.com/jurgenei/gradle-xml-plugin.git")
 
             licenses {
@@ -163,6 +164,7 @@ dependencies {
     }
 
     add("implementation", "net.sf.saxon:Saxon-HE:13.0")
+    add("implementation", "io.xspec:xspec:3.2.2")
     add("implementation", "name.jurgenei:xir-sax:0.1.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.3")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
@@ -241,20 +243,55 @@ tasks.register("allSecurityChecks") {
 
 tasks.register<Exec>("verifyXsltXirSample") {
     group = "verification"
-    description = "Runs XSLT XIR identity scenario for consolidated transformation/xslt sample."
+    description = "Runs XSLT sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/transformation/xslt", "runXsltIdentityXir")
+    commandLine("./gradlew", "-p", "samples/transformation/xslt", "runSelfTest")
 }
 
 tasks.register<Exec>("verifyXqueryXirSample") {
     group = "verification"
-    description = "Runs XQuery XIR identity scenario for consolidated transformation/xquery sample."
+    description = "Runs XQuery sample self-tests."
     workingDir = projectDir
-    commandLine("./gradlew", "-p", "samples/transformation/xquery", "runXQueryIdentity")
+    commandLine("./gradlew", "-p", "samples/transformation/xquery", "runSelfTest")
+}
+
+tasks.register<Exec>("verifySchematronSample") {
+    group = "verification"
+    description = "Runs Schematron sample self-tests."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/validation/schematron", "runSelfTest")
+}
+
+tasks.register<Exec>("verifyXsdSample") {
+    group = "verification"
+    description = "Runs XSD sample self-tests."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/validation/xsd", "runSelfTest")
+}
+
+tasks.register<Exec>("verifySelSample") {
+    group = "verification"
+    description = "Runs SEL sample self-tests."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/transformation/sel", "runSelfTest")
+}
+
+tasks.register<Exec>("verifyBootstrapSample") {
+    group = "verification"
+    description = "Runs Schematron bootstrap sample self-tests."
+    workingDir = projectDir
+    commandLine("./gradlew", "-p", "samples/schematron-bootstrap-ooxml", "runSelfTest")
 }
 
 tasks.register("verifyXirSample") {
     group = "verification"
-    description = "Runs XIR sample smoke tests."
-    dependsOn("verifyXsltXirSample", "verifyXqueryXirSample")
+    description = "Runs all sample self-tests."
+    dependsOn(
+        "verifyXsltXirSample",
+        "verifyXqueryXirSample",
+        "verifySchematronSample",
+        "verifyXsdSample",
+        "verifySelSample",
+        "verifyBootstrapSample"
+    )
 }

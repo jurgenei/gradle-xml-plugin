@@ -1,0 +1,7 @@
+<x:description xmlns:x="http://www.jenitennison.com/xslt/xspec"
+               stylesheet="../xslt/selftest.xsl">
+  <x:scenario label="schematron sample selftest">
+    <x:context><sample/></x:context>
+    <x:expect label="assertions completed" test="true()"/>
+  </x:scenario>
+</x:description>

@@ -29,7 +29,7 @@ Define and execute XPath/XSLT/XQuery transformations and XML validations as Grad
 - Optional parallel processing using **virtual threads**
 - SVRL and optional JUnit XML reporting for validation
 
-The plugin contributes four task types:
+The plugin contributes task types:
 
 - `name.jurgenei.gradle.xml.XsltTask` — XSLT 3.0 transformations
 - `name.jurgenei.gradle.xml.XQueryTask` — XQuery transformations
@@ -38,6 +38,8 @@ The plugin contributes four task types:
 - `name.jurgenei.gradle.xml.SchematronBootstrapTask` — bootstrap Schematron from XSD
 - `name.jurgenei.gradle.xml.SchematronSelCompileTask` — compile `sel:*` annotated Schematron into grouped SEL stylesheet skeleton
 - `name.jurgenei.gradle.xml.SchematronSelExtractTask` — execute runtime SEL extraction and emit grouped SEL XML
+- `name.jurgenei.gradle.xml.XSpecCompileTask` — compile XSLT XSpec (`.xspec`) into executable runner stylesheet
+- `name.jurgenei.gradle.xml.XSpecTask` — run XSpec (from `.xspec` or precompiled runner) and emit XML + JUnit reports
 
 Both share a near-orthogonal API for unified Gradle-style configuration.
 
@@ -56,6 +58,7 @@ Both share a near-orthogonal API for unified Gradle-style configuration.
 - **Security automation** — CodeQL, OWASP Dependency-Check, SpotBugs + FindSecBugs, Dependabot
 - **XIR I/O** — `.xir` input and output routing for XSLT/XQuery tasks
 - **Canonical JSON I/O** — optional `.json` input/output routing with reversible element mapping
+- **Native XSpec support (XSLT v1)** — two-phase compile/run with XML + JUnit reporting
 
 ## XIR Support
 
@@ -546,6 +549,45 @@ Phase behavior for SEL compile/extract tasks:
 - `#ALL`: all SEL-annotated rules are compiled.
 - explicit phase id: only rules whose owning pattern is activated via `<sch:phase><sch:active pattern='...'/></sch:phase>`.
 
+## XSpec Compile (Phase 2)
+
+`XSpecCompileTask` transpiles XSLT XSpec files (`.xspec`) into executable runner stylesheets.
+
+```groovy
+tasks.register('compileXSpec', name.jurgenei.gradle.xml.XSpecCompileTask) {
+  source(fileTree('src/main/xspec') { include '**/*.xspec' })
+  outputDir.set(layout.buildDirectory.dir('generated/xspec'))
+  outputExtension.set('.xspec.xsl') // default
+  failOnError.set(true)
+}
+```
+
+## XSpec Run (Phase 3)
+
+`XSpecTask` executes XSpec and emits XML + JUnit reports.
+
+v1 scope is **XSLT XSpec only**.
+
+Runtime inputs:
+
+- `.xspec` (auto-compiles internally, then runs), or
+- precompiled runner stylesheet (`.xsl`) from `XSpecCompileTask`.
+
+```groovy
+tasks.register('runXSpec', name.jurgenei.gradle.xml.XSpecTask) {
+  // Either source .xspec files (auto-compile)...
+  source(fileTree('src/main/xspec') { include '**/*.xspec' })
+  outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+
+  // ...or explicit precompiled runner input:
+  // input 'build/generated/xspec/sample.xspec.xsl'
+  // output 'build/reports/xspec/sample-report.xml'
+
+  junitOutputDir.set(layout.buildDirectory.dir('reports/xspec/junit'))
+  failOnError.set(true)
+}
+```
+
 ## Run tests
 
 ```bash
@@ -608,6 +650,10 @@ AbstractXmlTransformTask (shared base)
 AbstractXmlValidationTask (shared base)
   ├── SchematronTask (Schematron validation)
   └── XsdTask (XSD validation)
+
+AbstractXmlTransformTask (XSpec additions)
+  ├── XSpecCompileTask (compile .xspec to runner stylesheet)
+  └── XSpecTask (execute XSpec runner, emit XML + JUnit)
 ```
 
 ### Execution Flow
@@ -656,6 +702,19 @@ JUnit 4 with Gradle TestKit for functional integration testing:
 ./gradlew test --tests '*SchematronBootstrapTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelCompileTaskIntegrationTest'
 ./gradlew test --tests '*SchematronSelExtractTaskIntegrationTest'
+./gradlew test --tests '*XSpecCompileTaskIntegrationTest'
+./gradlew test --tests '*XSpecTaskIntegrationTest'
+```
+
+Sample module self-tests (XSpec-driven):
+
+```bash
+./gradlew -p samples/transformation/xslt runSelfTest
+./gradlew -p samples/transformation/xquery runSelfTest
+./gradlew -p samples/validation/schematron runSelfTest
+./gradlew -p samples/validation/xsd runSelfTest
+./gradlew -p samples/transformation/sel runSelfTest
+./gradlew -p samples/schematron-bootstrap-ooxml runSelfTest
 ```
 
 ### Code Style

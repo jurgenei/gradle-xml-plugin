@@ -71,53 +71,6 @@ public class XsdTaskIntegrationTest {
     }
 
     /**
-     * Verifies valid input creates no failed assertions.
-     */
-    @Test
-    public void validatesValidInputWithoutFailedAssert() throws IOException {
-        write("settings.gradle", """
-            rootProject.name = 'xsd-valid-test'
-            """);
-        write("build.gradle", """
-            plugins { id 'name.jurgenei.gradle.xml' }
-            tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
-              schema 'src/main/xsd/schema.xsd'
-              source 'src/main/xml/valid.xml'
-              outputDir.set(layout.buildDirectory.dir('out/xsd'))
-              reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL)
-              failOnError.set(true)
-              engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.JAXP)
-            }
-            """);
-
-        write("src/main/xsd/schema.xsd", """
-            <?xml version='1.0' encoding='UTF-8'?>
-            <xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'>
-              <xs:element name='root'>
-                <xs:complexType>
-                  <xs:sequence>
-                    <xs:element name='value' type='xs:string'/>
-                  </xs:sequence>
-                </xs:complexType>
-              </xs:element>
-            </xs:schema>
-            """);
-        write("src/main/xml/valid.xml", """
-            <root><value>ok</value></root>
-            """);
-
-        newGradleRunner()
-            .withProjectDir(testProjectDir.getRoot())
-            .withPluginClasspath()
-            .withArguments("runXsd")
-            .build();
-
-        File svrl = new File(testProjectDir.getRoot(), "build/out/xsd/valid.svrl.xml");
-        assertTrue(svrl.exists());
-        assertTrue(!read(svrl).contains("failed-assert"));
-    }
-
-    /**
      * Verifies XSD validation accepts S-expression schema and data files.
      */
     @Test

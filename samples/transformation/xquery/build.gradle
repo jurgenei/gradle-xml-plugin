@@ -27,34 +27,13 @@ tasks.register('runXQueryIdentity', name.jurgenei.gradle.xml.XQueryTask) {
     xirFormat.set('beautified')
 }
 
-tasks.register('verifySample') {
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
     dependsOn 'runXQuery', 'runXQueryXir', 'runXQueryIdentity'
-    doLast {
-        File xmlOutput = file('build/out/xquery/input.xml')
-        File xirOutput = file('build/out/xquery-xir/input.xir')
-        File identityOutput = file('build/out/xquery-identity/identity-input.xir')
-        if (!xmlOutput.exists()) {
-            throw new GradleException("Expected output file does not exist: ${xmlOutput}")
-        }
-        if (!xirOutput.exists()) {
-            throw new GradleException("Expected output file does not exist: ${xirOutput}")
-        }
-        if (!identityOutput.exists()) {
-            throw new GradleException("Expected output file does not exist: ${identityOutput}")
-        }
-        String text = xirOutput.getText('UTF-8')
-        if (!text.contains('(result') || !text.contains('"Hello "') || !text.contains('"Gradle"')) {
-            throw new GradleException("Unexpected XIR output: ${xirOutput}")
-        }
-        String identityText = identityOutput.getText('UTF-8')
-        if (!identityText.contains('{xmlns "http://www.w3.org/1998/Math/MathML"}')) {
-            throw new GradleException("Expected namespace block in output: ${identityOutput}")
-        }
-        if (!identityText.contains('(! "this is a comment")')) {
-            throw new GradleException("Expected comment node in output: ${identityOutput}")
-        }
-        if (!identityText.contains('(?xml-stylesheet {type "text/xsl" href "style.xsl"})')) {
-            throw new GradleException("Expected processing instruction node in output: ${identityOutput}")
-        }
-    }
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
 }

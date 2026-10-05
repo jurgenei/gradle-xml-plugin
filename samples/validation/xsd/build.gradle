@@ -20,24 +20,13 @@ tasks.register('runXsd', name.jurgenei.gradle.xml.XsdTask) {
     failOnError.set(false)
 }
 
-tasks.register('verifySample') {
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
     dependsOn 'runSXsd', 'runXsd'
-    doLast {
-        List<File> expected = [
-            file('build/reports/xsd-xir/invalid.svrl.xml'),
-            file('build/reports/xsd-xml/valid.svrl.xml'),
-            file('build/reports/xsd-xml/invalid.svrl.xml'),
-            file('build/reports/xml-validation/junit/valid.junit.xml'),
-            file('build/reports/xml-validation/junit/invalid.junit.xml')
-        ]
-        List<File> missing = expected.findAll { !it.exists() }
-        if (!missing.isEmpty()) {
-            throw new GradleException("Missing expected outputs:\n - ${missing.join('\n - ')}")
-        }
-        String xirText = file('build/reports/xsd-xir/invalid.svrl.xml').getText('UTF-8')
-        String xmlText = file('build/reports/xsd-xml/invalid.svrl.xml').getText('UTF-8')
-        if (!xirText.contains('failed-assert') || !xmlText.contains('failed-assert')) {
-            throw new GradleException("Expected failed-assert in invalid SVRL outputs")
-        }
-    }
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
 }

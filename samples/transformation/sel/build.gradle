@@ -66,81 +66,13 @@ tasks.register('extractSelXir', name.jurgenei.gradle.xml.SchematronSelExtractTas
     failOnError.set(true)
 }
 
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
+    dependsOn 'extractSel', 'extractSelXir', 'extractSelPreset', 'extractTerminologySel'
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
 tasks.register('verifySample') {
-    dependsOn 'extractSel', 'extractSelXir', 'extractSelPreset'
-    doLast {
-        List<File> expected = [
-            file('build/generated/sel/sel.xsl'),
-            file('build/generated/sel/sel-preset.xsl'),
-            file('build/out/sel/canonical-order/sel/knowledge.xml'),
-            file('build/out/sel/canonical-order/sel/architecture.xml'),
-            file('build/out/sel/canonical-order/sel/terminology.xml'),
-            file('build/out/sel/canonical-integration/sel/knowledge.xml'),
-            file('build/out/sel/canonical-integration/sel/architecture.xml'),
-            file('build/out/sel/canonical-integration/sel/terminology.xml'),
-            file('build/out/sel/canonical-glossary/sel/knowledge.xml'),
-            file('build/out/sel/canonical-glossary/sel/architecture.xml'),
-            file('build/out/sel/canonical-glossary/sel/terminology.xml'),
-            file('build/out/sel-xir/canonical-order/sel/knowledge.xir'),
-            file('build/out/sel-xir/canonical-order/sel/architecture.xir'),
-            file('build/out/sel-xir/canonical-order/sel/terminology.xir'),
-            file('build/out/sel-preset/canonical-order/sel/knowledge.xml'),
-            file('build/out/sel-preset/canonical-integration/sel/architecture.xml'),
-            file('build/out/sel-preset/canonical-glossary/sel/terminology.xml')
-        ]
-
-        List<File> missing = expected.findAll { !it.exists() }
-        if (!missing.isEmpty()) {
-            throw new GradleException("Missing expected sample outputs:\n - ${missing.join('\n - ')}")
-        }
-
-        String orderKnowledge = file('build/out/sel/canonical-order/sel/knowledge.xml').text
-        String integrationArchitecture = file('build/out/sel/canonical-integration/sel/architecture.xml').text
-        String glossaryTerminology = file('build/out/sel/canonical-glossary/sel/terminology.xml').text
-
-        assert orderKnowledge.contains('sel:Observation')
-        assert orderKnowledge.contains('type="paragraph"')
-        assert orderKnowledge.contains('<Paragraph') || orderKnowledge.contains('<c:Paragraph')
-        assert orderKnowledge.contains('document="canonical-order.xml"')
-
-        assert integrationArchitecture.contains('type="relationship-candidate"')
-        assert integrationArchitecture.contains('<Connector') || integrationArchitecture.contains('<c:Connector')
-        assert integrationArchitecture.contains('source="sap"')
-        assert integrationArchitecture.contains('target="crm"')
-
-        assert glossaryTerminology.contains('type="term"')
-        assert glossaryTerminology.contains('<Term') || glossaryTerminology.contains('<c:Term')
-        assert glossaryTerminology.contains('name="Master Data"')
-
-        String xirKnowledge = file('build/out/sel-xir/canonical-order/sel/knowledge.xir').text
-        String xirArchitecture = file('build/out/sel-xir/canonical-order/sel/architecture.xir').text
-        String xirTerminology = file('build/out/sel-xir/canonical-order/sel/terminology.xir').text
-        String presetKnowledge = file('build/out/sel-preset/canonical-order/sel/knowledge.xml').text
-        String presetArchitecture = file('build/out/sel-preset/canonical-integration/sel/architecture.xml').text
-        String presetTerminology = file('build/out/sel-preset/canonical-glossary/sel/terminology.xml').text
-        assert xirKnowledge.contains('sel:Observation')
-        assert xirKnowledge.contains('Order Summary')
-        assert xirKnowledge.contains('xmlns:sel "http://jurgenei.name/sel"')
-        assert xirKnowledge.contains('xmlns:c "http://jurgenei.name/canonical"')
-        assert !xirKnowledge.contains('<sel:Observation')
-        assert xirArchitecture.contains('path "/c:Document[1]/c:Body[1]/c:Diagram[1]/c:Connector[1]"')
-        assert !xirArchitecture.contains('Q{http://jurgenei.name/canonical}')
-        assert !xirArchitecture.contains('(c:Connector\n          {xmlns:c')
-        assert !xirTerminology.contains('(c:Term\n          {xmlns:c')
-
-        assert presetKnowledge.contains('type="paragraph"')
-        assert presetKnowledge.contains('group="knowledge"')
-        assert presetKnowledge.contains('Order Summary')
-        assert presetKnowledge.contains('SAP sends order status updates to CRM.')
-
-        assert presetArchitecture.contains('type="relationship-candidate"')
-        assert presetArchitecture.contains('group="architecture"')
-        assert presetArchitecture.contains('source="sap"')
-        assert presetArchitecture.contains('Core Integration Landscape')
-
-        assert presetTerminology.contains('type="term"')
-        assert presetTerminology.contains('group="terminology"')
-        assert presetTerminology.contains('name="Master Data"')
-        assert presetTerminology.contains('Business Terms')
-    }
+    dependsOn 'runSelfTest'
 }

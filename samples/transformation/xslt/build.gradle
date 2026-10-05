@@ -27,28 +27,13 @@ tasks.register('runXsltIdentityXir', name.jurgenei.gradle.xml.XsltTask) {
     xirFormat.set('beautified')
 }
 
-tasks.register('verifySample') {
+tasks.register('runSelfTest', name.jurgenei.gradle.xml.XSpecTask) {
     dependsOn 'runXslt', 'runXsltXir', 'runXsltIdentityXir'
-    doLast {
-        File xmlOutput = file('build/out/xslt/input.xml')
-        File xirOutput = file('build/out/xslt-xir/input.xir')
-        File identityOutput = file('build/out/xslt-identity/identity-input.xir')
-        if (!xmlOutput.exists()) {
-            throw new GradleException("Expected output file does not exist: ${xmlOutput}")
-        }
-        if (!xirOutput.exists()) {
-            throw new GradleException("Expected output file does not exist: ${xirOutput}")
-        }
-        if (!identityOutput.exists()) {
-            throw new GradleException("Expected output file does not exist: ${identityOutput}")
-        }
-        String text = xirOutput.getText('UTF-8')
-        if (!text.contains('(result') || !text.contains('"Hello "') || !text.contains('"Gradle"')) {
-            throw new GradleException("Unexpected XIR output: ${xirOutput}")
-        }
-        String identityText = identityOutput.getText('UTF-8')
-        if (!identityText.contains('{id "b1"}') || !identityText.contains('(title "XML")')) {
-            throw new GradleException("Unexpected identity XIR output: ${identityOutput}")
-        }
-    }
+    source 'src/main/xspec/selftest.xspec'
+    outputDir.set(layout.buildDirectory.dir('reports/xspec'))
+    failOnError.set(true)
+}
+
+tasks.register('verifySample') {
+    dependsOn 'runSelfTest'
 }
