@@ -43,29 +43,53 @@ public abstract class ShaclSelCompileTask extends DefaultTask {
     private static final String SCH_NS = "http://purl.oclc.org/dsdl/schematron";
     private static final String SEL_NS = "http://jurgenei.name/sel";
 
-    /** SHACL RDF/XML schema source. */
+    /**
+     * Returns SHACL RDF/XML schema source.
+     *
+     * @return schema file property
+     */
     @InputFile
     @PathSensitive(PathSensitivity.RELATIVE)
     public abstract RegularFileProperty getSchema();
 
-    /** Generated SEL stylesheet output file. */
+    /**
+     * Returns generated SEL stylesheet output target.
+     *
+     * @return stylesheet output file property
+     */
     @OutputFile
     public abstract RegularFileProperty getOutputStylesheet();
 
-    /** Generated intermediate Schematron file (for debugging and extractor compatibility). */
+    /**
+     * Returns generated intermediate Schematron output target.
+     *
+     * @return Schematron output file property
+     */
     @OutputFile
     public abstract RegularFileProperty getOutputSchematron();
 
-    /** Group output mapping for generated stylesheet. */
+    /**
+     * Returns logical group to output-path mapping.
+     *
+     * @return configured group outputs
+     */
     @Input
     public abstract MapProperty<String, String> getGroupOutputs();
 
-    /** Optional SEL namespace URI override. */
+    /**
+     * Returns optional override for SEL namespace URI.
+     *
+     * @return namespace URI property
+     */
     @Input
     @Optional
     public abstract Property<String> getOutputNamespaceUri();
 
-    /** Optional SEL namespace prefix override. */
+    /**
+     * Returns optional override for SEL namespace prefix.
+     *
+     * @return namespace prefix property
+     */
     @Input
     @Optional
     public abstract Property<String> getOutputNamespacePrefix();

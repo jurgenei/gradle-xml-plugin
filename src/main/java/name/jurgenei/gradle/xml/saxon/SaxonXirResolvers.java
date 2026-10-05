@@ -46,7 +46,6 @@ public final class SaxonXirResolvers {
     public static void configure(net.sf.saxon.s9api.XsltCompiler compiler) {
         DualXirResolver resolver = new DualXirResolver();
         compiler.setResourceResolver(resolver);
-        compiler.setURIResolver(resolver);
     }
 
     private static void registerXirCollectionFactory(Configuration configuration) {

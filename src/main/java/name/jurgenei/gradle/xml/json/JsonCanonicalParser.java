@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Iterator;
 import java.util.Map;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.SAXException;
@@ -65,9 +64,8 @@ public final class JsonCanonicalParser {
             if (!attributesNode.isObject()) {
                 throw new IOException("'attributes' must be an object for element: " + name);
             }
-            Iterator<Map.Entry<String, JsonNode>> it = attributesNode.fields();
-            while (it.hasNext()) {
-                Map.Entry<String, JsonNode> entry = it.next();
+            ObjectNode attributesObject = (ObjectNode) attributesNode;
+            for (Map.Entry<String, JsonNode> entry : attributesObject.properties()) {
                 String attrName = entry.getKey();
                 String attrValue = scalarToString(entry.getValue());
                 attributes.addAttribute("", attrName, attrName, "CDATA", attrValue);
@@ -145,4 +143,3 @@ public final class JsonCanonicalParser {
         return node == null || node.isNull() ? null : node.asText();
     }
 }
-

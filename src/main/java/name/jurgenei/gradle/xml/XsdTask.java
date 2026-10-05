@@ -92,6 +92,7 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         return isSaxonSchemaAwareAvailable() ? XsdEngine.SAXON : XsdEngine.JAXP;
     }
 
+    @SuppressWarnings("deprecation")
     private boolean isSaxonSchemaAwareAvailable() {
         try {
             Processor processor = new Processor(false);
@@ -102,6 +103,7 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private List<ValidationIssue> validateWithSaxon(File inputFile) {
         List<ValidationIssue> issues = new ArrayList<>();
         try {
@@ -158,4 +160,3 @@ public abstract class XsdTask extends AbstractXmlValidationTask {
         return input + ":" + exception.getLineNumber() + ":" + exception.getColumnNumber();
     }
 }
-

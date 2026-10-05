@@ -40,6 +40,11 @@ public final class SaxXmlWriter {
         this.elementPrefixMappings = new ArrayDeque<>();
     }
 
+    /**
+     * Creates pretty-printing SAX writer with secure transformer defaults.
+     *
+     * @return initialized XML writer instance
+     */
     public static SaxXmlWriter createPretty() {
         try {
             StringWriter output = new StringWriter();
@@ -60,14 +65,34 @@ public final class SaxXmlWriter {
         }
     }
 
+    /**
+     * Starts XML document emission.
+     *
+     * @throws SAXException if downstream handler fails
+     */
     public void startDocument() throws SAXException {
         handler.startDocument();
     }
 
+    /**
+     * Completes XML document emission.
+     *
+     * @throws SAXException if downstream handler fails
+     */
     public void endDocument() throws SAXException {
         handler.endDocument();
     }
 
+    /**
+     * Starts element with optional namespace declarations and attributes.
+     *
+     * @param namespaceUri namespace URI or empty string
+     * @param localName local element name
+     * @param qName qualified element name
+     * @param attributes optional element attributes
+     * @param namespaceMappings optional prefix to URI mappings declared on this element
+     * @throws SAXException if downstream handler fails
+     */
     public void startElement(
             String namespaceUri,
             String localName,
@@ -92,6 +117,14 @@ public final class SaxXmlWriter {
                 toAttributes(attributes));
     }
 
+    /**
+     * Ends element and closes namespace declarations opened for it.
+     *
+     * @param namespaceUri namespace URI or empty string
+     * @param localName local element name
+     * @param qName qualified element name
+     * @throws SAXException if downstream handler fails
+     */
     public void endElement(String namespaceUri, String localName, String qName)
             throws SAXException {
         handler.endElement(safeNamespace(namespaceUri), safeLocal(localName, qName), qName);
@@ -104,6 +137,16 @@ public final class SaxXmlWriter {
         }
     }
 
+    /**
+     * Emits empty element with optional attributes and namespace mappings.
+     *
+     * @param namespaceUri namespace URI or empty string
+     * @param localName local element name
+     * @param qName qualified element name
+     * @param attributes optional element attributes
+     * @param namespaceMappings optional prefix to URI mappings declared on this element
+     * @throws SAXException if downstream handler fails
+     */
     public void emptyElement(
             String namespaceUri,
             String localName,
@@ -115,6 +158,12 @@ public final class SaxXmlWriter {
         endElement(namespaceUri, localName, qName);
     }
 
+    /**
+     * Emits text node.
+     *
+     * @param text text content; blank values are ignored
+     * @throws SAXException if downstream handler fails
+     */
     public void text(String text) throws SAXException {
         if (text == null || text.isEmpty()) {
             return;
@@ -123,6 +172,12 @@ public final class SaxXmlWriter {
         handler.characters(chars, 0, chars.length);
     }
 
+    /**
+     * Emits XML comment.
+     *
+     * @param text comment text; blank values are ignored
+     * @throws SAXException if downstream handler fails
+     */
     public void comment(String text) throws SAXException {
         if (text == null || text.isEmpty()) {
             return;
@@ -131,6 +186,12 @@ public final class SaxXmlWriter {
         handler.comment(chars, 0, chars.length);
     }
 
+    /**
+     * Parses and appends XML fragment under secure parser settings.
+     *
+     * @param fragment XML fragment to append
+     * @param namespaceHints optional namespace hints used while wrapping fragment root
+     */
     public void appendFragment(String fragment, Map<String, String> namespaceHints) {
         if (fragment == null || fragment.isBlank()) {
             return;
@@ -159,14 +220,35 @@ public final class SaxXmlWriter {
         }
     }
 
+    /**
+     * Returns rendered XML output.
+     *
+     * @return serialized XML string
+     */
     public String build() {
         return output.toString();
     }
 
+    /**
+     * Creates non-namespaced attribute.
+     *
+     * @param name attribute name
+     * @param value attribute value
+     * @return attribute descriptor
+     */
     public static XmlAttribute attr(String name, String value) {
         return new XmlAttribute("", name, name, value == null ? "" : value);
     }
 
+    /**
+     * Creates namespaced attribute.
+     *
+     * @param namespaceUri namespace URI or null
+     * @param localName local name or null
+     * @param qName qualified name
+     * @param value attribute value
+     * @return attribute descriptor
+     */
     public static XmlAttribute attr(
             String namespaceUri, String localName, String qName, String value) {
         return new XmlAttribute(
@@ -301,5 +383,13 @@ public final class SaxXmlWriter {
                 .replace("\"", "&quot;");
     }
 
+    /**
+     * Attribute descriptor used by element helper methods.
+     *
+     * @param namespaceUri attribute namespace URI
+     * @param localName attribute local name
+     * @param qName attribute qualified name
+     * @param value attribute value
+     */
     public record XmlAttribute(String namespaceUri, String localName, String qName, String value) {}
 }
