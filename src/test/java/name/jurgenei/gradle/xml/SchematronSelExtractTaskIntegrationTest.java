@@ -221,7 +221,7 @@ public class SchematronSelExtractTaskIntegrationTest {
             tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) {
               schema 'src/main/schematron/sel.sch'
               source 'src/main/json/canonical.json'
-              jsonMode 'canonical'
+              outputMode 'canonical'
               outputDir.set(layout.buildDirectory.dir('out/sel'))
               groupOutput 'knowledge', 'sel/knowledge.xml'
               failOnError.set(true)
@@ -286,7 +286,7 @@ public class SchematronSelExtractTaskIntegrationTest {
               source 'src/main/xir/canonical.xir'
               outputDir.set(layout.buildDirectory.dir('out/sel'))
               groupOutput 'knowledge', 'sel/knowledge.xir'
-              xirFormat 'beautified'
+              outputFormat 'beautified'
               failOnError.set(true)
             }
             """);

@@ -60,6 +60,16 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
     @Input
     public abstract Property<ReportFormat> getReportFormat();
 
+    /**
+     * Orthogonal alias for {@link #getReportFormat()}.
+     *
+     * @return report format property
+     */
+    @Internal
+    public Property<ReportFormat> getFormat() {
+        return getReportFormat();
+    }
+
     @OutputDirectory
     public abstract DirectoryProperty getJunitOutputDir();
 
@@ -89,6 +99,24 @@ public abstract class AbstractXmlValidationTask extends SourceTask implements Va
         getJunitSuiteName().convention(getName());
         getProjectDir().convention(getProject().getLayout().getProjectDirectory());
         getJunitOutputDir().convention(getProject().getLayout().getBuildDirectory().dir("reports/xml-validation/junit"));
+    }
+
+    /**
+     * Sets validation report format using orthogonal DSL alias.
+     *
+     * @param format report format selection
+     */
+    public void format(ReportFormat format) {
+        getReportFormat().set(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #format(ReportFormat)}.
+     *
+     * @param format report format selection
+     */
+    public void setFormat(ReportFormat format) {
+        format(format);
     }
 
     /**

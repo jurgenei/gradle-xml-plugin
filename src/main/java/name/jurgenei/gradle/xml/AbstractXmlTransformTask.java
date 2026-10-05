@@ -23,9 +23,10 @@ import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Optional;
-import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.api.tasks.PathSensitivity;
 import org.gradle.api.tasks.SourceTask;
@@ -127,6 +128,26 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     public abstract Property<String> getXirFormat();
 
     /**
+     * Canonical output-format alias for {@link #getXirFormat()}.
+     *
+     * @return S-expression output format property
+     */
+    @Internal
+    public Property<String> getOutputFormat() {
+        return getXirFormat();
+    }
+
+    /**
+     * Backward-compatible alias for {@link #getOutputFormat()}.
+     *
+     * @return S-expression output format property
+     */
+    @Internal
+    public Property<String> getXformat() {
+        return getOutputFormat();
+    }
+
+    /**
      * Optional JSON mode controlling how {@code .json} input/output is routed.
      *
      * <p>Supported values are {@code auto} (default), {@code native}, and {@code canonical}.</p>
@@ -136,6 +157,26 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     @Input
     @Optional
     public abstract Property<String> getJsonMode();
+
+    /**
+     * Canonical output-mode alias for {@link #getJsonMode()}.
+     *
+     * @return JSON routing mode property
+     */
+    @Internal
+    public Property<String> getOutputMode() {
+        return getJsonMode();
+    }
+
+    /**
+     * Backward-compatible alias for {@link #getOutputMode()}.
+     *
+     * @return JSON routing mode property
+     */
+    @Internal
+    public Property<String> getMode() {
+        return getOutputMode();
+    }
 
     /**
      * Transform parameters exposed to the execution engine.
@@ -237,12 +278,84 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
     }
 
     /**
+     * Sets explicit S-expression output format using canonical DSL name.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void outputFormat(String format) {
+        getOutputFormat().set(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #outputFormat(String)}.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void setOutputFormat(String format) {
+        outputFormat(format);
+    }
+
+    /**
+     * Backward-compatible alias for {@link #outputFormat(String)}.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void xformat(String format) {
+        outputFormat(format);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #xformat(String)}.
+     *
+     * @param format one of {@code compact} or {@code beautified}
+     */
+    public void setXformat(String format) {
+        xformat(format);
+    }
+
+    /**
      * Sets JSON routing mode (Gradle DSL friendly).
      *
      * @param mode one of {@code auto}, {@code native}, or {@code canonical}
      */
     public void jsonMode(String mode) {
         getJsonMode().set(mode);
+    }
+
+    /**
+     * Sets JSON routing mode using canonical DSL name.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void outputMode(String mode) {
+        getOutputMode().set(mode);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #outputMode(String)}.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void setOutputMode(String mode) {
+        outputMode(mode);
+    }
+
+    /**
+     * Backward-compatible alias for {@link #outputMode(String)}.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void mode(String mode) {
+        outputMode(mode);
+    }
+
+    /**
+     * Groovy/Kotlin assignment-style alias for {@link #mode(String)}.
+     *
+     * @param mode one of {@code auto}, {@code native}, or {@code canonical}
+     */
+    public void setMode(String mode) {
+        mode(mode);
     }
 
     @Override
@@ -584,4 +697,3 @@ public abstract class AbstractXmlTransformTask extends SourceTask {
      */
     protected abstract void transform(File inputFile, File outputFile, Map<String, String> params) throws Exception;
 }
-

@@ -620,8 +620,8 @@ public class XQueryTaskIntegrationTest {
               source 'src/main/xml/input.xml'
               outputDir.set(layout.buildDirectory.dir('out/xquery'))
               outputExtension.set('.json')
-              jsonMode.set('canonical')
-              xirFormat.set('beautified')
+              outputMode('canonical')
+              outputFormat.set('beautified')
             }
             """);
         write("src/main/xml/input.xml", "<book id='b1'><title>XML</title></book>");

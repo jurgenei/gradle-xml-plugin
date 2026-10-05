@@ -80,7 +80,8 @@ S-expression runtime ships inside `gradle-xml-plugin` artifact.
 - XSLT stylesheet may also be `.xir` (for `XsltTask.style(...)`).
 - Output `.xir` is serialized from XML result events through SAX/JAXP pipeline.
 - Saxon URI dereferencing routes `.xir` resources through the same SAX parser path for `doc()` and `collection()` calls.
-- `xirFormat` controls output style: `compact` (default) or `beautified`.
+- `outputFormat` controls output style: `compact` (default) or `beautified`.
+  (`xirFormat` and `xformat` remain supported as legacy aliases.)
 
 XIR format details:
 
@@ -117,7 +118,7 @@ Internal bridge note:
 - SAX cannot represent XDM map/array/typed-atomic/xml-declaration directly.
 - Runtime uses internal `xdm:*` helper elements in URI `urn:name.jurgenei.gradle.xml:xdm` as lossless bridge between parser and serializer.
 
-`xirFormat` is also reused for canonical JSON output formatting.
+`outputFormat` is also reused for canonical JSON output formatting.
 
 Format conventions:
 
@@ -154,9 +155,9 @@ tasks.register('xirToXml', name.jurgenei.gradle.xml.XsltTask) {
 
 - Canonical JSON maps XML element trees to JSON objects with `type`, `name`, `attributes`, `children`.
 - Canonical JSON mode is reversible for XML -> JSON -> XML roundtrips.
-- `xirFormat` controls canonical JSON output style too: `compact` or `beautified`.
+- `outputFormat` controls canonical JSON output style too: `compact` or `beautified`.
 
-Set JSON routing mode with `jsonMode`:
+Set JSON routing mode with `outputMode` (`jsonMode` and `mode` remain supported as legacy aliases):
 
 - `auto` (default): canonical parser for `.json` input; for `.json` output, try canonical hierarchical JSON first and fall back to native Saxon JSON when canonical serialization is not applicable (for example map/array results)
 - `native`: no canonical JSON parser for input; for `.json` output, same canonical-first behavior with native fallback
@@ -170,15 +171,15 @@ tasks.register('xmlToJsonCanonical', name.jurgenei.gradle.xml.XsltTask) {
   source 'src/main/xml/input.xml'
   outputDir.set(layout.buildDirectory.dir('out/json'))
   outputExtension.set('.json')
-  jsonMode.set('canonical')
-  xirFormat.set('beautified')
+  outputMode('canonical')
+  outputFormat.set('beautified')
 }
 
 tasks.register('jsonCanonicalToXml', name.jurgenei.gradle.xml.XsltTask) {
   style 'src/main/xslt/identity.xsl'
   input 'build/out/json/input.json'
   output 'build/out/xml/result.xml'
-  jsonMode.set('canonical')
+  outputMode('canonical')
 }
 ```
 
@@ -192,7 +193,7 @@ tasks.register<name.jurgenei.gradle.xml.XsltTask>("xmlToXir") {
     source("src/main/xml/input.xml")
     outputDir.set(layout.buildDirectory.dir("out/xslt"))
     outputExtension.set(".xir")
-    xirFormat.set("beautified")
+    outputFormat.set("beautified")
 }
 ```
 
@@ -204,7 +205,7 @@ tasks.register('xmlToXir', name.jurgenei.gradle.xml.XsltTask) {
   source 'src/main/xml/input.xml'
   outputDir.set(layout.buildDirectory.dir('out/xslt'))
   outputExtension.set('.xir')
-  xirFormat.set('beautified')
+  outputFormat.set('beautified')
 }
 ```
 
@@ -227,7 +228,7 @@ Validation tasks share a common contract (`ValidationTaskSpec`) and defaults:
 
 - `outputExtension = '.svrl.xml'`
 - `workers = 1`
-- `reportFormat = SVRL`
+- `format = SVRL` (`reportFormat` remains supported as legacy alias)
 - `failOnError = true`
 - `junitOutputDir = build/reports/xml-validation/junit`
 
@@ -374,7 +375,7 @@ tasks.register('validateSchematron', name.jurgenei.gradle.xml.SchematronTask) {
   style 'build/generated/schematron/rules.compiled.xsl'
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/schematron'))
-  reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+  format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
   // Optional SchXslt transpiler parameters.
   phase.set('#ALL')
   severityThreshold.set('warning')
@@ -386,7 +387,7 @@ tasks.register('validateXsd', name.jurgenei.gradle.xml.XsdTask) {
   schema 'src/main/xsd/schema.xsd'
   source(fileTree('src/main/xml') { include '**/*.xml' })
   outputDir.set(layout.buildDirectory.dir('reports/xsd'))
-  reportFormat.set(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
+  format(name.jurgenei.gradle.xml.validation.ReportFormat.SVRL_AND_JUNIT)
   engine.set(name.jurgenei.gradle.xml.validation.XsdEngine.AUTO)
 }
 ```
@@ -539,8 +540,8 @@ tasks.register('extractSel', name.jurgenei.gradle.xml.SchematronSelExtractTask) 
   groupOutput 'architecture', 'sel/architecture.xml'
   // XIR targets are supported by using .xir output paths:
   // groupOutput 'knowledge', 'sel/knowledge.xir'
-  // xirFormat.set('beautified')
-  jsonMode.set('auto')
+  // outputFormat.set('beautified')
+  outputMode('auto')
   failOnError.set(true)
 }
 ```
