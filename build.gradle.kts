@@ -15,9 +15,18 @@ plugins {
     // id("signing")
     id("com.gradle.plugin-publish") version "2.2.1"
     id("org.owasp.dependencycheck") version "13.0.0"
-    id("com.github.spotbugs") version "6.5.12"
+    id("com.github.spotbugs") version "6.5.12" apply false
     id("org.sonarqube") version "7.5.0.8588"
     id("com.diffplug.spotless") version "8.10.3"
+}
+
+val enableSpotbugs =
+    gradle.startParameter.taskNames
+        .map { it.lowercase() }
+        .any { it.contains("spotbugs") || it.endsWith("allsecuritychecks") }
+
+if (enableSpotbugs) {
+    apply(plugin = "com.github.spotbugs")
 }
 
 group = "name.jurgenei.gradle"
@@ -171,16 +180,21 @@ extensions.getByName("dependencyCheck").withGroovyBuilder {
     }
 }
 
-tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
-    ignoreFailures = providers.gradleProperty("spotbugsIgnoreFailures")
-        .map { it.toBoolean() }
-        .orElse(true)
-        .get()
-    effort = com.github.spotbugs.snom.Effort.DEFAULT
-    reportLevel = com.github.spotbugs.snom.Confidence.MEDIUM
-    excludeFilter.set(file("spotbugs-exclude.xml"))
-    reports.create("html").required.set(true)
-    reports.create("xml").required.set(false)
+plugins.withId("com.github.spotbugs") {
+    dependencies {
+        add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
+    }
+    tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+        ignoreFailures = providers.gradleProperty("spotbugsIgnoreFailures")
+            .map { it.toBoolean() }
+            .orElse(true)
+            .get()
+        effort = com.github.spotbugs.snom.Effort.DEFAULT
+        reportLevel = com.github.spotbugs.snom.Confidence.MEDIUM
+        excludeFilter.set(file("spotbugs-exclude.xml"))
+        reports.create("html").required.set(true)
+        reports.create("xml").required.set(false)
+    }
 }
 
 // SonarQube configuration
@@ -205,7 +219,6 @@ dependencies {
     add("implementation", "name.jurgenei:xir-sax:0.1.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.3")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
-    add("spotbugsPlugins", "com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0")
 
     add("testImplementation", gradleTestKit())
     add("testImplementation", "junit:junit:4.13.2")
