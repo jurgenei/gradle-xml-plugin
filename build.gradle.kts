@@ -17,7 +17,7 @@ plugins {
     id("org.owasp.dependencycheck") version "13.0.0"
     id("com.github.spotbugs") version "6.5.12" apply false
     id("org.sonarqube") version "7.5.0.8588"
-    id("com.diffplug.spotless") version "8.10.3"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 val enableSpotbugs =
