@@ -15,9 +15,9 @@ plugins {
     // id("signing")
     id("com.gradle.plugin-publish") version "2.2.1"
     id("org.owasp.dependencycheck") version "13.0.0"
-    id("com.github.spotbugs") version "6.5.12" apply false
+    id("com.github.spotbugs") version "6.5.13" apply false
     id("org.sonarqube") version "7.5.0.8588"
-    id("com.diffplug.spotless") version "8.10.3"
+    id("com.diffplug.spotless") version "8.10.4"
 }
 
 val enableSpotbugs =
@@ -209,15 +209,15 @@ extensions.getByName("sonar").withGroovyBuilder {
 
 dependencies {
     constraints {
-        add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.4")
-        add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.4.4")
-        add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.4.4")
+        add("implementation", "org.apache.httpcomponents.client5:httpclient5:5.6.5")
+        add("implementation", "org.apache.httpcomponents.core5:httpcore5:5.5-beta4")
+        add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.5-beta4")
     }
 
-    add("implementation", "net.sf.saxon:Saxon-HE:13.0")
-    add("implementation", "io.xspec:xspec:3.2.2")
+    add("implementation", "net.sf.saxon:Saxon-HE:13.1")
+    add("implementation", "io.xspec:xspec:4.1.2")
     add("implementation", "name.jurgenei:xir-sax:0.1.3")
-    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.3")
+    add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.4")
     add("implementation", "name.dmaus.schxslt:schxslt2:1.11.2")
 
     add("testImplementation", gradleTestKit())
