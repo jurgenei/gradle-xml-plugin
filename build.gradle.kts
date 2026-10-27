@@ -214,7 +214,7 @@ dependencies {
         add("implementation", "org.apache.httpcomponents.core5:httpcore5-h2:5.5-beta3")
     }
 
-    add("implementation", "net.sf.saxon:Saxon-HE:13.0")
+    add("implementation", "net.sf.saxon:Saxon-HE:13.1")
     add("implementation", "io.xspec:xspec:4.1.2")
     add("implementation", "name.jurgenei:xir-sax:0.1.3")
     add("implementation", "com.fasterxml.jackson.core:jackson-databind:2.22.4")
