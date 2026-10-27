@@ -19,6 +19,18 @@
 Plugin gives Gradle-native tasks for XML transformations and validations with Saxon-backed execution.
 It supports XML, XIR, and canonical JSON routing, with one orthogonal DSL across task types.
 
+## Position in XIR spine
+
+- **Problem solved**: run deterministic transformation/validation workflows over structured content.
+- **Relation to XIR**: derivation runtime that consumes and emits XIR alongside XML/JSON.
+- **Why it matters**: operationalizes model checks and transformations that produce trusted knowledge artifacts.
+
+```text
+Structured Knowledge -> XIR -> Observation -> Derivation -> Knowledge -> Applications
+```
+
+Next repository in reading path: [example-lineage-plsql](https://github.com/jurgenei/example-lineage-plsql).
+
 ## Introduction and Overview
 
 Use this plugin when project needs repeatable XML processing in build pipeline:
